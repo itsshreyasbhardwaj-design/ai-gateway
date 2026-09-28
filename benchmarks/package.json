@@ -1,0 +1,11 @@
+{
+  "name": "@ai-gateway/benchmarks",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ai-gateway/core": "workspace:*",
+    "@ai-gateway/gateway": "workspace:*",
+    "@ai-gateway/providers": "workspace:*"
+  }
+}

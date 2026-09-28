@@ -1,0 +1,20 @@
+{
+  "name": "@ai-gateway/tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ai-gateway/cache": "workspace:*",
+    "@ai-gateway/config": "workspace:*",
+    "@ai-gateway/core": "workspace:*",
+    "@ai-gateway/database": "workspace:*",
+    "@ai-gateway/gateway": "workspace:*",
+    "@ai-gateway/policies": "workspace:*",
+    "@ai-gateway/pricing": "workspace:*",
+    "@ai-gateway/providers": "workspace:*",
+    "@ai-gateway/rate-limit": "workspace:*",
+    "@ai-gateway/router": "workspace:*",
+    "@ai-gateway/sdk": "workspace:*",
+    "@ai-gateway/usage": "workspace:*"
+  }
+}

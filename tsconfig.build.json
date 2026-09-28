@@ -1,0 +1,24 @@
+{
+  "// note": "Solution file. Entries are listed in dependency order so `tsc -b` builds and typechecks the workspace in one pass. The dashboard is excluded because `next build` runs its own typecheck against JSX settings.",
+  "files": [],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/pricing" },
+    { "path": "./packages/provider-sdk" },
+    { "path": "./packages/observability" },
+    { "path": "./packages/security" },
+    { "path": "./packages/config" },
+    { "path": "./packages/policies" },
+    { "path": "./packages/cache" },
+    { "path": "./packages/rate-limit" },
+    { "path": "./packages/providers" },
+    { "path": "./packages/usage" },
+    { "path": "./packages/router" },
+    { "path": "./packages/database" },
+    { "path": "./packages/sdk" },
+    { "path": "./apps/gateway" },
+    { "path": "./apps/worker" },
+    { "path": "./apps/cli" },
+    { "path": "./apps/mcp" }
+  ]
+}
