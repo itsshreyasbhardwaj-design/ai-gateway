@@ -110,6 +110,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 
+      # scripts/migrate.ts imports the compiled @ai-gateway/database, so the
+      # build has to come first. This is the order a real deployment uses too.
+      - name: Build
+        run: pnpm build
+
       - name: Apply migrations
         run: pnpm db:migrate
 
@@ -123,7 +128,6 @@ jobs:
 
       - name: Smoke test a real gateway process
         run: |
-          pnpm build
           ENABLE_MOCK_PROVIDER=true DEMO_API_KEY=aigw_test_cismoketestkey0000000000 \
             node apps/gateway/dist/server.js &
           for i in $(seq 1 30); do
