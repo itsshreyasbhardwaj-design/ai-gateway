@@ -8,7 +8,8 @@
 --     chronological index and pagination needs no separate sort key.
 --   * Secrets are stored only as ciphertext or as one-way hashes.
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- No extensions are required. IDs are ULIDs minted by the application, which
+-- keeps this schema runnable on managed Postgres that restricts extensions.
 
 -- ---------------------------------------------------------------- tenancy
 

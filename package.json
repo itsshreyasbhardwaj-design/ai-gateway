@@ -27,7 +27,8 @@
     "db:migrate": "node --import tsx scripts/migrate.ts",
     "seed:demo": "node --import tsx scripts/seed-demo.ts",
     "format": "prettier --write \"**/*.{ts,tsx,md,json,yml,yaml}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yml,yaml}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json,yml,yaml}\"",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
