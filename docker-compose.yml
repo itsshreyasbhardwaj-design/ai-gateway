@@ -1,0 +1,111 @@
+# Local development stack.
+#
+#   docker compose up -d postgres redis   # just the backing services
+#   docker compose up                     # the whole thing
+#
+# The gateway does not need any of this to run - `pnpm dev` works with nothing
+# but Node. Compose is here for when you want durable storage and counters that
+# survive a restart, which is what a real deployment looks like.
+
+name: ai-gateway
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aigw
+      POSTGRES_PASSWORD: aigw
+      POSTGRES_DB: aigw
+      # Slightly faster for a dev database; do not copy this into production.
+      POSTGRES_INITDB_ARGS: '--data-checksums'
+    ports: ['5432:5432']
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U aigw -d aigw']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    # appendonly keeps rate-limit and spend counters across a restart, which
+    # matters: losing a spend counter mid-month silently resets a budget.
+    command: ['redis-server', '--appendonly', 'yes']
+    ports: ['6379:6379']
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: .
+      target: gateway
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      GATEWAY_PORT: '8787'
+      DATABASE_URL: postgresql://aigw:aigw@postgres:5432/aigw
+      REDIS_URL: redis://redis:6379
+      # Replace both before any deployment that matters. Generate with:
+      #   openssl rand -base64 32
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-compose-development-encryption-key-change-me}
+      API_KEY_PEPPER: ${API_KEY_PEPPER:-compose-development-pepper-change-me}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      CORS_ORIGINS: http://localhost:3000
+      ENABLE_MOCK_PROVIDER: ${ENABLE_MOCK_PROVIDER:-true}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      PROVIDER_ALLOWED_HOSTS: ${PROVIDER_ALLOWED_HOSTS:-}
+    ports: ['8787:8787']
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      target: worker
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://aigw:aigw@postgres:5432/aigw
+      REDIS_URL: redis://redis:6379
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-compose-development-encryption-key-change-me}
+      API_KEY_PEPPER: ${API_KEY_PEPPER:-compose-development-pepper-change-me}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ENABLE_MOCK_PROVIDER: ${ENABLE_MOCK_PROVIDER:-true}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      target: dashboard
+    depends_on:
+      - gateway
+    environment:
+      NODE_ENV: production
+      GATEWAY_URL: http://gateway:8787
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      # Leave unset to use the /connect screen; set it to skip straight in.
+      AI_GATEWAY_ADMIN_KEY: ${AI_GATEWAY_ADMIN_KEY:-}
+    ports: ['3000:3000']
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
