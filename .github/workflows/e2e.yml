@@ -1,0 +1,125 @@
+name: E2E
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ENCRYPTION_KEY: ci-encryption-key-0123456789abcdef
+  API_KEY_PEPPER: ci-pepper-0123456789abcdef
+
+jobs:
+  e2e:
+    name: end-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # A complete gateway boots in-process with the synthetic provider, so the
+      # whole demo flow runs with no external services and no credentials.
+      - name: Full suite
+        run: pnpm test:e2e
+
+  full-flow:
+    name: demo flow against a real process
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: aigw
+          POSTGRES_PASSWORD: aigw
+          POSTGRES_DB: aigw
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U aigw -d aigw"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://aigw:aigw@localhost:5432/aigw
+      REDIS_URL: redis://localhost:6379
+      ENABLE_MOCK_PROVIDER: 'true'
+      DEMO_API_KEY: aigw_test_ciflowkey000000000000000
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+      - run: pnpm db:migrate
+
+      - name: Start the gateway and worker
+        run: |
+          node apps/gateway/dist/server.js > gateway.log 2>&1 &
+          node apps/worker/dist/main.js > worker.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -fsS http://localhost:8787/readyz >/dev/null 2>&1 && break
+            sleep 1
+          done
+          curl -fsS http://localhost:8787/readyz
+
+      # The full product demonstration from the README, against a real process
+      # backed by real Postgres and Redis.
+      - name: Smoke test
+        run: AI_GATEWAY_API_KEY=$DEMO_API_KEY ./scripts/smoke.sh
+
+      - name: Seed demo traffic and verify it is excluded from production analytics
+        run: |
+          DEMO_REQUESTS=20 AI_GATEWAY_API_KEY=$DEMO_API_KEY pnpm seed:demo
+          production=$(curl -fsS "http://localhost:8787/api/v1/usage?range=24h" \
+            -H "Authorization: Bearer $DEMO_API_KEY" | python3 -c 'import sys,json; print(json.load(sys.stdin)["summary"]["totalRequests"])')
+          withtest=$(curl -fsS "http://localhost:8787/api/v1/usage?range=24h&includeTest=true" \
+            -H "Authorization: Bearer $DEMO_API_KEY" | python3 -c 'import sys,json; print(json.load(sys.stdin)["summary"]["totalRequests"])')
+          echo "production=$production with-test=$withtest"
+          if [ "$withtest" -le "$production" ]; then
+            echo "demo traffic was not recorded as test traffic" >&2
+            exit 1
+          fi
+
+      - name: Induce a provider failure and confirm fallback recovers it
+        run: |
+          curl -fsS -X POST http://localhost:8787/api/v1/playground/simulate-failure \
+            -H "Authorization: Bearer $DEMO_API_KEY" -H 'Content-Type: application/json' \
+            -d '{"model":"mock/mock-flaky","failureMode":"server_error"}'
+          result=$(curl -fsS -X POST http://localhost:8787/v1/chat/completions \
+            -H "Authorization: Bearer $DEMO_API_KEY" -H 'Content-Type: application/json' \
+            -d '{"model":"gateway/auto","messages":[{"role":"user","content":"survive"}],"gateway":{"models":["mock/mock-flaky","mock/mock-fast"]}}')
+          echo "$result" | python3 -c '
+          import sys, json
+          gateway = json.load(sys.stdin)["gateway"]
+          print("routed to", gateway["model"], "after", gateway["attempts"], "attempt(s), fallback:", gateway["fallbackUsed"])
+          assert gateway["fallbackUsed"] is True, "fallback did not engage"
+          assert gateway["model"] == "mock/mock-fast", "wrong target served the request"
+          '
+
+      - name: Dump logs on failure
+        if: failure()
+        run: |
+          echo '── gateway ──'; cat gateway.log
+          echo '── worker ──';  cat worker.log

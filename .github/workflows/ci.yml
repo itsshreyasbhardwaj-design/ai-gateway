@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Deterministic secrets for CI only. Production refuses to start without real
+  # ones; these exist so the config layer has something valid to parse.
+  ENCRYPTION_KEY: ci-encryption-key-0123456789abcdef
+  API_KEY_PEPPER: ci-pepper-0123456789abcdef
+
+jobs:
+  check:
+    name: lint · typecheck · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build packages and services
+        run: pnpm build
+
+      - name: Build dashboard
+        run: pnpm build:dashboard
+
+  test:
+    name: unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Coverage
+        run: pnpm test:coverage
+        continue-on-error: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  integration:
+    name: integration (postgres + redis)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: aigw
+          POSTGRES_PASSWORD: aigw
+          POSTGRES_DB: aigw
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U aigw -d aigw"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://aigw:aigw@localhost:5432/aigw
+      REDIS_URL: redis://localhost:6379
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations
+        run: pnpm db:migrate
+
+      # Running it twice proves the migration is genuinely idempotent, which is
+      # what makes "run it on every deploy" safe advice.
+      - name: Migrations are idempotent
+        run: pnpm db:migrate
+
+      - name: Integration tests against real backing services
+        run: pnpm test:integration
+
+      - name: Smoke test a real gateway process
+        run: |
+          pnpm build
+          ENABLE_MOCK_PROVIDER=true DEMO_API_KEY=aigw_test_cismoketestkey0000000000 \
+            node apps/gateway/dist/server.js &
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:8787/healthz >/dev/null 2>&1 && break
+            sleep 1
+          done
+          AI_GATEWAY_API_KEY=aigw_test_cismoketestkey0000000000 ./scripts/smoke.sh

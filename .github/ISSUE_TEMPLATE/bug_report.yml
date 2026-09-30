@@ -1,0 +1,62 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Security issues go through [our security policy](https://github.com/itsshreyasbhardwaj-design/ai-gateway/security/policy), not this form.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: |
+        The smallest sequence that shows it. A `curl` against a local `pnpm dev`
+        gateway is ideal.
+      render: shell
+    validations:
+      required: true
+
+  - type: input
+    id: request-id
+    attributes:
+      label: Request id
+      description: |
+        If a request behaved wrongly, its id (`req_01J…`) resolves to a full
+        trace and is usually the fastest route to a diagnosis.
+      placeholder: req_01J…
+
+  - type: textarea
+    id: version
+    attributes:
+      label: Version
+      description: Output of `curl $GATEWAY_URL/` — it reports version, providers, store kind and pricing status.
+      render: json
+    validations:
+      required: true
+
+  - type: dropdown
+    id: store
+    attributes:
+      label: Store
+      options: [in-memory (pnpm dev), PostgreSQL, not sure]
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: |
+        The gateway redacts secrets automatically, but please check before
+        pasting.
+      render: shell

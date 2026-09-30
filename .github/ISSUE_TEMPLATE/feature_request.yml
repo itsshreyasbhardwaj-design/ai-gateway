@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest a capability
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: |
+        What are you trying to do that you cannot do today? Describe the
+        situation rather than the solution — it often turns out there is
+        already a way, or a better one.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you have in mind
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you have already tried
+      description: Workarounds, other tools, or why the existing mechanism does not fit.
+
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Fit with the project's principles
+      description: |
+        These are things the project deliberately does not do. Ticking one is
+        not disqualifying, but it is worth discussing up front.
+      options:
+        - label: This would require the gateway to rank or score model *quality*
+        - label: This would make the gateway do something without recording it on the trace
+        - label: This would require hardcoding provider pricing
+        - label: None of the above

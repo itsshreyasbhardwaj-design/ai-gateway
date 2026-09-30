@@ -1,0 +1,55 @@
+name: Benchmark
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'packages/router/**'
+      - 'packages/cache/**'
+      - 'apps/gateway/**'
+      - 'benchmarks/**'
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    name: gateway overhead
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ENCRYPTION_KEY: ci-encryption-key-0123456789abcdef
+      API_KEY_PEPPER: ci-pepper-0123456789abcdef
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run benchmarks
+        id: bench
+        run: |
+          pnpm bench | tee benchmark-output.txt
+
+      - name: Publish results to the job summary
+        run: |
+          {
+            echo '## Benchmark results'
+            echo
+            echo 'A shared CI runner is noisy and already under load, so absolute'
+            echo 'throughput here is not meaningful. Watch the relative numbers and'
+            echo 'the gateway share of total latency for regressions.'
+            echo
+            echo '```'
+            cat benchmark-output.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: benchmark-results
+          path: benchmarks/results/
+          retention-days: 30

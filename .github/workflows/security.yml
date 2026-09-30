@@ -1,0 +1,83 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, so a newly disclosed advisory in a dependency surfaces without
+    # waiting for someone to push.
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  security-tests:
+    name: adversarial security suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ENCRYPTION_KEY: ci-encryption-key-0123456789abcdef
+      API_KEY_PEPPER: ci-pepper-0123456789abcdef
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # These assert that attacks fail: cross-tenant access, scope escalation,
+      # SSRF, budget and rate-limit bypass, secret and prompt leakage.
+      - name: Security tests
+        run: pnpm vitest run tests/e2e/security.test.ts --config vitest.e2e.config.ts
+
+      - name: Cryptographic primitives
+        run: pnpm vitest run packages/security
+
+  audit:
+    name: dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Audit for known vulnerabilities
+        run: pnpm audit --audit-level moderate
+
+  secret-scan:
+    name: secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # A committed credential is the one mistake this project cannot afford,
+      # given it is a gateway that holds provider keys.
+      - name: Scan history for committed secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+      - uses: github/codeql-action/analyze@v3
