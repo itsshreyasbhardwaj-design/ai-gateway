@@ -1,0 +1,25 @@
+{
+  "name": "@ai-gateway/mcp",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Read-only MCP server exposing AI Gateway models, health, usage and traces.",
+  "type": "module",
+  "bin": {
+    "aigw-mcp": "./dist/bin.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && chmod +x dist/bin.js",
+    "dev": "node --import tsx src/bin.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ai-gateway/core": "workspace:*",
+    "@ai-gateway/sdk": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.24.1"
+  }
+}
