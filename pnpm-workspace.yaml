@@ -1,13 +1,14 @@
 packages:
-  - "apps/*"
-  - "packages/*"
-  - "tests"
-  - "benchmarks"
+  - 'apps/*'
+  - 'packages/*'
+  - 'tests'
+  - 'benchmarks'
+  - 'examples'
 
 # esbuild ships a platform-specific binary via its install script; vitest and
 # tsx both need it. Everything else stays script-free.
 allowBuilds:
   esbuild: true
-  "@tailwindcss/oxide": true
+  '@tailwindcss/oxide': true
   sharp: true
   unrs-resolver: true

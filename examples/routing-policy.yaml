@@ -1,0 +1,98 @@
+# A routing policy, with every option and why you would reach for it.
+#
+# Validate before deploying:
+#   aigw routing validate examples/routing-policy.yaml
+#
+# Policies are immutable versions. Publishing one and activating it are
+# separate steps, so editing a policy is never the same act as deploying it.
+
+name: production
+description: Reliability-first with two fallbacks and conservative retries.
+
+routing:
+  # explicit             — attempt in the order declared below
+  # lowest_cost          — cheapest projected cost for this request
+  # lowest_latency       — lowest p95 this gateway has measured
+  # highest_reliability  — highest success rate this gateway has measured
+  # weighted             — proportional split, using the weights below
+  # priority             — lowest priority number wins
+  # round_robin          — even distribution
+  # fallback_chain       — like explicit; reads better when that is the intent
+  #
+  # There is deliberately no "best model" strategy. The gateway measures cost,
+  # latency and its own observed success rate. It does not rank output quality,
+  # because it has no defensible way to measure that.
+  strategy: highest_reliability
+
+  models:
+    - openai/gpt-4o-mini
+    - anthropic/claude-haiku-4-20250514
+    # Longer form, for the weighted and priority strategies:
+    # - model: google/gemini-2.0-flash
+    #   weight: 3
+    #   priority: 20
+
+fallback:
+  enabled: true
+  # Including the primary. 3 means one primary and two fallbacks.
+  maxTargets: 3
+
+retry:
+  # Attempts against a *single* target before moving to the next one.
+  maxAttempts: 3
+  initialDelayMs: 250
+  maxDelayMs: 8000
+  backoff: exponential # exponential | linear | constant
+  factor: 2
+  # full jitter is the default because it is what actually breaks up retry
+  # storms; `none` makes concurrent clients retry in lockstep.
+  jitter: full
+  # Believe a provider's Retry-After even when it exceeds maxDelayMs.
+  respectRetryAfter: true
+
+cache:
+  # off      — never cache (the default; a gateway that silently caches model
+  #            output changes application behaviour nobody asked for)
+  # exact    — byte-identical requests only
+  # semantic — near-match by embedding similarity
+  mode: off
+  ttlSeconds: 3600
+  # Cosine similarity floor for a semantic hit. Below ~0.9 you will serve
+  # answers to questions nobody asked.
+  similarityThreshold: 0.95
+  # Allow a hit produced by a different model in the same family.
+  crossModel: false
+  # Scope entries per project rather than per organization.
+  perProject: true
+  # Never cache a request carrying one of these tags.
+  # excludeTags: [pii, user-specific]
+
+limits:
+  # Hard ceiling on max_tokens, applied even when the caller asks for more.
+  # The clamp is recorded on the trace rather than applied silently.
+  maxOutputTokens: 16384
+  # Reject a request whose *estimated* prompt exceeds this. The estimate is
+  # labelled as approximate wherever it surfaces.
+  # maxInputTokens: 200000
+  # maxRequestBytes: 10485760
+  timeoutMs: 120000
+  allowStreaming: true
+  allowTools: true
+
+rateLimits:
+  # Omit a field to leave that rule off. Declaring *any* limit replaces the
+  # built-in default set entirely, so raising one does not silently inherit
+  # three others you never configured.
+  requestsPerMinutePerKey: 600
+  tokensPerMinutePerKey: 2000000
+  requestsPerHourPerOrganization: 20000
+  tokensPerDayPerOrganization: 200000000
+
+# Narrow what this policy may route to. Deny always beats allow, and a project
+# allowlist can only narrow the organization's, never widen it.
+# models:
+#   allow:
+#     - openai/gpt-4o-mini
+#     - anthropic/claude-haiku-4-20250514
+#   deny:
+#     - openai/gpt-4.1
