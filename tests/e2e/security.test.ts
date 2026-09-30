@@ -105,6 +105,86 @@ describe('security', () => {
       expect(response.json<{ error: { message: string } }>().error.message).toContain('expired');
     });
 
+    it('stops accepting a key the moment it is revoked through the API', async () => {
+      h = await createHarness();
+
+      // Use the key first, so its verification is in the short-lived auth cache.
+      expect((await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'a' }] })).status).toBe(200);
+      expect((await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'b' }] })).status).toBe(200);
+
+      // Mint and use a second key, then revoke it through the admin API.
+      const created = await h.request('POST', '/api/v1/api-keys', {
+        name: 'to be revoked',
+        projectId: h.project.id,
+        scopes: ['inference.create'],
+      });
+      const secret = created.json<{ secret: string; id: string }>();
+
+      const before = await h.chat(
+        { model: 'mock/mock-fast', messages: [{ role: 'user', content: 'c' }] },
+        { authorization: `Bearer ${secret.secret}` },
+      );
+      expect(before.status).toBe(200);
+
+      await h.request('DELETE', `/api/v1/api-keys/${secret.id}`);
+
+      // Revocation that takes effect in 30 seconds is not revocation: the
+      // cached verification must be dropped as part of the revoke.
+      const after = await h.chat(
+        { model: 'mock/mock-fast', messages: [{ role: 'user', content: 'd' }] },
+        { authorization: `Bearer ${secret.secret}` },
+      );
+      expect(after.status).toBe(401);
+      expect(after.json<{ error: { message: string } }>().error.message).toContain('revoked');
+    });
+
+    it('stops accepting the previous key the moment it is rotated', async () => {
+      h = await createHarness();
+      const created = await h.request('POST', '/api/v1/api-keys', {
+        name: 'to be rotated',
+        projectId: h.project.id,
+        scopes: ['inference.create'],
+      });
+      const original = created.json<{ secret: string; id: string }>();
+
+      await h.chat(
+        { model: 'mock/mock-fast', messages: [{ role: 'user', content: 'warm the cache' }] },
+        { authorization: `Bearer ${original.secret}` },
+      );
+
+      const rotated = await h.request('POST', `/api/v1/api-keys/${original.id}/rotate`, {});
+      const replacement = rotated.json<{ secret: string }>();
+
+      const oldKey = await h.chat(
+        { model: 'mock/mock-fast', messages: [{ role: 'user', content: 'x' }] },
+        { authorization: `Bearer ${original.secret}` },
+      );
+      expect(oldKey.status).toBe(401);
+
+      const newKey = await h.chat(
+        { model: 'mock/mock-fast', messages: [{ role: 'user', content: 'x' }] },
+        { authorization: `Bearer ${replacement.secret}` },
+      );
+      expect(newKey.status).toBe(200);
+    });
+
+    it('never caches a failed verification', async () => {
+      h = await createHarness();
+      const wrong = 'aigw_test_wrongkeyvalue00000000000000';
+
+      for (let i = 0; i < 3; i++) {
+        const response = await h.chat(
+          { model: 'mock/mock-fast', messages: [{ role: 'user', content: 'x' }] },
+          { authorization: `Bearer ${wrong}` },
+        );
+        expect(response.status).toBe(401);
+      }
+
+      // Only successful verifications are cached, so a guessing attacker never
+      // gets a cheaper second attempt.
+      expect(h.ctx.authCache.stats().size).toBe(0);
+    });
+
     it('does not accept a key whose hash was minted with a different pepper', async () => {
       h = await createHarness();
       const generated = await generateApiKey('test');

@@ -12,6 +12,7 @@ import { SecretBox } from '@ai-gateway/security';
 import { SpendCounters } from '@ai-gateway/usage';
 import type { MockProvider } from '@ai-gateway/providers';
 import type { WebhookDispatcher } from './webhooks.js';
+import { AuthCache } from './auth-cache.js';
 
 /**
  * Everything the request pipeline needs, assembled once at boot.
@@ -37,6 +38,8 @@ export interface GatewayContext {
   semanticCache?: SemanticCache;
   secrets: SecretBox;
   webhooks: WebhookDispatcher;
+  /** Short-lived cache of verified API keys; keeps scrypt off the hot path. */
+  authCache: AuthCache;
   clock: Clock;
   /** Present only when the synthetic provider is registered, for the failover simulator. */
   mockProvider?: MockProvider;
@@ -84,6 +87,7 @@ export function buildContext(parts: BuildContextParts): GatewayContext {
     semanticCache: parts.semanticCache,
     secrets: new SecretBox(parts.config.encryptionKey),
     webhooks: parts.webhooks,
+    authCache: new AuthCache({ clock }),
     clock,
     mockProvider: parts.mockProvider,
     nextRoutingCursor: () => cursor++,

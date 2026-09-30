@@ -42,7 +42,7 @@ import {
   type TargetSignals,
 } from '@ai-gateway/router';
 import { buildState, evaluateBudgets, budgetError, type BudgetState } from '@ai-gateway/usage';
-import { rateLimitHeaders, defaultRules } from '@ai-gateway/rate-limit';
+import { rateLimitHeaders, rulesFromPolicy } from '@ai-gateway/rate-limit';
 import type { AuthenticatedKey } from '../auth.js';
 import { targetKey, type GatewayContext } from '../context.js';
 import { streamErrorFrame } from '../errors.js';
@@ -104,7 +104,7 @@ export class ChatPipeline {
       // ---------------------------------------------------- rate limiting
       const rateStep = trace.step('rate_limit');
       const estimatedInput = estimatePromptTokens(input.request.messages);
-      const rules = defaultRules();
+      const rules = rulesFromPolicy(tenant.policy.rateLimits);
       const limitCtx = {
         organizationId: tenant.organization.id,
         projectId: tenant.project.id,
@@ -789,7 +789,7 @@ export class ChatPipeline {
     }
 
     await this.ctx.rateLimiter.settle(
-      defaultRules(),
+      rulesFromPolicy(tenant.policy.rateLimits),
       {
         organizationId: tenant.organization.id,
         projectId: tenant.project.id,

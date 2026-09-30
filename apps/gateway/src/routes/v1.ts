@@ -9,13 +9,14 @@ import {
 } from '@ai-gateway/core';
 import { Readable } from 'node:stream';
 import { DEFAULT_POLICY, permittedModels } from '@ai-gateway/policies';
-import { defaultRules } from '@ai-gateway/rate-limit';
+import { rulesFromPolicy } from '@ai-gateway/rate-limit';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { authenticate, requireScopes, type AuthenticatedKey } from '../auth.js';
 import type { GatewayContext } from '../context.js';
 import { sendError } from '../errors.js';
 import { ChatPipeline } from '../pipeline/chat.js';
 import { EmbeddingsPipeline } from '../pipeline/embeddings.js';
+import { loadTenant } from '../pipeline/tenant.js';
 
 /**
  * The OpenAI-compatible surface.
@@ -31,7 +32,7 @@ export async function registerV1Routes(app: FastifyInstance, ctx: GatewayContext
 
   const auth = async (request: FastifyRequest): Promise<AuthenticatedKey> =>
     authenticate(
-      { store: ctx.store, pepper: ctx.config.apiKeyPepper },
+      { store: ctx.store, pepper: ctx.config.apiKeyPepper, cache: ctx.authCache },
       request.headers.authorization ?? (request.headers['x-api-key'] as string | undefined),
     );
 
@@ -215,7 +216,11 @@ export async function registerV1Routes(app: FastifyInstance, ctx: GatewayContext
     try {
       const identity = await auth(request);
       requireScopes(identity, 'usage.read');
-      const state = await ctx.rateLimiter.peek(defaultRules(), {
+      // Report the limits that actually apply to this project, not the
+      // built-in defaults: a client pacing itself against the wrong numbers is
+      // worse than one that has none.
+      const tenant = await loadTenant(ctx, identity);
+      const state = await ctx.rateLimiter.peek(rulesFromPolicy(tenant.policy.rateLimits), {
         organizationId: identity.organizationId,
         projectId: identity.projectId,
         apiKeyId: identity.apiKeyId,

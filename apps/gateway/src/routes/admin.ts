@@ -31,7 +31,7 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
 
   const auth = async (request: FastifyRequest, ...scopes: ApiKeyScope[]): Promise<AuthenticatedKey> => {
     const identity = await authenticate(
-      { store: ctx.store, pepper: ctx.config.apiKeyPepper },
+      { store: ctx.store, pepper: ctx.config.apiKeyPepper, cache: ctx.authCache },
       request.headers.authorization ?? (request.headers['x-api-key'] as string | undefined),
     );
     requireScopes(identity, ...scopes);
@@ -490,6 +490,7 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
     // The old key is revoked immediately. Callers needing overlap should create
     // a second key, use it, then revoke the first.
     await ctx.store.revokeApiKey(existing.id, new Date().toISOString());
+    ctx.authCache.invalidateByKeyId(existing.id);
     await audit(identity, 'api_key.rotate', 'api_key', replacement.id, { rotatedFrom: existing.id }, request.ip);
 
     return {
@@ -508,6 +509,9 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
       throw new GatewayError('model_not_found', `API key "${id}" not found.`);
     }
     await ctx.store.revokeApiKey(id, new Date().toISOString());
+    // Drop the cached verification immediately: revocation that takes effect
+    // in 30 seconds is not revocation.
+    ctx.authCache.invalidateByKeyId(id);
     await audit(identity, 'api_key.revoke', 'api_key', id, undefined, request.ip);
     return { revoked: true, id };
   });

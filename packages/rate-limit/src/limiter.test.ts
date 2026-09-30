@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FakeClock } from '@ai-gateway/core';
 import { MemoryKV } from '@ai-gateway/cache';
-import { RateLimiter, defaultRules } from './limiter.js';
+import { RateLimiter, defaultRules, rulesFromPolicy } from './limiter.js';
 import { rateLimitHeaders, type RateLimitContext, type RateLimitRule } from './types.js';
 
 const ctx: RateLimitContext = {
@@ -182,6 +182,27 @@ describe('defaults and reset', () => {
       'organization:requests:hour',
       'organization:tokens:day',
     ]);
+  });
+
+  it('builds rules from a policy', () => {
+    const rules = rulesFromPolicy({ requestsPerMinutePerKey: 100, tokensPerDayPerOrganization: 5_000 });
+    expect(rules).toEqual([
+      { id: 'key-rpm', subject: 'api_key', unit: 'requests', window: 'minute', limit: 100 },
+      { id: 'org-tpd', subject: 'organization', unit: 'tokens', window: 'day', limit: 5_000 },
+    ]);
+  });
+
+  it('replaces the whole default set when a policy declares any limit', () => {
+    // An operator who deliberately raises one limit should not silently inherit
+    // three others they never configured.
+    const rules = rulesFromPolicy({ requestsPerMinutePerKey: 1_000_000 });
+    expect(rules).toHaveLength(1);
+    expect(rules[0]?.limit).toBe(1_000_000);
+  });
+
+  it('falls back to the defaults when a policy declares none', () => {
+    expect(rulesFromPolicy(undefined)).toEqual(defaultRules());
+    expect(rulesFromPolicy({})).toEqual(defaultRules());
   });
 
   it('supports an operator reset', async () => {

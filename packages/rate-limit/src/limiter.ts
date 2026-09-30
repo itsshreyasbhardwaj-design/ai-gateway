@@ -189,7 +189,7 @@ function retryAfterFor(rule: RateLimitRule): number {
   return Math.max(1, Math.min(seconds, Math.ceil(seconds / 10)));
 }
 
-/** Sensible starting limits for a new project. */
+/** Sensible starting limits for a new project, used when a policy sets none. */
 export function defaultRules(): RateLimitRule[] {
   return [
     { id: 'key-rpm', subject: 'api_key', unit: 'requests', window: 'minute', limit: 600 },
@@ -197,4 +197,38 @@ export function defaultRules(): RateLimitRule[] {
     { id: 'org-rph', subject: 'organization', unit: 'requests', window: 'hour', limit: 20_000 },
     { id: 'org-tpd', subject: 'organization', unit: 'tokens', window: 'day', limit: 200_000_000 },
   ];
+}
+
+/** Limits a routing policy may declare. Every field is optional. */
+export interface RateLimitPolicy {
+  requestsPerMinutePerKey?: number;
+  requestsPerHourPerOrganization?: number;
+  tokensPerMinutePerKey?: number;
+  tokensPerDayPerOrganization?: number;
+}
+
+/**
+ * Build rules from a policy, falling back to the defaults when it declares
+ * none. A policy that declares *any* limit replaces the default set entirely,
+ * so an operator who deliberately configures one high limit does not silently
+ * inherit three others.
+ */
+export function rulesFromPolicy(policy: RateLimitPolicy | undefined): RateLimitRule[] {
+  if (!policy) return defaultRules();
+
+  const rules: RateLimitRule[] = [];
+  if (policy.requestsPerMinutePerKey !== undefined) {
+    rules.push({ id: 'key-rpm', subject: 'api_key', unit: 'requests', window: 'minute', limit: policy.requestsPerMinutePerKey });
+  }
+  if (policy.tokensPerMinutePerKey !== undefined) {
+    rules.push({ id: 'key-tpm', subject: 'api_key', unit: 'tokens', window: 'minute', limit: policy.tokensPerMinutePerKey });
+  }
+  if (policy.requestsPerHourPerOrganization !== undefined) {
+    rules.push({ id: 'org-rph', subject: 'organization', unit: 'requests', window: 'hour', limit: policy.requestsPerHourPerOrganization });
+  }
+  if (policy.tokensPerDayPerOrganization !== undefined) {
+    rules.push({ id: 'org-tpd', subject: 'organization', unit: 'tokens', window: 'day', limit: policy.tokensPerDayPerOrganization });
+  }
+
+  return rules.length > 0 ? rules : defaultRules();
 }

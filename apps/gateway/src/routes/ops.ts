@@ -93,6 +93,13 @@ export async function registerOpsRoutes(app: FastifyInstance, ctx: GatewayContex
     },
     store: ctx.store.kind,
     countersDurable: !!ctx.config.redisUrl,
+    auth: {
+      // Verified keys are cached briefly so scrypt does not run per request.
+      // A revoked key stops working immediately; the window only applies to
+      // keys whose state has not changed.
+      verificationCacheTtlMs: ctx.authCache.stats().ttlMs,
+      verificationCacheHitRate: Number(ctx.authCache.stats().hitRate.toFixed(4)),
+    },
   }));
 
   /** Provider health, as measured by this gateway's own traffic. */

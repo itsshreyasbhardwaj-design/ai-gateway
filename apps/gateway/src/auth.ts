@@ -1,6 +1,7 @@
 import { GatewayError, type ApiKeyScope, type AuthContext } from '@ai-gateway/core';
 import type { Store } from '@ai-gateway/database';
 import { extractPrefix, keyIndex, verifyApiKey } from '@ai-gateway/security';
+import type { AuthCache } from './auth-cache.js';
 
 export interface AuthenticatedKey extends AuthContext {
   projectId: string;
@@ -12,6 +13,8 @@ export interface AuthDeps {
   store: Store;
   pepper: string;
   now?: () => Date;
+  /** Short-lived cache of verified keys; see AuthCache for why it is safe. */
+  cache?: AuthCache;
 }
 
 /**
@@ -31,12 +34,21 @@ export async function authenticate(deps: AuthDeps, header: string | undefined): 
 
   if (!extractPrefix(presented)) throw unauthorized();
 
-  const record = await deps.store.findApiKeyByIndex(keyIndex(presented, deps.pepper));
+  const index = keyIndex(presented, deps.pepper);
+  const now = (deps.now ?? (() => new Date()))();
+
+  // Fast path: this key verified recently. Only successful verifications are
+  // ever cached, so this cannot shortcut an attacker's guessing.
+  const cached = deps.cache?.get(index);
+  if (cached) {
+    void deps.store.touchApiKey(cached.apiKeyId, now.toISOString()).catch(() => undefined);
+    return cached;
+  }
+
+  const record = await deps.store.findApiKeyByIndex(index);
   if (!record) throw unauthorized();
 
   if (!(await verifyApiKey(presented, record.hash))) throw unauthorized();
-
-  const now = (deps.now ?? (() => new Date()))();
 
   if (record.revokedAt) {
     throw new GatewayError('authentication_error', 'This API key has been revoked.');
@@ -48,7 +60,7 @@ export async function authenticate(deps: AuthDeps, header: string | undefined): 
   // Best-effort: a write failure here must not fail an otherwise valid request.
   void deps.store.touchApiKey(record.id, now.toISOString()).catch(() => undefined);
 
-  return {
+  const identity: AuthenticatedKey = {
     organizationId: record.organizationId,
     projectId: record.projectId,
     apiKeyId: record.id,
@@ -56,6 +68,8 @@ export async function authenticate(deps: AuthDeps, header: string | undefined): 
     keyName: record.name,
     prefix: record.prefix,
   };
+  deps.cache?.set(index, identity);
+  return identity;
 }
 
 export function extractBearer(header: string | undefined): string | undefined {

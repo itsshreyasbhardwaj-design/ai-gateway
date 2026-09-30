@@ -26,7 +26,7 @@ export async function registerPlaygroundRoutes(app: FastifyInstance, ctx: Gatewa
 
   const identify = async (headers: Record<string, unknown>) =>
     authenticate(
-      { store: ctx.store, pepper: ctx.config.apiKeyPepper },
+      { store: ctx.store, pepper: ctx.config.apiKeyPepper, cache: ctx.authCache },
       (headers['authorization'] as string | undefined) ?? (headers['x-api-key'] as string | undefined),
     );
 

@@ -10,7 +10,7 @@ import {
 import { assertModelAllowed, evaluatePolicy, permittedModels } from '@ai-gateway/policies';
 import { computeCost } from '@ai-gateway/pricing';
 import { METRICS, TraceBuilder } from '@ai-gateway/observability';
-import { defaultRules } from '@ai-gateway/rate-limit';
+import { rulesFromPolicy } from '@ai-gateway/rate-limit';
 import { buildState, budgetError, evaluateBudgets } from '@ai-gateway/usage';
 import type { AuthenticatedKey } from '../auth.js';
 import { targetKey, type GatewayContext } from '../context.js';
@@ -54,7 +54,8 @@ export class EmbeddingsPipeline {
         apiKeyId: input.auth.apiKeyId,
         modelId: input.request.model,
       };
-      const rateCheck = await this.ctx.rateLimiter.check(defaultRules(), limitCtx, estimatedTokens);
+      const rules = rulesFromPolicy(tenant.policy.rateLimits);
+      const rateCheck = await this.ctx.rateLimiter.check(rules, limitCtx, estimatedTokens);
       if (!rateCheck.allowed) {
         rateStep.fail('rate_limit', 'rate limit exceeded');
         throw new GatewayError('rate_limit', 'Rate limit exceeded.', {
@@ -176,7 +177,7 @@ export class EmbeddingsPipeline {
           cost.totalCost,
         );
       }
-      await this.ctx.rateLimiter.settle(defaultRules(), limitCtx, usage.total);
+      await this.ctx.rateLimiter.settle(rules, limitCtx, usage.total);
 
       const record: RequestRecord = {
         id: requestId,

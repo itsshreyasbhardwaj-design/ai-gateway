@@ -68,6 +68,23 @@ export const limitsSchema = z
   })
   .strict();
 
+/**
+ * Rate limits.
+ *
+ * Expressed in the policy rather than hardcoded, because the right limit is a
+ * property of the workload: a batch pipeline and an interactive chat app want
+ * very different numbers, and an operator should not have to patch the gateway
+ * to change one. Omitting a field leaves that rule off entirely.
+ */
+export const rateLimitsSchema = z
+  .object({
+    requestsPerMinutePerKey: z.number().int().min(1).max(1_000_000).optional(),
+    requestsPerHourPerOrganization: z.number().int().min(1).max(100_000_000).optional(),
+    tokensPerMinutePerKey: z.number().int().min(1).max(1_000_000_000).optional(),
+    tokensPerDayPerOrganization: z.number().int().min(1).max(100_000_000_000).optional(),
+  })
+  .strict();
+
 export const routingPolicySchema = z
   .object({
     name: z.string().min(1).max(128),
@@ -82,6 +99,7 @@ export const routingPolicySchema = z
     retry: retrySchema.default({}),
     cache: cacheSchema.default({}),
     limits: limitsSchema.default({}),
+    rateLimits: rateLimitsSchema.default({}),
     models: z
       .object({
         allow: z.array(modelRefSchema).optional(),
