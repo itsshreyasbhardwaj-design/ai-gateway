@@ -107,15 +107,38 @@ jobs:
           curl -fsS -X POST http://localhost:8787/api/v1/playground/simulate-failure \
             -H "Authorization: Bearer $DEMO_API_KEY" -H 'Content-Type: application/json' \
             -d '{"model":"mock/mock-flaky","failureMode":"server_error"}'
+
+          # Pin the strategy to `explicit` so the declared order is the attempt
+          # order. Without that, health-aware routing may already have learned
+          # the flaky target is unreliable and skip it entirely - correct
+          # behaviour, but not what this step is trying to prove.
           result=$(curl -fsS -X POST http://localhost:8787/v1/chat/completions \
             -H "Authorization: Bearer $DEMO_API_KEY" -H 'Content-Type: application/json' \
-            -d '{"model":"gateway/auto","messages":[{"role":"user","content":"survive"}],"gateway":{"models":["mock/mock-flaky","mock/mock-fast"]}}')
+            -d '{"model":"gateway/auto","messages":[{"role":"user","content":"survive"}],
+                 "gateway":{"strategy":"explicit","models":["mock/mock-flaky","mock/mock-fast"]}}')
           echo "$result" | python3 -c '
           import sys, json
           gateway = json.load(sys.stdin)["gateway"]
           print("routed to", gateway["model"], "after", gateway["attempts"], "attempt(s), fallback:", gateway["fallbackUsed"])
           assert gateway["fallbackUsed"] is True, "fallback did not engage"
           assert gateway["model"] == "mock/mock-fast", "wrong target served the request"
+          '
+
+      - name: Confirm health-aware routing avoids the degraded target
+        run: |
+          # Having just failed repeatedly, the flaky model should now lose to a
+          # healthy sibling under the reliability strategy - proactively, rather
+          # than by failing over after the fact.
+          result=$(curl -fsS -X POST http://localhost:8787/v1/chat/completions \
+            -H "Authorization: Bearer $DEMO_API_KEY" -H 'Content-Type: application/json' \
+            -d '{"model":"gateway/auto","messages":[{"role":"user","content":"pick wisely"}],
+                 "gateway":{"strategy":"highest_reliability","models":["mock/mock-flaky","mock/mock-fast"]}}')
+          echo "$result" | python3 -c '
+          import sys, json
+          gateway = json.load(sys.stdin)["gateway"]
+          print("routed to", gateway["model"], "after", gateway["attempts"], "attempt(s)")
+          print("reasons:", "; ".join(gateway["reasons"]))
+          assert gateway["model"] == "mock/mock-fast", "reliability routing did not avoid the degraded target"
           '
 
       - name: Dump logs on failure
