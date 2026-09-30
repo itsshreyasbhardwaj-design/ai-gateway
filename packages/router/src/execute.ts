@@ -121,16 +121,24 @@ export async function executeWithFallback<T>(opts: FallbackExecutorOptions<T>): 
     if (next && lastError && !lastError.failoverable) break;
   }
 
+  // With a single target there was no fallback to exhaust, so reporting
+  // `fallback_exhausted` would hide the real cause. Surface the provider's
+  // own normalized error - status code, retry-after and all - and let the
+  // caller react to what actually happened.
+  if (chain.length === 1 && lastError) throw lastError;
+
   throw new GatewayError(
     'fallback_exhausted',
-    `All ${chain.length} routing target${chain.length === 1 ? '' : 's'} failed. Last error: ${lastError?.message ?? 'unknown'}`,
+    `All ${chain.length} routing targets failed. Last error (${lastError?.type ?? 'unknown'}): ${lastError?.message ?? 'unknown'}`,
     {
       requestId: opts.trace.requestId,
       cause: lastError,
+      ...(lastError?.retryAfterSeconds !== undefined ? { retryAfterSeconds: lastError.retryAfterSeconds } : {}),
       details: {
         attempts: attemptNumber,
         chain: chain.map((t) => t.target.modelId),
         lastErrorType: lastError?.type,
+        lastErrorProvider: lastError?.provider,
       },
     },
   );

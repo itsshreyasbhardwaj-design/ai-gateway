@@ -215,6 +215,39 @@ describe('executeWithFallback', () => {
     },
   );
 
+  it('surfaces the provider error unchanged when there was only one target', async () => {
+    // With no fallback to exhaust, `fallback_exhausted` would hide the cause.
+    const h = harness(['a/1']);
+    await expect(
+      executeWithFallback({
+        plan: h.plan,
+        retry: NO_RETRY,
+        trace: h.trace,
+        signal: h.controller.signal,
+        clock: h.clock,
+        attempt: async () => {
+          throw err('provider_rate_limit', 12);
+        },
+      }),
+    ).rejects.toMatchObject({ type: 'provider_rate_limit', retryAfterSeconds: 12 });
+  });
+
+  it('carries retry-after through fallback exhaustion', async () => {
+    const h = harness(['a/1', 'b/2']);
+    await expect(
+      executeWithFallback({
+        plan: h.plan,
+        retry: NO_RETRY,
+        trace: h.trace,
+        signal: h.controller.signal,
+        clock: h.clock,
+        attempt: async () => {
+          throw err('provider_rate_limit', 30);
+        },
+      }),
+    ).rejects.toMatchObject({ type: 'fallback_exhausted', retryAfterSeconds: 30 });
+  });
+
   it('reports fallback_exhausted with the last error when everything fails', async () => {
     const h = harness(['a/1', 'b/2']);
     await expect(

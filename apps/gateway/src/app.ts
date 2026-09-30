@@ -32,6 +32,28 @@ export async function buildApp(ctx: GatewayContext, options: BuildAppOptions = {
     genReqId: () => newRequestId(),
   });
 
+  /**
+   * Treat an empty JSON body as `{}`.
+   *
+   * Several endpoints take no input at all - probing a provider, resetting
+   * circuits - and `curl -X POST` with no `-d` is the obvious way to call them.
+   * Fastify's default parser rejects that with a 400, which is a bad API.
+   */
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_request, body, done) => {
+    const text = typeof body === 'string' ? body.trim() : '';
+    if (!text) {
+      done(null, {});
+      return;
+    }
+    try {
+      done(null, JSON.parse(text));
+    } catch (err) {
+      const error = err as Error & { statusCode?: number };
+      error.statusCode = 400;
+      done(error, undefined);
+    }
+  });
+
   if (ctx.config.corsOrigins.length > 0) {
     await app.register(cors, {
       origin: ctx.config.corsOrigins,

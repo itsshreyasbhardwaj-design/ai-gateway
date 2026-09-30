@@ -171,6 +171,9 @@ importers:
       fastify:
         specifier: ^5.2.0
         version: 5.12.5
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
 
   apps/mcp:
     dependencies:
@@ -183,6 +186,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.12.0
         version: 1.30.1(supports-color@7.2.0)(zod@3.25.76)
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
 
   apps/worker:
     dependencies:
@@ -198,9 +204,15 @@ importers:
       '@ai-gateway/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@ai-gateway/gateway':
+        specifier: workspace:*
+        version: link:../gateway
       '@ai-gateway/observability':
         specifier: workspace:*
         version: link:../../packages/observability
+      '@ai-gateway/provider-sdk':
+        specifier: workspace:*
+        version: link:../../packages/provider-sdk
       '@ai-gateway/providers':
         specifier: workspace:*
         version: link:../../packages/providers
@@ -249,6 +261,12 @@ importers:
       '@ai-gateway/core':
         specifier: workspace:*
         version: link:../core
+      '@ai-gateway/pricing':
+        specifier: workspace:*
+        version: link:../pricing
+      '@ai-gateway/usage':
+        specifier: workspace:*
+        version: link:../usage
       pg:
         specifier: ^8.13.1
         version: 8.23.0
@@ -351,6 +369,9 @@ importers:
 
   packages/usage:
     dependencies:
+      '@ai-gateway/cache':
+        specifier: workspace:*
+        version: link:../cache
       '@ai-gateway/core':
         specifier: workspace:*
         version: link:../core

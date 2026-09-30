@@ -32,7 +32,10 @@ export const DEFAULT_CACHE_POLICY: CachePolicy = {
 
 export type CacheDecision =
   | { read: false; write: false; reason: string; status: 'disabled' | 'bypass' }
-  | { read: boolean; write: boolean; mode: Exclude<CacheMode, 'off'>; threshold: number; ttlSeconds: number };
+  | { read: true; write: true; mode: Exclude<CacheMode, 'off'>; threshold: number; ttlSeconds: number };
+
+/** Narrowing helper, so callers do not have to re-derive the union arm. */
+export type EnabledCacheDecision = Extract<CacheDecision, { read: true }>;
 
 /**
  * Decide whether this specific request may read from, and write to, the cache.

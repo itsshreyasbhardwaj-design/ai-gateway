@@ -151,7 +151,8 @@ describe('rate limit headers', () => {
     const check = await limiter.check(rules, ctx, 10);
     const headers = rateLimitHeaders(check);
     expect(headers['x-ratelimit-limit-requests']).toBe('10');
-    expect(headers['x-ratelimit-remaining-requests']).toBe('10');
+    // Reported after this request is counted, so a client can pace itself.
+    expect(headers['x-ratelimit-remaining-requests']).toBe('9');
     expect(headers['x-ratelimit-limit-tokens']).toBe('1000');
     expect(Number(headers['x-ratelimit-reset-requests'])).toBeGreaterThan(1_700_000_000);
   });

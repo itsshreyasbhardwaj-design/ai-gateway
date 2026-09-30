@@ -1,5 +1,6 @@
 import { newId } from '@ai-gateway/core';
-import { checksumPolicy, type RoutingPolicyDocument } from './policy.js';
+import { checksumPolicy } from './policy.js';
+import type { RoutingPolicyDocument } from './schema.js';
 
 export interface PolicyVersion {
   id: string;

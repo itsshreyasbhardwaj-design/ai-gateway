@@ -68,7 +68,9 @@ export class RateLimiter {
         rule,
         used,
         limit: rule.limit,
-        remaining: Math.max(0, rule.limit - used),
+        // Reported after this request's cost, which is what callers pacing
+        // themselves against the header expect.
+        remaining: Math.max(0, rule.limit - wouldBe),
         resetAt: Math.ceil((now + windowMs) / 1000),
         allowed,
       });

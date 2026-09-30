@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    @apply bg-surface text-zinc-200 antialiased;
+    font-feature-settings: 'tnum' 1, 'cv05' 1;
+  }
+
+  /* Tabular figures everywhere numbers are compared down a column. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    @apply bg-accent/30 text-white;
+  }
+
+  /* Visible keyboard focus is a requirement, not a preference: this console is
+     navigable without a mouse. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent/70 ring-offset-2 ring-offset-surface;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-zinc-700;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-600;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-lg border border-surface-border bg-surface-raised;
+  }
+
+  .panel-header {
+    @apply flex items-center justify-between gap-3 border-b border-surface-border px-4 py-3;
+  }
+
+  .data-table {
+    @apply w-full border-collapse text-sm;
+  }
+  .data-table thead th {
+    @apply sticky top-0 z-10 whitespace-nowrap border-b border-surface-border bg-surface-raised px-3 py-2 text-left text-2xs font-medium uppercase tracking-wider text-zinc-500;
+  }
+  .data-table tbody td {
+    @apply whitespace-nowrap border-b border-surface-border/60 px-3 py-2 align-middle;
+  }
+  .data-table tbody tr:hover {
+    @apply bg-white/[0.02];
+  }
+}

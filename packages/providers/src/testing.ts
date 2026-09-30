@@ -33,7 +33,7 @@ export function stubFetch(responses: StubResponse | StubResponse[]): StubFetch {
   const calls: RecordedCall[] = [];
   const last = queue[queue.length - 1];
 
-  const impl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+  const impl = (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
     const spec = (queue.length > 1 ? queue.shift() : queue[0]) ?? last ?? {};
     calls.push({
       url: String(input),
@@ -89,7 +89,7 @@ function streamOf(text: string, pieceSize = 17): ReadableStream<Uint8Array> {
   });
 }
 
-function normalizeHeaders(headers: HeadersInit | undefined): Record<string, string> {
+function normalizeHeaders(headers: RequestInit['headers'] | undefined): Record<string, string> {
   const out: Record<string, string> = {};
   if (!headers) return out;
   new Headers(headers).forEach((value, key) => {

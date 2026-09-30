@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "gateway",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@ai-gateway/gateway", "dev"],
+      "port": 8787
+    },
+    {
+      "name": "dashboard",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@ai-gateway/dashboard", "dev"],
+      "port": 3000
+    }
+  ]
+}
