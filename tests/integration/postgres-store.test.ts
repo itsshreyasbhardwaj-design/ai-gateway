@@ -101,6 +101,25 @@ describe(`PostgresStore (${DATABASE_URL ? 'server' : 'pglite'})`, () => {
     expect(await store.healthCheck()).toBe(true);
   });
 
+  it('serialises concurrent migrations instead of deadlocking', async () => {
+    // A deployment rolls the gateway and the worker together and both migrate
+    // on boot. Without the advisory lock these two transactions deadlock in
+    // PostgreSQL, which is how this was originally found.
+    if (!DATABASE_URL) return; // PGlite is a single connection; nothing to race.
+
+    const [a, b, c] = await Promise.all([
+      PostgresStore.connect(DATABASE_URL),
+      PostgresStore.connect(DATABASE_URL),
+      PostgresStore.connect(DATABASE_URL),
+    ]);
+    try {
+      await Promise.all([a.migrate(), b.migrate(), c.migrate()]);
+      expect(await a.healthCheck()).toBe(true);
+    } finally {
+      await Promise.all([a.close(), b.close(), c.close()]);
+    }
+  }, 60_000);
+
   it('round-trips an organization through real SQL', async () => {
     const loaded = await store.getOrganization(organizationId);
     expect(loaded?.name).toContain('Org');

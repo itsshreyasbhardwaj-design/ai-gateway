@@ -80,6 +80,11 @@ DATABASE_URL=postgresql://… pnpm db:migrate
 Idempotent and transactional — safe to run on every deploy. The schema is in
 `packages/database/migrations/0001_init.sql`.
 
+Migration takes a PostgreSQL advisory lock, so several processes starting at
+once serialise rather than deadlock. The gateway and the worker both migrate on
+boot and a deployment rolls them together, which is exactly the case that
+deadlocks without it.
+
 It enables row-level security on the tenant-scoped tables as defence in depth.
 The application always scopes by organization id; RLS means a missing `WHERE`
 clause is an empty result rather than a cross-tenant leak.

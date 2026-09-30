@@ -87,6 +87,13 @@ First release.
 - Read-only MCP server
 - Next.js operator dashboard
 
+### Operations
+
+- Migrations serialise across processes with a PostgreSQL advisory lock, so a
+  deployment that rolls the gateway and worker together does not deadlock
+- Docker images run unprivileged with `tini` as PID 1, so `SIGTERM` is forwarded
+  and graceful shutdown drains in-flight streaming responses
+
 ### Testing and performance
 
 - 375 unit tests, 84 end-to-end tests, 54 of them adversarial security tests

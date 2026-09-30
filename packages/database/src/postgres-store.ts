@@ -42,6 +42,14 @@ type ClientLike = {
 };
 
 const MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'migrations');
+
+/**
+ * Advisory lock id for schema migration.
+ *
+ * An arbitrary but fixed 64-bit constant. Every process that migrates this
+ * schema must use the same value; nothing else in the database should.
+ */
+const MIGRATION_LOCK_ID = 7_243_119_845_002_311n.toString();
 const DEFAULT_PAGE = 50;
 const MAX_PAGE = 500;
 
@@ -82,11 +90,26 @@ export class PostgresStore implements Store {
     return new PostgresStore(pool);
   }
 
+  /**
+   * Apply the schema, serialised across processes by an advisory lock.
+   *
+   * The gateway and the worker both migrate on boot, and a deployment rolls
+   * them at the same time. Two concurrent `CREATE TABLE IF NOT EXISTS` /
+   * `ALTER TABLE … ENABLE ROW LEVEL SECURITY` transactions deadlock in
+   * PostgreSQL - which is exactly what happened the first time this ran against
+   * real infrastructure rather than an embedded database.
+   *
+   * `pg_advisory_xact_lock` makes the second starter wait rather than deadlock.
+   * It then finds everything already present and the migration no-ops. The lock
+   * is transaction-scoped, so it is released on commit or rollback even if the
+   * process dies mid-migration.
+   */
   async migrate(): Promise<void> {
     const sql = await readFile(join(MIGRATIONS_DIR, '0001_init.sql'), 'utf8');
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
+      await client.query('SELECT pg_advisory_xact_lock($1)', [MIGRATION_LOCK_ID]);
       await client.query(sql);
       await client.query('COMMIT');
     } catch (err) {
