@@ -1,0 +1,25 @@
+{
+  "name": "@ai-gateway/worker",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "node --import tsx --watch src/main.ts",
+    "start": "node dist/main.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@ai-gateway/cache": "workspace:*",
+    "@ai-gateway/config": "workspace:*",
+    "@ai-gateway/core": "workspace:*",
+    "@ai-gateway/database": "workspace:*",
+    "@ai-gateway/observability": "workspace:*",
+    "@ai-gateway/providers": "workspace:*",
+    "@ai-gateway/usage": "workspace:*",
+    "@ai-gateway/gateway": "workspace:*",
+    "@ai-gateway/provider-sdk": "workspace:*"
+  }
+}
