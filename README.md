@@ -173,6 +173,7 @@ decision time.
 ```bash
 pnpm test        # 375 unit tests
 pnpm test:e2e    # 84 end-to-end tests against a real gateway
+pnpm test:integration  # 26 against real Postgres and Redis
 pnpm bench
 ```
 
