@@ -70,6 +70,9 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Allowlists specific fake values used by tests and CI, never whole
+          # files or rules. See .gitleaks.toml.
+          GITLEAKS_CONFIG: .gitleaks.toml
 
   codeql:
     name: CodeQL

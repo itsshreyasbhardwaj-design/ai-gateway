@@ -1,0 +1,42 @@
+# Gitleaks configuration.
+#
+# This repository is a gateway that holds provider credentials, so secret
+# scanning is not negotiable. What follows allowlists specific, clearly-fake
+# values that exist so tests and CI have something valid to parse — never a
+# whole file or a whole rule.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "provider-api-key"
+description = "A real provider API key"
+regex = '''\b(sk-[A-Za-z0-9]{32,}|sk-ant-[A-Za-z0-9_-]{32,}|AIza[0-9A-Za-z_-]{35}|sk-or-v1-[A-Za-z0-9]{32,})\b'''
+tags = ["provider", "credential"]
+
+[[rules]]
+id = "gateway-live-api-key"
+description = "A live AI Gateway API key"
+# Only `_live_` keys. `aigw_test_` values are placeholders in tests and docs.
+regex = '''\baigw_live_[A-Za-z0-9_-]{20,}\b'''
+tags = ["gateway", "credential"]
+
+[allowlist]
+description = "Deliberately fake values used by tests, docs and CI"
+
+# Values that announce themselves as non-secret by their prefix.
+regexes = [
+  '''ci-(encryption-key|pepper)-[0-9a-f]+''',
+  '''(e2e-test|benchmark|local-development|compose-development)-(encryption-key|pepper|encryption-key-change-me|pepper-change-me)[0-9a-z-]*''',
+  '''aigw_test_[A-Za-z0-9_-]+''',
+  '''sk-(test|ant-test|provider-secret|abcdefghijklmnopqrstuvwxyz)[A-Za-z0-9._-]*''',
+  '''scrypt\$\d+\$\d+\$\d+\$''',
+  '''whsec_[A-Za-z0-9_-]+''',
+  '''AIza-test-key''',
+]
+
+# The lockfile is integrity hashes, and the example env file ships empty values.
+paths = [
+  '''pnpm-lock\.yaml''',
+  '''\.env\.example''',
+]

@@ -31,6 +31,8 @@
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "devDependencies": {
+    "@ai-gateway/core": "workspace:*",
+    "@ai-gateway/database": "workspace:*",
     "@eslint/js": "^9.17.0",
     "@types/node": "^22.10.2",
     "@vitest/coverage-v8": "^2.1.8",

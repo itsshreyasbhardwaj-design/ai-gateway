@@ -120,6 +120,8 @@ jobs:
 
       - name: Dump logs on failure
         if: failure()
+        # `|| true` because an earlier step may have failed before the gateway
+        # ever started, and a missing log should not mask the real error.
         run: |
-          echo '── gateway ──'; cat gateway.log
-          echo '── worker ──';  cat worker.log
+          echo '── gateway ──'; cat gateway.log 2>/dev/null || echo '(gateway never started)'
+          echo '── worker ──';  cat worker.log  2>/dev/null || echo '(worker never started)'
