@@ -34,7 +34,13 @@ export interface BudgetState {
 export type BudgetOutcome =
   | { decision: 'allow'; states: BudgetState[]; warnings: BudgetState[] }
   | { decision: 'block'; blocked: BudgetState; states: BudgetState[]; warnings: BudgetState[] }
-  | { decision: 'downgrade'; trigger: BudgetState; states: BudgetState[]; warnings: BudgetState[]; maxSpend: number };
+  | {
+      decision: 'downgrade';
+      trigger: BudgetState;
+      states: BudgetState[];
+      warnings: BudgetState[];
+      maxSpend: number;
+    };
 
 export interface BudgetCheckInput {
   states: BudgetState[];
@@ -104,7 +110,10 @@ export function budgetError(state: BudgetState): GatewayError {
 }
 
 /** UTC period bounds. Budgets are defined in UTC so they do not shift with a viewer's timezone. */
-export function periodBounds(period: BudgetPeriod, now = new Date()): { start: Date; end: Date; key: string } {
+export function periodBounds(
+  period: BudgetPeriod,
+  now = new Date(),
+): { start: Date; end: Date; key: string } {
   if (period === 'daily') {
     const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const end = new Date(start.getTime() + 86_400_000);

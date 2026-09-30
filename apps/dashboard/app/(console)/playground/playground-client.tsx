@@ -4,7 +4,17 @@ import { useState } from 'react';
 import { formatCurrency, formatDuration } from '@ai-gateway/ui';
 import { runPlaygroundRequest, runRouteTest, simulateProviderFailure } from '@/app/actions';
 import { Button, Field, Input, Select } from '@/components/ui/controls';
-import { Badge, EmptyState, Mono, Notice, Panel, Pill, Table, Td, Th } from '@/components/ui/primitives';
+import {
+  Badge,
+  EmptyState,
+  Mono,
+  Notice,
+  Panel,
+  Pill,
+  Table,
+  Td,
+  Th,
+} from '@/components/ui/primitives';
 
 const STRATEGIES = [
   { value: '', label: 'Policy default' },
@@ -89,7 +99,10 @@ export function PlaygroundClient({
   return (
     <div className="grid min-w-0 gap-4 lg:grid-cols-2">
       <div className="space-y-4">
-        <Panel title="Routing dry-run" subtitle="Shows the plan the router would produce. No provider is contacted.">
+        <Panel
+          title="Routing dry-run"
+          subtitle="Shows the plan the router would produce. No provider is contacted."
+        >
           <form
             action={async (formData) => {
               setBusy('test');
@@ -103,7 +116,12 @@ export function PlaygroundClient({
           >
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Model">
-                <Select name="model" className="w-full" options={modelOptions} defaultValue="gateway/auto" />
+                <Select
+                  name="model"
+                  className="w-full"
+                  options={modelOptions}
+                  defaultValue="gateway/auto"
+                />
               </Field>
               <Field label="Strategy override">
                 <Select name="strategy" className="w-full" options={STRATEGIES} />
@@ -132,7 +150,10 @@ export function PlaygroundClient({
           </form>
         </Panel>
 
-        <Panel title="Send a real request" subtitle="Flagged as test traffic; costs money and appears in the request log.">
+        <Panel
+          title="Send a real request"
+          subtitle="Flagged as test traffic; costs money and appears in the request log."
+        >
           <form
             action={async (formData) => {
               setBusy('run');
@@ -146,7 +167,12 @@ export function PlaygroundClient({
           >
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Model">
-                <Select name="model" className="w-full" options={modelOptions} defaultValue="gateway/auto" />
+                <Select
+                  name="model"
+                  className="w-full"
+                  options={modelOptions}
+                  defaultValue="gateway/auto"
+                />
               </Field>
               <Field label="Strategy override">
                 <Select name="strategy" className="w-full" options={STRATEGIES} />
@@ -157,7 +183,13 @@ export function PlaygroundClient({
             </Field>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Temperature">
-                <Input name="temperature" type="number" step="0.1" min="0" placeholder="provider default" />
+                <Input
+                  name="temperature"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  placeholder="provider default"
+                />
               </Field>
               <Field label="Max tokens">
                 <Input name="maxTokens" type="number" min="1" placeholder="policy default" />
@@ -197,7 +229,10 @@ export function PlaygroundClient({
                   <Select name="failureMode" className="w-full" options={FAILURE_MODES} />
                 </Field>
               </div>
-              <Field label="Fail only the first N calls" hint="Leave empty to fail every call until reset.">
+              <Field
+                label="Fail only the first N calls"
+                hint="Leave empty to fail every call until reset."
+              >
                 <Input name="failFirstN" type="number" min="0" placeholder="e.g. 2" />
               </Field>
               <Button type="submit" size="md" disabled={busy !== null}>
@@ -218,12 +253,18 @@ export function PlaygroundClient({
 
         <Panel title="Routing plan" subtitle={routeTest?.note}>
           {!routeTest ? (
-            <EmptyState title="No dry-run yet" body="Run one to see which target would be chosen, and why every other candidate was not." />
+            <EmptyState
+              title="No dry-run yet"
+              body="Run one to see which target would be chosen, and why every other candidate was not."
+            />
           ) : (
             <div className="space-y-3 p-4">
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <Pill>strategy {routeTest.strategy}</Pill>
-                <Pill>policy {routeTest.policy.name}{routeTest.policy.version ? ` v${routeTest.policy.version}` : ''}</Pill>
+                <Pill>
+                  policy {routeTest.policy.name}
+                  {routeTest.policy.version ? ` v${routeTest.policy.version}` : ''}
+                </Pill>
                 <Pill>~{routeTest.estimatedInputTokens} input tokens</Pill>
                 {routeTest.requiredCapabilities.map((capability) => (
                   <Pill key={capability}>needs {capability}</Pill>
@@ -246,7 +287,9 @@ export function PlaygroundClient({
                   </ul>
                 </div>
               ) : (
-                <Notice tone="danger">No eligible target. Every candidate was excluded — see below.</Notice>
+                <Notice tone="danger">
+                  No eligible target. Every candidate was excluded — see below.
+                </Notice>
               )}
 
               {routeTest.chain.length > 1 && (
@@ -269,7 +312,8 @@ export function PlaygroundClient({
                         <Td align="right">{entry.score}</Td>
                         <Td>
                           <span className="text-2xs text-zinc-500">
-                            {String(entry.signals['healthState'])} · circuit {String(entry.signals['circuit'])}
+                            {String(entry.signals['healthState'])} · circuit{' '}
+                            {String(entry.signals['circuit'])}
                             {entry.signals['projectedCost'] !== null &&
                               ` · ~${formatCurrency(Number(entry.signals['projectedCost']), 'USD')}`}
                           </span>
@@ -282,11 +326,14 @@ export function PlaygroundClient({
 
               {routeTest.rejected.length > 0 && (
                 <div>
-                  <p className="mb-1 text-2xs font-medium uppercase tracking-wider text-zinc-500">Excluded candidates</p>
+                  <p className="mb-1 text-2xs font-medium uppercase tracking-wider text-zinc-500">
+                    Excluded candidates
+                  </p>
                   <ul className="space-y-1">
                     {routeTest.rejected.map((rejection, index) => (
                       <li key={index} className="text-2xs leading-relaxed text-zinc-500">
-                        <Mono className="text-red-300/80">{rejection.target}</Mono> {rejection.reason}
+                        <Mono className="text-red-300/80">{rejection.target}</Mono>{' '}
+                        {rejection.reason}
                       </li>
                     ))}
                   </ul>
@@ -309,25 +356,40 @@ export function PlaygroundClient({
                 <div className="space-y-2 text-xs">
                   <div className="flex flex-wrap items-center gap-2">
                     <Mono className="text-zinc-400">{run.gateway.requestId}</Mono>
-                    <Pill>{run.gateway.provider}/{run.gateway.model.split('/').pop()}</Pill>
+                    <Pill>
+                      {run.gateway.provider}/{run.gateway.model.split('/').pop()}
+                    </Pill>
                     <Pill>{run.gateway.strategy}</Pill>
                     <Pill>{formatDuration(run.gateway.latencyMs)}</Pill>
                     <Pill>{run.gateway.attempts} attempt(s)</Pill>
                     {run.gateway.fallbackUsed && <Badge tone="cancelled">fallback used</Badge>}
-                    {run.gateway.cache !== 'miss' && <Badge tone="success">{run.gateway.cache}</Badge>}
+                    {run.gateway.cache !== 'miss' && (
+                      <Badge tone="success">{run.gateway.cache}</Badge>
+                    )}
                   </div>
 
                   {run.usage && (
                     <p className="text-zinc-400">
                       {run.usage.total} tokens (in {run.usage.input} / out {run.usage.output}){' '}
-                      <span className={run.usage.source === 'estimated' ? 'text-amber-300' : 'text-emerald-300'}>
-                        {run.usage.source === 'estimated' ? 'estimated by the gateway' : 'reported by the provider'}
+                      <span
+                        className={
+                          run.usage.source === 'estimated' ? 'text-amber-300' : 'text-emerald-300'
+                        }
+                      >
+                        {run.usage.source === 'estimated'
+                          ? 'estimated by the gateway'
+                          : 'reported by the provider'}
                       </span>
                       {run.gateway.estimatedCost && (
                         <>
                           {' · '}
-                          {formatCurrency(run.gateway.estimatedCost.amount, run.gateway.estimatedCost.currency)}
-                          <span className="ml-1 text-2xs text-zinc-600">@ {run.gateway.estimatedCost.pricingVersion}</span>
+                          {formatCurrency(
+                            run.gateway.estimatedCost.amount,
+                            run.gateway.estimatedCost.currency,
+                          )}
+                          <span className="ml-1 text-2xs text-zinc-600">
+                            @ {run.gateway.estimatedCost.pricingVersion}
+                          </span>
                         </>
                       )}
                     </p>

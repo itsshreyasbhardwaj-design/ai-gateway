@@ -1,6 +1,16 @@
 import { formatDuration, formatPercent, formatRelativeTime, formatTimestamp } from '@ai-gateway/ui';
 import { gatewayFetch, type AlertEventRow, type AlertRuleRow } from '@/lib/gateway';
-import { Badge, EmptyState, Mono, Notice, PageHeader, Panel, Table, Td, Th } from '@/components/ui/primitives';
+import {
+  Badge,
+  EmptyState,
+  Mono,
+  Notice,
+  PageHeader,
+  Panel,
+  Table,
+  Td,
+  Th,
+} from '@/components/ui/primitives';
 import { ActionForm } from '@/components/action-form';
 import { Field, Input, Select } from '@/components/ui/controls';
 import { createAlert } from '@/app/actions';
@@ -28,7 +38,9 @@ export default async function AlertsPage() {
   let rules: AlertRuleRow[] = [];
   let events: AlertEventRow[] = [];
   try {
-    const result = await gatewayFetch<{ rules: AlertRuleRow[]; events: AlertEventRow[] }>('/api/v1/alerts');
+    const result = await gatewayFetch<{ rules: AlertRuleRow[]; events: AlertEventRow[] }>(
+      '/api/v1/alerts',
+    );
     rules = result.rules;
     events = result.events;
   } catch (error) {
@@ -49,9 +61,10 @@ export default async function AlertsPage() {
 
       <div className="mb-4">
         <Notice tone="info" title="Two guards against noise">
-          A rate metric is ignored below ten requests in the window, because an error rate over three requests is noise
-          rather than signal. And a rule that has just fired stays quiet for its cooldown, so a sustained incident pages
-          once rather than every minute. Alerts nobody trusts are worse than no alerts.
+          A rate metric is ignored below ten requests in the window, because an error rate over
+          three requests is noise rather than signal. And a rule that has just fired stays quiet for
+          its cooldown, so a sustained incident pages once rather than every minute. Alerts nobody
+          trusts are worse than no alerts.
         </Notice>
       </div>
 
@@ -59,7 +72,10 @@ export default async function AlertsPage() {
         <div className="space-y-4">
           <Panel title="Rules">
             {rules.length === 0 ? (
-              <EmptyState title="No alert rules" body="Add one to be notified when error rate, latency or spend crosses a threshold." />
+              <EmptyState
+                title="No alert rules"
+                body="Add one to be notified when error rate, latency or spend crosses a threshold."
+              />
             ) : (
               <Table>
                 <thead>
@@ -82,13 +98,16 @@ export default async function AlertsPage() {
                       <Td>{METRIC_LABELS[rule.metric] ?? rule.metric}</Td>
                       <Td>
                         <Mono>
-                          {rule.comparator === 'gt' ? '>' : '<'} {formatThreshold(rule.metric, rule.threshold)}
+                          {rule.comparator === 'gt' ? '>' : '<'}{' '}
+                          {formatThreshold(rule.metric, rule.threshold)}
                         </Mono>
                       </Td>
                       <Td align="right">{rule.forMinutes}m</Td>
                       <Td align="right">{rule.cooldownMinutes}m</Td>
                       <Td>
-                        <Badge tone={rule.enabled ? 'success' : 'neutral'}>{rule.enabled ? 'enabled' : 'disabled'}</Badge>
+                        <Badge tone={rule.enabled ? 'success' : 'neutral'}>
+                          {rule.enabled ? 'enabled' : 'disabled'}
+                        </Badge>
                       </Td>
                     </tr>
                   ))}
@@ -115,10 +134,14 @@ export default async function AlertsPage() {
                   {events.map((event) => (
                     <tr key={event.id}>
                       <Td title={formatTimestamp(event.firedAt)}>
-                        <span className="text-2xs text-zinc-500">{formatRelativeTime(event.firedAt)}</span>
+                        <span className="text-2xs text-zinc-500">
+                          {formatRelativeTime(event.firedAt)}
+                        </span>
                       </Td>
                       <Td className="max-w-lg whitespace-normal">
-                        <span className="text-xs leading-relaxed text-zinc-300">{event.message}</span>
+                        <span className="text-xs leading-relaxed text-zinc-300">
+                          {event.message}
+                        </span>
                       </Td>
                       <Td align="right">{event.observedValue.toFixed(4)}</Td>
                       <Td align="right">{event.threshold.toFixed(4)}</Td>
@@ -168,7 +191,10 @@ export default async function AlertsPage() {
                   ]}
                 />
               </Field>
-              <Field label="Threshold" hint="Rate metrics are entered as percentages, e.g. 10 for 10%.">
+              <Field
+                label="Threshold"
+                hint="Rate metrics are entered as percentages, e.g. 10 for 10%."
+              >
                 <Input name="threshold" type="number" step="0.01" placeholder="10" required />
               </Field>
               <Field label="Sustained for (minutes)" hint="Suppresses single spikes.">

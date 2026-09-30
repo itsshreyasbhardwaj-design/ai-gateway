@@ -67,7 +67,10 @@ export class ChatCompletionStream implements AsyncIterable<ChatCompletionChunk> 
   private handleBlock(block: string): ChatCompletionChunk | null {
     const lines = block.split('\n').filter((line) => line.startsWith('data:'));
     if (lines.length === 0) return null;
-    const data = lines.map((line) => line.slice(5).trimStart()).join('\n').trim();
+    const data = lines
+      .map((line) => line.slice(5).trimStart())
+      .join('\n')
+      .trim();
     if (!data || data === DONE) return null;
 
     let parsed: Record<string, unknown>;

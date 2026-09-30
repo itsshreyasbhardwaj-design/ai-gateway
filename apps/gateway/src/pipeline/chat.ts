@@ -24,7 +24,7 @@ import {
   type CacheScope,
   type EnabledCacheDecision,
 } from '@ai-gateway/cache';
-import { assertModelAllowed, evaluatePolicy, permittedModels } from '@ai-gateway/policies';
+import { assertModelAllowed, evaluatePolicy } from '@ai-gateway/policies';
 import { computeCost, projectCost } from '@ai-gateway/pricing';
 import { TraceBuilder } from '@ai-gateway/observability';
 import { METRICS } from '@ai-gateway/observability';
@@ -60,7 +60,12 @@ export interface ChatPipelineInput {
 
 export type PipelineResult =
   | { kind: 'json'; requestId: string; headers: Record<string, string>; body: ChatResponse }
-  | { kind: 'stream'; requestId: string; headers: Record<string, string>; frames: AsyncIterable<string> };
+  | {
+      kind: 'stream';
+      requestId: string;
+      headers: Record<string, string>;
+      frames: AsyncIterable<string>;
+    };
 
 /**
  * The gateway request pipeline.
@@ -118,7 +123,9 @@ export class ChatPipeline {
 
       if (!rateCheck.allowed) {
         rateStep.fail('rate_limit', `rule ${rateCheck.violated?.id} exceeded`);
-        this.ctx.metrics.increment(METRICS.rateLimited, { rule: rateCheck.violated?.id ?? 'unknown' });
+        this.ctx.metrics.increment(METRICS.rateLimited, {
+          rule: rateCheck.violated?.id ?? 'unknown',
+        });
         throw new GatewayError(
           'rate_limit',
           `Rate limit exceeded: ${describeRule(rateCheck.violated)}.`,
@@ -167,7 +174,10 @@ export class ChatPipeline {
             'capability_unsupported',
             `Model "${named.id}" does not support ${missing.join(', ')}, which this request requires. ` +
               `It supports: ${named.capabilities.join(', ')}.`,
-            { model: named.id, details: { required: needed, missing, supported: named.capabilities } },
+            {
+              model: named.id,
+              details: { required: needed, missing, supported: named.capabilities },
+            },
           );
         }
       }
@@ -179,7 +189,8 @@ export class ChatPipeline {
       });
 
       const effectiveRequest = decision.request;
-      const maxOutput = effectiveRequest.max_completion_tokens ?? effectiveRequest.max_tokens ?? 1024;
+      const maxOutput =
+        effectiveRequest.max_completion_tokens ?? effectiveRequest.max_tokens ?? 1024;
 
       // --------------------------------------------------- candidate set
       const candidates = this.buildCandidates(permitted, tenant);
@@ -187,7 +198,9 @@ export class ChatPipeline {
         requestedModel: effectiveRequest.model,
         allowed: candidates,
         explicitModels: effectiveRequest.gateway?.models,
-        policyModels: tenant.policy.routing.models.map((m) => (typeof m === 'string' ? m : m.model)),
+        policyModels: tenant.policy.routing.models.map((m) =>
+          typeof m === 'string' ? m : m.model,
+        ),
       });
 
       const strategy = this.pickStrategy(effectiveRequest, tenant, resolved.impliedStrategy);
@@ -195,8 +208,15 @@ export class ChatPipeline {
       // ----------------------------------------------------- budget check
       const budgetStep = trace.step('budget_check');
       const budgetStates = await this.loadBudgetStates(tenant);
-      const cheapestProjection = this.cheapestProjection(resolved.candidates, estimatedInput, maxOutput);
-      const budgetOutcome = evaluateBudgets({ states: budgetStates, projectedCost: cheapestProjection });
+      const cheapestProjection = this.cheapestProjection(
+        resolved.candidates,
+        estimatedInput,
+        maxOutput,
+      );
+      const budgetOutcome = evaluateBudgets({
+        states: budgetStates,
+        projectedCost: cheapestProjection,
+      });
 
       let budgetCeiling: number | undefined;
       if (budgetOutcome.decision === 'block') {
@@ -215,7 +235,10 @@ export class ChatPipeline {
         this.ctx.metrics.increment(METRICS.budgetBlocks, { action: 'FALLBACK_TO_CHEAPER_MODEL' });
         void this.emitBudgetEvent(tenant, budgetOutcome.trigger, 'downgraded', requestId);
       } else {
-        budgetStep.end({ budgetsEvaluated: budgetStates.length, projectedCost: cheapestProjection });
+        budgetStep.end({
+          budgetsEvaluated: budgetStates.length,
+          projectedCost: cheapestProjection,
+        });
       }
       for (const warning of budgetOutcome.warnings) {
         void this.emitBudgetEvent(tenant, warning, 'warning', requestId);
@@ -233,7 +256,11 @@ export class ChatPipeline {
         const scope = this.cacheScope(tenant, effectiveRequest, cachePolicy, resolved.candidates);
         const hit = await this.lookupCache(scope, effectiveRequest, cacheDecision, input.signal);
         if (hit) {
-          cacheStep.end({ result: hit.status, similarity: hit.similarity, producedBy: hit.entry.producedBy });
+          cacheStep.end({
+            result: hit.status,
+            similarity: hit.similarity,
+            producedBy: hit.entry.producedBy,
+          });
           this.ctx.metrics.increment(METRICS.cacheLookups, { result: hit.status });
           return this.serveFromCache({
             requestId,
@@ -281,11 +308,33 @@ export class ChatPipeline {
       // ---------------------------------------------------------- execute
       if (effectiveRequest.stream) {
         return this.runStreaming({
-          requestId, trace, headers, tenant, input, request: effectiveRequest, plan, retry, cacheDecision, cachePolicy, strategy, estimatedInput,
+          requestId,
+          trace,
+          headers,
+          tenant,
+          input,
+          request: effectiveRequest,
+          plan,
+          retry,
+          cacheDecision,
+          cachePolicy,
+          strategy,
+          estimatedInput,
         });
       }
       return await this.runBuffered({
-        requestId, trace, headers, tenant, input, request: effectiveRequest, plan, retry, cacheDecision, cachePolicy, strategy, estimatedInput,
+        requestId,
+        trace,
+        headers,
+        tenant,
+        input,
+        request: effectiveRequest,
+        plan,
+        retry,
+        cacheDecision,
+        cachePolicy,
+        strategy,
+        estimatedInput,
       });
     } catch (err) {
       const error = GatewayError.from(err);
@@ -316,7 +365,10 @@ export class ChatPipeline {
           attempt: attemptNumber,
         }),
       onFallback: ({ from, to, error }) => {
-        this.ctx.metrics.increment(METRICS.fallbacks, { from: from.target.modelId, to: to.target.modelId });
+        this.ctx.metrics.increment(METRICS.fallbacks, {
+          from: from.target.modelId,
+          to: to.target.modelId,
+        });
         this.ctx.logger.warn('failing over', {
           requestId,
           from: from.target.modelId,
@@ -326,7 +378,9 @@ export class ChatPipeline {
       },
       attempt: async ({ target, recorder, signal }) => {
         const provider = this.ctx.providers.requireProvider(target.target.providerId);
-        const breaker = this.ctx.circuits.get(targetKey(target.target.providerId, target.target.modelId));
+        const breaker = this.ctx.circuits.get(
+          targetKey(target.target.providerId, target.target.modelId),
+        );
         if (!breaker.allow()) {
           throw new GatewayError('circuit_open', `Circuit is open for ${target.target.modelId}.`, {
             provider: target.target.providerId,
@@ -345,9 +399,16 @@ export class ChatPipeline {
             model: target.target.model,
           });
           const elapsed = this.ctx.clock.now() - startedAt;
-          providerStep.end({ provider: target.target.providerId, model: target.target.modelId, durationMs: elapsed });
+          providerStep.end({
+            provider: target.target.providerId,
+            model: target.target.modelId,
+            durationMs: elapsed,
+          });
           breaker.recordSuccess();
-          this.ctx.health.recordSuccess(targetKey(target.target.providerId, target.target.modelId), elapsed);
+          this.ctx.health.recordSuccess(
+            targetKey(target.target.providerId, target.target.modelId),
+            elapsed,
+          );
           this.ctx.health.recordSuccess(targetKey(target.target.providerId), elapsed);
           this.ctx.metrics.observe(METRICS.providerDuration, elapsed, {
             provider: target.target.providerId,
@@ -362,7 +423,10 @@ export class ChatPipeline {
         } catch (err) {
           const error = GatewayError.from(err);
           const elapsed = this.ctx.clock.now() - startedAt;
-          providerStep.fail(error.type, error.message, { provider: target.target.providerId, model: target.target.modelId });
+          providerStep.fail(error.type, error.message, {
+            provider: target.target.providerId,
+            model: target.target.modelId,
+          });
           this.noteAttemptFailure(target, error, elapsed);
           throw error;
         }
@@ -371,9 +435,20 @@ export class ChatPipeline {
 
     const usage = this.resolveUsage(result.value.usage, request, textOf(result.value));
     const finalized = await this.finalize({
-      requestId, trace, tenant, input, request, plan, strategy: args.strategy,
-      target: result.target, usage, cacheStatus: 'miss', httpStatus: 200, streamed: false,
-      attempts: result.attempts, fallbackUsed: result.fallbackUsed,
+      requestId,
+      trace,
+      tenant,
+      input,
+      request,
+      plan,
+      strategy: args.strategy,
+      target: result.target,
+      usage,
+      cacheStatus: 'miss',
+      httpStatus: 200,
+      streamed: false,
+      attempts: result.attempts,
+      fallbackUsed: result.fallbackUsed,
     });
 
     // Writing to the cache must never fail the request that populated it.
@@ -408,182 +483,242 @@ export class ChatPipeline {
    * including when the client disconnects mid-stream.
    */
   private runStreaming(args: ExecutionArgs): PipelineResult {
-    const { requestId, trace, headers, tenant, input, request, plan, retry } = args;
-    const self = this;
-
-    const frames = (async function* (): AsyncGenerator<string> {
-      let assembled = '';
-      let usage: MeasuredUsage | undefined;
-      let target: ScoredTarget | undefined;
-      let attempts = 0;
-      let fallbackUsed = false;
-      let firstTokenAt: number | undefined;
-      let failure: GatewayError | undefined;
-
-      try {
-        const stream = await executeWithFallback<AsyncIterable<ChatChunk>>({
-          plan,
-          retry,
-          trace,
-          signal: input.signal,
-          clock: self.ctx.clock,
-          onFallback: ({ from, to, error }) => {
-            self.ctx.metrics.increment(METRICS.fallbacks, { from: from.target.modelId, to: to.target.modelId });
-            self.ctx.logger.warn('failing over mid-stream setup', {
-              requestId, from: from.target.modelId, to: to.target.modelId, errorType: error.type,
-            });
-          },
-          attempt: async ({ target: candidate, recorder, signal }) => {
-            const provider = self.ctx.providers.requireProvider(candidate.target.providerId);
-            const breaker = self.ctx.circuits.get(targetKey(candidate.target.providerId, candidate.target.modelId));
-            if (!breaker.allow()) {
-              throw new GatewayError('circuit_open', `Circuit is open for ${candidate.target.modelId}.`, {
-                provider: candidate.target.providerId,
-                model: candidate.target.modelId,
-              });
-            }
-
-            const providerStep = trace.step('provider_request');
-            const startedAt = self.ctx.clock.now();
-            const iterator = provider.stream(request, {
-              requestId,
-              attempt: recorder.record.attemptNumber,
-              signal,
-              timeoutMs: self.timeoutFor(tenant, request),
-              model: candidate.target.model,
-            })[Symbol.asyncIterator]();
-
-            // Pull the first chunk inside the retry boundary. A provider that
-            // fails on connect is still failoverable; once bytes have reached
-            // the client it is too late to switch.
-            let first: IteratorResult<ChatChunk>;
-            try {
-              first = await iterator.next();
-            } catch (err) {
-              const error = GatewayError.from(err);
-              providerStep.fail(error.type, error.message, { provider: candidate.target.providerId });
-              self.noteAttemptFailure(candidate, error, self.ctx.clock.now() - startedAt);
-              throw error;
-            }
-
-            providerStep.end({ provider: candidate.target.providerId, model: candidate.target.modelId, firstChunk: true });
-            recorder.firstToken();
-            firstTokenAt = self.ctx.clock.now() - startedAt;
-            target = candidate;
-
-            return {
-              async *[Symbol.asyncIterator]() {
-                if (!first.done && first.value) yield first.value;
-                for (;;) {
-                  const next = await iterator.next();
-                  if (next.done) return;
-                  yield next.value;
-                }
-              },
-            };
-          },
-        });
-
-        target = stream.target;
-        attempts = stream.attempts;
-        fallbackUsed = stream.fallbackUsed;
-
-        const resolvedTarget = stream.target;
-        const breaker = self.ctx.circuits.get(
-          targetKey(resolvedTarget.target.providerId, resolvedTarget.target.modelId),
-        );
-        const streamStartedAt = self.ctx.clock.now();
-
-        try {
-          for await (const chunk of stream.value) {
-            if (input.signal.aborted) {
-              throw new GatewayError('client_disconnected', 'The client disconnected mid-stream.');
-            }
-            const delta = chunk.choices[0]?.delta.content;
-            if (delta) assembled += delta;
-            if (chunk.usage) usage = addUsage(usage, chunk.usage) ?? chunk.usage;
-            yield sseData(stripGatewayFields(chunk));
-          }
-
-          const elapsed = self.ctx.clock.now() - streamStartedAt;
-          breaker.recordSuccess();
-          self.ctx.health.recordSuccess(targetKey(resolvedTarget.target.providerId, resolvedTarget.target.modelId), elapsed);
-          self.ctx.health.recordSuccess(targetKey(resolvedTarget.target.providerId), elapsed);
-          self.ctx.metrics.increment(METRICS.providerAttempts, {
-            provider: resolvedTarget.target.providerId,
-            outcome: 'success',
-          });
-          if (firstTokenAt !== undefined) {
-            self.ctx.metrics.observe(METRICS.timeToFirstToken, firstTokenAt, {
-              provider: resolvedTarget.target.providerId,
-              model: resolvedTarget.target.modelId,
-            });
-          }
-        } catch (err) {
-          const error = GatewayError.from(err);
-          self.noteAttemptFailure(resolvedTarget, error, self.ctx.clock.now() - streamStartedAt);
-          throw error;
-        }
-
-        const finalUsage = self.resolveUsage(usage, request, assembled);
-        const finalized = await self.finalize({
-          requestId, trace, tenant, input, request, plan, strategy: args.strategy,
-          target: resolvedTarget, usage: finalUsage, cacheStatus: 'miss', httpStatus: 200, streamed: true,
-          attempts, fallbackUsed, timeToFirstTokenMs: firstTokenAt,
-        });
-
-        if (args.cacheDecision.write && assembled) {
-          const cacheStep = trace.step('cache_write');
-          try {
-            await self.writeCache(
-              args,
-              resolvedTarget,
-              synthesizeResponse(requestId, resolvedTarget.target.modelId, assembled, finalUsage),
-              finalized.receipt,
-            );
-            cacheStep.end({ mode: 'mode' in args.cacheDecision ? args.cacheDecision.mode : 'off', fromStream: true });
-          } catch {
-            cacheStep.skip('cache write failed');
-          }
-        }
-
-        // Terminal receipt: routing detail for a response whose headers are long gone.
-        yield sseData({ gateway: finalized.receipt });
-        yield sseData(SSE_DONE);
-
-        trace.mark('response_sent', 'ok', { httpStatus: 200, streamed: true });
-        await self.persist(finalized.record, trace, input, request, undefined, tenant);
-      } catch (err) {
-        failure = GatewayError.from(err);
-        failure.requestId ??= requestId;
-
-        if (failure.type === 'client_disconnected') {
-          self.ctx.logger.info('client disconnected mid-stream', { requestId });
-        } else {
-          self.ctx.logger.error('stream failed', { requestId, errorType: failure.type, error: failure.message });
-          yield streamErrorFrame(failure, requestId);
-          yield sseData(SSE_DONE);
-        }
-
-        await self.recordStreamFailure({
-          requestId, trace, tenant, input, request, plan, strategy: args.strategy,
-          target, error: failure, attempts, fallbackUsed, usage, assembled, timeToFirstTokenMs: firstTokenAt,
-        });
-      }
-    })();
-
     return {
       kind: 'stream',
-      requestId,
+      requestId: args.requestId,
       headers: {
-        ...headers,
+        ...args.headers,
         'content-type': 'text/event-stream; charset=utf-8',
         'cache-control': 'no-cache, no-transform',
         connection: 'keep-alive',
+        // Tell nginx and friends not to buffer, which would defeat streaming.
         'x-accel-buffering': 'no',
       },
-      frames,
+      frames: this.streamFrames(args),
     };
+  }
+
+  /**
+   * The streamed response, as an async generator.
+   *
+   * A method rather than an inline closure so it can use `this` directly. The
+   * response is forwarded chunk by chunk and never buffered as a unit; the only
+   * thing accumulated is the assembled text, and that only when the cache is
+   * enabled for this request. Recording happens after the stream drains,
+   * including when the client disconnects mid-stream.
+   */
+  private async *streamFrames(args: ExecutionArgs): AsyncGenerator<string> {
+    const { requestId, trace, tenant, input, request, plan, retry } = args;
+
+    let assembled = '';
+    let usage: MeasuredUsage | undefined;
+    let target: ScoredTarget | undefined;
+    let attempts = 0;
+    let fallbackUsed = false;
+    let firstTokenAt: number | undefined;
+    let failure: GatewayError | undefined;
+
+    try {
+      const stream = await executeWithFallback<AsyncIterable<ChatChunk>>({
+        plan,
+        retry,
+        trace,
+        signal: input.signal,
+        clock: this.ctx.clock,
+        onFallback: ({ from, to, error }) => {
+          this.ctx.metrics.increment(METRICS.fallbacks, {
+            from: from.target.modelId,
+            to: to.target.modelId,
+          });
+          this.ctx.logger.warn('failing over mid-stream setup', {
+            requestId,
+            from: from.target.modelId,
+            to: to.target.modelId,
+            errorType: error.type,
+          });
+        },
+        attempt: async ({ target: candidate, recorder, signal }) => {
+          const provider = this.ctx.providers.requireProvider(candidate.target.providerId);
+          const breaker = this.ctx.circuits.get(
+            targetKey(candidate.target.providerId, candidate.target.modelId),
+          );
+          if (!breaker.allow()) {
+            throw new GatewayError(
+              'circuit_open',
+              `Circuit is open for ${candidate.target.modelId}.`,
+              {
+                provider: candidate.target.providerId,
+                model: candidate.target.modelId,
+              },
+            );
+          }
+
+          const providerStep = trace.step('provider_request');
+          const startedAt = this.ctx.clock.now();
+          const upstream = provider.stream(request, {
+            requestId,
+            attempt: recorder.record.attemptNumber,
+            signal,
+            timeoutMs: this.timeoutFor(tenant, request),
+            model: candidate.target.model,
+          });
+          const iterator = upstream[Symbol.asyncIterator]();
+
+          // Pull the first chunk inside the retry boundary. A provider that
+          // fails on connect is still failoverable; once bytes have reached
+          // the client it is too late to switch.
+          let first: IteratorResult<ChatChunk>;
+          try {
+            first = await iterator.next();
+          } catch (err) {
+            const error = GatewayError.from(err);
+            providerStep.fail(error.type, error.message, { provider: candidate.target.providerId });
+            this.noteAttemptFailure(candidate, error, this.ctx.clock.now() - startedAt);
+            throw error;
+          }
+
+          providerStep.end({
+            provider: candidate.target.providerId,
+            model: candidate.target.modelId,
+            firstChunk: true,
+          });
+          recorder.firstToken();
+          firstTokenAt = this.ctx.clock.now() - startedAt;
+          target = candidate;
+
+          return {
+            async *[Symbol.asyncIterator]() {
+              if (!first.done && first.value) yield first.value;
+              for (;;) {
+                const next = await iterator.next();
+                if (next.done) return;
+                yield next.value;
+              }
+            },
+          };
+        },
+      });
+
+      target = stream.target;
+      attempts = stream.attempts;
+      fallbackUsed = stream.fallbackUsed;
+
+      const resolvedTarget = stream.target;
+      const breaker = this.ctx.circuits.get(
+        targetKey(resolvedTarget.target.providerId, resolvedTarget.target.modelId),
+      );
+      const streamStartedAt = this.ctx.clock.now();
+
+      try {
+        for await (const chunk of stream.value) {
+          if (input.signal.aborted) {
+            throw new GatewayError('client_disconnected', 'The client disconnected mid-stream.');
+          }
+          const delta = chunk.choices[0]?.delta.content;
+          if (delta) assembled += delta;
+          if (chunk.usage) usage = addUsage(usage, chunk.usage) ?? chunk.usage;
+          yield sseData(stripGatewayFields(chunk));
+        }
+
+        const elapsed = this.ctx.clock.now() - streamStartedAt;
+        breaker.recordSuccess();
+        this.ctx.health.recordSuccess(
+          targetKey(resolvedTarget.target.providerId, resolvedTarget.target.modelId),
+          elapsed,
+        );
+        this.ctx.health.recordSuccess(targetKey(resolvedTarget.target.providerId), elapsed);
+        this.ctx.metrics.increment(METRICS.providerAttempts, {
+          provider: resolvedTarget.target.providerId,
+          outcome: 'success',
+        });
+        if (firstTokenAt !== undefined) {
+          this.ctx.metrics.observe(METRICS.timeToFirstToken, firstTokenAt, {
+            provider: resolvedTarget.target.providerId,
+            model: resolvedTarget.target.modelId,
+          });
+        }
+      } catch (err) {
+        const error = GatewayError.from(err);
+        this.noteAttemptFailure(resolvedTarget, error, this.ctx.clock.now() - streamStartedAt);
+        throw error;
+      }
+
+      const finalUsage = this.resolveUsage(usage, request, assembled);
+      const finalized = await this.finalize({
+        requestId,
+        trace,
+        tenant,
+        input,
+        request,
+        plan,
+        strategy: args.strategy,
+        target: resolvedTarget,
+        usage: finalUsage,
+        cacheStatus: 'miss',
+        httpStatus: 200,
+        streamed: true,
+        attempts,
+        fallbackUsed,
+        timeToFirstTokenMs: firstTokenAt,
+      });
+
+      if (args.cacheDecision.write && assembled) {
+        const cacheStep = trace.step('cache_write');
+        try {
+          await this.writeCache(
+            args,
+            resolvedTarget,
+            synthesizeResponse(requestId, resolvedTarget.target.modelId, assembled, finalUsage),
+            finalized.receipt,
+          );
+          cacheStep.end({
+            mode: 'mode' in args.cacheDecision ? args.cacheDecision.mode : 'off',
+            fromStream: true,
+          });
+        } catch {
+          cacheStep.skip('cache write failed');
+        }
+      }
+
+      // Terminal receipt: routing detail for a response whose headers are long gone.
+      yield sseData({ gateway: finalized.receipt });
+      yield sseData(SSE_DONE);
+
+      trace.mark('response_sent', 'ok', { httpStatus: 200, streamed: true });
+      await this.persist(finalized.record, trace, input, request, undefined, tenant);
+    } catch (err) {
+      failure = GatewayError.from(err);
+      failure.requestId ??= requestId;
+
+      if (failure.type === 'client_disconnected') {
+        this.ctx.logger.info('client disconnected mid-stream', { requestId });
+      } else {
+        this.ctx.logger.error('stream failed', {
+          requestId,
+          errorType: failure.type,
+          error: failure.message,
+        });
+        yield streamErrorFrame(failure, requestId);
+        yield sseData(SSE_DONE);
+      }
+
+      await this.recordStreamFailure({
+        requestId,
+        trace,
+        tenant,
+        input,
+        request,
+        plan,
+        strategy: args.strategy,
+        target,
+        error: failure,
+        attempts,
+        fallbackUsed,
+        usage,
+        assembled,
+        timeToFirstTokenMs: firstTokenAt,
+      });
+    }
   }
 
   // -------------------------------------------------------------- caching
@@ -595,7 +730,11 @@ export class ChatPipeline {
     candidates: RouteTarget[],
   ): CacheScope {
     const primary = candidates[0];
-    const modelScope = modelScopeFor(policy, primary?.modelId ?? request.model, primary?.model.family);
+    const modelScope = modelScopeFor(
+      policy,
+      primary?.modelId ?? request.model,
+      primary?.model.family,
+    );
     return {
       organizationId: tenant.organization.id,
       ...(policy.perProject ? { projectId: tenant.project.id } : {}),
@@ -674,7 +813,11 @@ export class ChatPipeline {
       fallbackUsed: false,
       latencyMs: trace.elapsedMs,
       usageSource: hit.entry.usage?.source,
-      estimatedCost: { amount: 0, currency: tenant.organization.currency, pricingVersion: this.ctx.pricing.version },
+      estimatedCost: {
+        amount: 0,
+        currency: tenant.organization.currency,
+        pricingVersion: this.ctx.pricing.version,
+      },
     };
 
     const record: RequestRecord = {
@@ -721,9 +864,14 @@ export class ChatPipeline {
       const response = hit.entry.response;
       const frames = (async function* (): AsyncGenerator<string> {
         const text = textOf(response);
-        yield sseData(chunkFrame(requestId, response.model, { role: 'assistant', content: '' }, null));
+        yield sseData(
+          chunkFrame(requestId, response.model, { role: 'assistant', content: '' }, null),
+        );
         if (text) yield sseData(chunkFrame(requestId, response.model, { content: text }, null));
-        yield sseData({ ...chunkFrame(requestId, response.model, {}, 'stop'), usage: hit.entry.usage });
+        yield sseData({
+          ...chunkFrame(requestId, response.model, {}, 'stop'),
+          usage: hit.entry.usage,
+        });
         yield sseData({ gateway: receipt });
         yield sseData(SSE_DONE);
       })();
@@ -783,7 +931,11 @@ export class ChatPipeline {
     if (cost && !isTest) {
       // Test traffic is metered for rate limits but never charged against a budget.
       await this.ctx.spend.record(
-        { organizationId: tenant.organization.id, projectId: tenant.project.id, apiKeyId: input.auth.apiKeyId },
+        {
+          organizationId: tenant.organization.id,
+          projectId: tenant.project.id,
+          apiKeyId: input.auth.apiKeyId,
+        },
         cost.totalCost,
       );
     }
@@ -877,11 +1029,23 @@ export class ChatPipeline {
       provider: record.resolvedProviderId ?? 'none',
     });
     if (record.usage) {
-      this.ctx.metrics.increment(METRICS.tokens, { direction: 'input', source: record.usage.source }, record.usage.input);
-      this.ctx.metrics.increment(METRICS.tokens, { direction: 'output', source: record.usage.source }, record.usage.output);
+      this.ctx.metrics.increment(
+        METRICS.tokens,
+        { direction: 'input', source: record.usage.source },
+        record.usage.input,
+      );
+      this.ctx.metrics.increment(
+        METRICS.tokens,
+        { direction: 'output', source: record.usage.source },
+        record.usage.output,
+      );
     }
     if (record.estimatedCost) {
-      this.ctx.metrics.increment(METRICS.estimatedCost, { currency: record.currency ?? 'USD' }, record.estimatedCost);
+      this.ctx.metrics.increment(
+        METRICS.estimatedCost,
+        { currency: record.currency ?? 'USD' },
+        record.estimatedCost,
+      );
     }
   }
 
@@ -896,7 +1060,11 @@ export class ChatPipeline {
   ): Promise<void> {
     const { steps, attempts } = trace.snapshot();
     try {
-      await this.ctx.store.recordRequest({ ...record, attemptCount: attempts.length || record.attemptCount }, steps, attempts);
+      await this.ctx.store.recordRequest(
+        { ...record, attemptCount: attempts.length || record.attemptCount },
+        steps,
+        attempts,
+      );
       await this.storeBodies(record, request, response, tenant);
     } catch (err) {
       // Losing a log line must never fail a request the caller already paid for.
@@ -922,7 +1090,9 @@ export class ChatPipeline {
     const privacy = tenant.privacy;
     if (privacy.mode === 'none' || privacy.mode === 'metadata_only') return;
 
-    const expiresAt = new Date(this.ctx.clock.now() + privacy.retentionDays * 86_400_000).toISOString();
+    const expiresAt = new Date(
+      this.ctx.clock.now() + privacy.retentionDays * 86_400_000,
+    ).toISOString();
 
     await this.ctx.store.putPromptBody({
       requestId: record.id,
@@ -997,13 +1167,22 @@ export class ChatPipeline {
     timeToFirstTokenMs?: number;
   }): Promise<void> {
     const { requestId, trace, tenant, input, error } = args;
-    trace.mark('response_sent', 'error', { httpStatus: 200, errorType: error.type, partialStream: true });
+    trace.mark('response_sent', 'error', {
+      httpStatus: 200,
+      errorType: error.type,
+      partialStream: true,
+    });
 
     // Tokens already produced were still billed by the provider, so partial
     // usage is recorded rather than discarded.
-    const usage = args.usage ?? (args.assembled
-      ? estimatedUsage(estimatePromptTokens(args.request.messages), estimateCompletionTokens(args.assembled))
-      : undefined);
+    const usage =
+      args.usage ??
+      (args.assembled
+        ? estimatedUsage(
+            estimatePromptTokens(args.request.messages),
+            estimateCompletionTokens(args.assembled),
+          )
+        : undefined);
 
     const record: RequestRecord = {
       id: requestId,
@@ -1037,7 +1216,11 @@ export class ChatPipeline {
       userAgent: input.userAgent,
     };
 
-    this.ctx.metrics.increment(METRICS.requests, { status: record.status, errorType: error.type, streamed: 'true' });
+    this.ctx.metrics.increment(METRICS.requests, {
+      status: record.status,
+      errorType: error.type,
+      streamed: 'true',
+    });
     const { steps, attempts } = trace.snapshot();
     await this.ctx.store.recordRequest(record, steps, attempts).catch(() => undefined);
   }
@@ -1089,7 +1272,11 @@ export class ChatPipeline {
     return (tenant.policy.routing.strategy as RoutingStrategy) ?? implied ?? 'highest_reliability';
   }
 
-  private signalsFor(target: RouteTarget, estimatedInput: number, maxOutput: number): TargetSignals {
+  private signalsFor(
+    target: RouteTarget,
+    estimatedInput: number,
+    maxOutput: number,
+  ): TargetSignals {
     const modelKey = targetKey(target.providerId, target.modelId);
     const stats = this.ctx.health.stats(modelKey);
     const providerStats = this.ctx.health.stats(targetKey(target.providerId));
@@ -1107,7 +1294,11 @@ export class ChatPipeline {
     };
   }
 
-  private cheapestProjection(candidates: RouteTarget[], estimatedInput: number, maxOutput: number): number {
+  private cheapestProjection(
+    candidates: RouteTarget[],
+    estimatedInput: number,
+    maxOutput: number,
+  ): number {
     const projections = candidates
       .map((c) => this.ctx.pricing.lookup(c.modelId))
       .filter((p): p is NonNullable<typeof p> => !!p)
@@ -1180,7 +1371,11 @@ export class ChatPipeline {
    * Prefer the provider's own token counts; estimate only when it reported none.
    * An estimate is always labelled as such and never presented as reported.
    */
-  private resolveUsage(usage: MeasuredUsage | undefined, request: ChatRequest, text: string): MeasuredUsage {
+  private resolveUsage(
+    usage: MeasuredUsage | undefined,
+    request: ChatRequest,
+    text: string,
+  ): MeasuredUsage {
     if (usage && usage.total > 0) return usage;
     return estimatedUsage(estimatePromptTokens(request.messages), estimateCompletionTokens(text));
   }
@@ -1245,7 +1440,9 @@ function effectiveRequestCapabilityProbe(request: ChatRequest): ChatRequest {
   return request;
 }
 
-function describeRule(rule: { unit: string; window: string; limit: number; subject: string } | undefined): string {
+function describeRule(
+  rule: { unit: string; window: string; limit: number; subject: string } | undefined,
+): string {
   if (!rule) return 'limit exceeded';
   return `${rule.limit} ${rule.unit} per ${rule.window} per ${rule.subject.replace('_', ' ')}`;
 }
@@ -1277,7 +1474,12 @@ function chunkFrame(
   };
 }
 
-function synthesizeResponse(id: string, model: string, text: string, usage: MeasuredUsage): ChatResponse {
+function synthesizeResponse(
+  id: string,
+  model: string,
+  text: string,
+  usage: MeasuredUsage,
+): ChatResponse {
   return {
     id,
     object: 'chat.completion',

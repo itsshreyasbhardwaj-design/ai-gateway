@@ -195,7 +195,8 @@ export class AnthropicProvider implements AIProvider {
       }
 
       if (type === 'content_block_delta') {
-        const delta = payload['delta'] as { type?: string; text?: string; partial_json?: string } | undefined;
+        const delta = payload['delta'] as
+          { type?: string; text?: string; partial_json?: string } | undefined;
         const blockIndex = Number(payload['index'] ?? 0);
         if (delta?.type === 'text_delta' && delta.text) {
           yield frame({ content: delta.text });
@@ -213,7 +214,10 @@ export class AnthropicProvider implements AIProvider {
         const deltaUsage = payload['usage'] as AnthropicUsage | undefined;
         if (deltaUsage) {
           // message_delta carries the final output count; input came in message_start.
-          usage = toUsage({ ...(deltaUsage ?? {}), input_tokens: usage?.input ?? deltaUsage.input_tokens });
+          usage = toUsage({
+            ...(deltaUsage ?? {}),
+            input_tokens: usage?.input ?? deltaUsage.input_tokens,
+          });
         }
         yield frame({}, mapStopReason(delta?.stop_reason), usage);
         continue;
@@ -230,7 +234,12 @@ export class AnthropicProvider implements AIProvider {
       // is the cheapest honest probe. The model list is read from config.
       const probeModel = this.models[0];
       if (!probeModel) {
-        return { providerId: this.id, state: 'unknown', checkedAt: Date.now(), message: 'No models configured.' };
+        return {
+          providerId: this.id,
+          state: 'unknown',
+          checkedAt: Date.now(),
+          message: 'No models configured.',
+        };
       }
       await this.http.requestJson({
         path: '/messages',
@@ -242,11 +251,18 @@ export class AnthropicProvider implements AIProvider {
         signal,
         timeoutMs: 10_000,
       });
-      return { providerId: this.id, state: 'healthy', latencyMs: Date.now() - startedAt, checkedAt: Date.now() };
+      return {
+        providerId: this.id,
+        state: 'healthy',
+        latencyMs: Date.now() - startedAt,
+        checkedAt: Date.now(),
+      };
     } catch (err) {
       const gwErr = GatewayError.from(err);
       const state =
-        gwErr.type === 'authentication_error' || gwErr.type === 'permission_denied' ? 'degraded' : 'unavailable';
+        gwErr.type === 'authentication_error' || gwErr.type === 'permission_denied'
+          ? 'degraded'
+          : 'unavailable';
       return {
         providerId: this.id,
         state,
@@ -257,7 +273,11 @@ export class AnthropicProvider implements AIProvider {
     }
   }
 
-  private toWire(request: ChatRequest, ctx: ProviderCallContext, stream: boolean): Record<string, unknown> {
+  private toWire(
+    request: ChatRequest,
+    ctx: ProviderCallContext,
+    stream: boolean,
+  ): Record<string, unknown> {
     const { system, messages } = splitSystem(request.messages);
     const wire: Record<string, unknown> = {
       model: ctx.model.providerModelId,
@@ -404,14 +424,20 @@ function safeJson(raw: string): unknown {
 }
 
 function toUsage(usage: AnthropicUsage): MeasuredUsage {
-  const input = (usage.input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0) + (usage.cache_read_input_tokens ?? 0);
+  const input =
+    (usage.input_tokens ?? 0) +
+    (usage.cache_creation_input_tokens ?? 0) +
+    (usage.cache_read_input_tokens ?? 0);
   const output = usage.output_tokens ?? 0;
   const measured = reportedUsage({ input, output, total: input + output });
   if (usage.cache_read_input_tokens) measured.cachedInput = usage.cache_read_input_tokens;
   return measured;
 }
 
-export function classifyAnthropicError(status: number, body: unknown): GatewayErrorType | undefined {
+export function classifyAnthropicError(
+  status: number,
+  body: unknown,
+): GatewayErrorType | undefined {
   const err = (body as { error?: { type?: string; message?: string } } | undefined)?.error;
   switch (err?.type) {
     case 'overloaded_error':

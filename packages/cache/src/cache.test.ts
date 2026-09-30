@@ -44,7 +44,9 @@ describe('cache keys', () => {
     expect(exactCacheKey(orgA, request({ temperature: 0.7 }))).not.toBe(base);
     expect(exactCacheKey(orgA, request({ max_tokens: 10 }))).not.toBe(base);
     expect(exactCacheKey(orgA, request({ seed: 1 }))).not.toBe(base);
-    expect(exactCacheKey(orgA, request({ response_format: { type: 'json_object' } }))).not.toBe(base);
+    expect(exactCacheKey(orgA, request({ response_format: { type: 'json_object' } }))).not.toBe(
+      base,
+    );
     expect(
       exactCacheKey(orgA, request({ tools: [{ type: 'function', function: { name: 'f' } }] })),
     ).not.toBe(base);
@@ -63,8 +65,12 @@ describe('cache keys', () => {
   });
 
   it('fingerprints parameters separately from messages', () => {
-    expect(parameterFingerprint(request())).toBe(parameterFingerprint(request({ messages: [{ role: 'user', content: 'different' }] })));
-    expect(parameterFingerprint(request())).not.toBe(parameterFingerprint(request({ temperature: 1 })));
+    expect(parameterFingerprint(request())).toBe(
+      parameterFingerprint(request({ messages: [{ role: 'user', content: 'different' }] })),
+    );
+    expect(parameterFingerprint(request())).not.toBe(
+      parameterFingerprint(request({ temperature: 1 })),
+    );
   });
 });
 
@@ -124,8 +130,15 @@ describe('SemanticCache', () => {
 
   it('returns a hit for a semantically equivalent prompt', async () => {
     const cache = new SemanticCache(new MemoryKV(), embed, { similarityThreshold: 0.8 });
-    await cache.store(orgA, request({ messages: [{ role: 'user', content: 'What is the capital of France?' }] }), entry);
-    const hit = await cache.lookup(orgA, request({ messages: [{ role: 'user', content: 'france capital please' }] }));
+    await cache.store(
+      orgA,
+      request({ messages: [{ role: 'user', content: 'What is the capital of France?' }] }),
+      entry,
+    );
+    const hit = await cache.lookup(
+      orgA,
+      request({ messages: [{ role: 'user', content: 'france capital please' }] }),
+    );
     expect(hit).not.toBeNull();
     expect(hit!.similarity).toBeGreaterThanOrEqual(0.8);
     expect(hit!.entry.response.choices[0]?.message.content).toBe('Paris');
@@ -134,7 +147,12 @@ describe('SemanticCache', () => {
   it('misses for an unrelated prompt', async () => {
     const cache = new SemanticCache(new MemoryKV(), embed, { similarityThreshold: 0.8 });
     await cache.store(orgA, request(), entry);
-    expect(await cache.lookup(orgA, request({ messages: [{ role: 'user', content: 'explain recursion in python' }] }))).toBeNull();
+    expect(
+      await cache.lookup(
+        orgA,
+        request({ messages: [{ role: 'user', content: 'explain recursion in python' }] }),
+      ),
+    ).toBeNull();
   });
 
   it('never crosses organization boundaries', async () => {
@@ -155,7 +173,9 @@ describe('SemanticCache', () => {
     const cache = new SemanticCache(new MemoryKV(), embed, { similarityThreshold: 0.99 });
     await cache.store(orgA, request(), entry);
     // Overlaps on capital+france but adds a third term, so cosine is ~0.82.
-    const near = request({ messages: [{ role: 'user', content: 'is paris the capital of france' }] });
+    const near = request({
+      messages: [{ role: 'user', content: 'is paris the capital of france' }],
+    });
     expect(await cache.lookup(orgA, near, 0.5)).not.toBeNull();
     expect(await cache.lookup(orgA, near)).toBeNull();
   });
@@ -164,17 +184,36 @@ describe('SemanticCache', () => {
     const cache = new SemanticCache(new MemoryKV(), embed, { similarityThreshold: 0.1 });
     await cache.store(orgA, request({ messages: [{ role: 'user', content: 'weather in pune' }] }), {
       ...entry,
-      response: { ...response, choices: [{ index: 0, message: { role: 'assistant', content: 'Warm' }, finish_reason: 'stop' }] },
+      response: {
+        ...response,
+        choices: [
+          { index: 0, message: { role: 'assistant', content: 'Warm' }, finish_reason: 'stop' },
+        ],
+      },
     });
-    await cache.store(orgA, request({ messages: [{ role: 'user', content: 'capital of france' }] }), entry);
-    const hit = await cache.lookup(orgA, request({ messages: [{ role: 'user', content: 'the capital of france' }] }));
+    await cache.store(
+      orgA,
+      request({ messages: [{ role: 'user', content: 'capital of france' }] }),
+      entry,
+    );
+    const hit = await cache.lookup(
+      orgA,
+      request({ messages: [{ role: 'user', content: 'the capital of france' }] }),
+    );
     expect(hit!.entry.response.choices[0]?.message.content).toBe('Paris');
   });
 
   it('bounds the index size per scope', async () => {
-    const cache = new SemanticCache(new MemoryKV(), embed, { maxEntriesPerScope: 3, similarityThreshold: 0.9 });
+    const cache = new SemanticCache(new MemoryKV(), embed, {
+      maxEntriesPerScope: 3,
+      similarityThreshold: 0.9,
+    });
     for (let i = 0; i < 10; i++) {
-      await cache.store(orgA, request({ messages: [{ role: 'user', content: `prompt ${i}` }] }), entry);
+      await cache.store(
+        orgA,
+        request({ messages: [{ role: 'user', content: `prompt ${i}` }] }),
+        entry,
+      );
     }
     expect(await cache.size(orgA)).toBe(3);
   });
@@ -235,7 +274,9 @@ describe('cache policy', () => {
 
   it('scopes by family only when cross-model reuse is enabled', () => {
     expect(modelScopeFor(DEFAULT_CACHE_POLICY, 'openai/gpt-4o', 'gpt')).toBe('openai/gpt-4o');
-    expect(modelScopeFor({ ...DEFAULT_CACHE_POLICY, crossModel: true }, 'openai/gpt-4o', 'gpt')).toBe('family:gpt');
+    expect(
+      modelScopeFor({ ...DEFAULT_CACHE_POLICY, crossModel: true }, 'openai/gpt-4o', 'gpt'),
+    ).toBe('family:gpt');
   });
 });
 

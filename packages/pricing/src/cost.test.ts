@@ -35,7 +35,11 @@ describe('computeCost', () => {
   });
 
   it('falls back to the standard input rate when no cached rate is configured', () => {
-    const noCacheRate: ModelPricing = { inputPerMillionTokens: 3, outputPerMillionTokens: 15, currency: 'USD' };
+    const noCacheRate: ModelPricing = {
+      inputPerMillionTokens: 3,
+      outputPerMillionTokens: 15,
+      currency: 'USD',
+    };
     const cost = computeCost(reported({ cachedInput: 1_000_000 }), noCacheRate, 'v1');
     expect(cost.inputCost).toBe(3);
   });
@@ -50,7 +54,11 @@ describe('computeCost', () => {
   });
 
   it('handles zero-priced self-hosted models', () => {
-    const free: ModelPricing = { inputPerMillionTokens: 0, outputPerMillionTokens: 0, currency: 'USD' };
+    const free: ModelPricing = {
+      inputPerMillionTokens: 0,
+      outputPerMillionTokens: 0,
+      currency: 'USD',
+    };
     expect(computeCost(reported(), free, 'v1').totalCost).toBe(0);
   });
 });
@@ -71,13 +79,21 @@ describe('PricingBook', () => {
       version: 'v2',
       asOf: '2026-06-01',
       source: 'admin:test',
-      prices: { 'openai/gpt-4o': { inputPerMillionTokens: 99, outputPerMillionTokens: 199, currency: 'USD' } },
+      prices: {
+        'openai/gpt-4o': {
+          inputPerMillionTokens: 99,
+          outputPerMillionTokens: 199,
+          currency: 'USD',
+        },
+      },
     });
 
     expect(book.version).toBe('v2');
     expect(book.lookup('openai/gpt-4o')?.pricing.inputPerMillionTokens).toBe(99);
     // The whole point: yesterday's cost rows still reprice correctly.
-    expect(book.lookup('openai/gpt-4o', seedPricing.version)?.pricing.inputPerMillionTokens).toBe(2.5);
+    expect(book.lookup('openai/gpt-4o', seedPricing.version)?.pricing.inputPerMillionTokens).toBe(
+      2.5,
+    );
   });
 
   it('refuses to overwrite an existing version', () => {

@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { GatewayError, type AuthContext, type ChatRequest } from '@ai-gateway/core';
-import { DEFAULT_POLICY, parsePolicy, parsePolicyOrThrow, policyTargets, policyToYaml } from './policy.js';
+import {
+  DEFAULT_POLICY,
+  parsePolicy,
+  parsePolicyOrThrow,
+  policyTargets,
+  policyToYaml,
+} from './policy.js';
 import { PolicyVersionStore } from './versions.js';
-import { assertModelAllowed, evaluatePolicy, permittedModels, requireScope, type PolicySubject } from './engine.js';
+import {
+  assertModelAllowed,
+  evaluatePolicy,
+  permittedModels,
+  requireScope,
+  type PolicySubject,
+} from './engine.js';
 import { routingPolicySchema } from './schema.js';
 
 const validYaml = `
@@ -37,12 +49,18 @@ describe('policy parsing', () => {
   });
 
   it('accepts a plain JSON object as well as YAML', () => {
-    const result = parsePolicy({ name: 'p', routing: { strategy: 'explicit', models: ['mock/mock-fast'] } });
+    const result = parsePolicy({
+      name: 'p',
+      routing: { strategy: 'explicit', models: ['mock/mock-fast'] },
+    });
     expect(result.ok).toBe(true);
   });
 
   it('warns without blocking when the fallback cap exceeds the model list', () => {
-    const result = parsePolicy({ name: 'p', routing: { strategy: 'explicit', models: ['mock/a'] } });
+    const result = parsePolicy({
+      name: 'p',
+      routing: { strategy: 'explicit', models: ['mock/a'] },
+    });
     expect(result.ok).toBe(true);
     expect(result.warnings.map((w) => w.path)).toContain('fallback.maxTargets');
   });
@@ -61,21 +79,31 @@ describe('policy parsing', () => {
   });
 
   it('reports the path of a schema error rather than throwing', () => {
-    const result = parsePolicy({ name: 'p', routing: { strategy: 'nonsense', models: ['mock/mock-fast'] } });
+    const result = parsePolicy({
+      name: 'p',
+      routing: { strategy: 'nonsense', models: ['mock/mock-fast'] },
+    });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.issues[0]?.path).toBe('routing.strategy');
   });
 
   it('rejects malformed model references', () => {
-    const result = parsePolicy({ name: 'p', routing: { strategy: 'explicit', models: ['not-a-reference'] } });
+    const result = parsePolicy({
+      name: 'p',
+      routing: { strategy: 'explicit', models: ['not-a-reference'] },
+    });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.issues[0]?.message).toContain('<provider>/<model>');
   });
 
   it('rejects unknown top-level keys so typos do not silently no-op', () => {
-    const result = parsePolicy({ name: 'p', routing: { strategy: 'explicit', models: ['mock/mock-fast'] }, fallbak: {} });
+    const result = parsePolicy({
+      name: 'p',
+      routing: { strategy: 'explicit', models: ['mock/mock-fast'] },
+      fallbak: {},
+    });
     expect(result.ok).toBe(false);
   });
 
@@ -87,21 +115,30 @@ describe('policy parsing', () => {
   });
 
   it('catches duplicate models', () => {
-    const result = parsePolicy({ name: 'p', routing: { strategy: 'explicit', models: ['mock/a', 'mock/a'] } });
+    const result = parsePolicy({
+      name: 'p',
+      routing: { strategy: 'explicit', models: ['mock/a', 'mock/a'] },
+    });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.issues[0]?.message).toContain('duplicate model');
   });
 
   it('requires weights for the weighted strategy', () => {
-    const result = parsePolicy({ name: 'p', routing: { strategy: 'weighted', models: ['mock/a', 'mock/b'] } });
+    const result = parsePolicy({
+      name: 'p',
+      routing: { strategy: 'weighted', models: ['mock/a', 'mock/b'] },
+    });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.issues[0]?.message).toContain('requires at least one model to declare a weight');
   });
 
   it('requires priorities for the priority strategy', () => {
-    const result = parsePolicy({ name: 'p', routing: { strategy: 'priority', models: ['mock/a'] } });
+    const result = parsePolicy({
+      name: 'p',
+      routing: { strategy: 'priority', models: ['mock/a'] },
+    });
     expect(result.ok).toBe(false);
   });
 
@@ -161,7 +198,12 @@ describe('PolicyVersionStore', () => {
 
   function store() {
     const s = new PolicyVersionStore();
-    const { policy } = s.create({ organizationId: 'org_1', name: 'production', document: doc, createdBy: 'alice' });
+    const { policy } = s.create({
+      organizationId: 'org_1',
+      name: 'production',
+      document: doc,
+      createdBy: 'alice',
+    });
     return { s, policyId: policy.id };
   }
 
@@ -173,7 +215,12 @@ describe('PolicyVersionStore', () => {
 
   it('publishes without activating, so editing is not deploying', () => {
     const { s, policyId } = store();
-    const v2 = s.publish(policyId, { ...doc, routing: { ...doc.routing, strategy: 'lowest_cost' } }, 'bob', 'try cost routing');
+    const v2 = s.publish(
+      policyId,
+      { ...doc, routing: { ...doc.routing, strategy: 'lowest_cost' } },
+      'bob',
+      'try cost routing',
+    );
     expect(v2.version).toBe(2);
     expect(v2.active).toBe(false);
     expect(s.active(policyId)?.version).toBe(1);
@@ -203,7 +250,7 @@ describe('PolicyVersionStore', () => {
     expect(() => s.rollback(policyId)).toThrow(/no earlier version/);
   });
 
-  it("keeps a checksum per version so tampering is detectable", () => {
+  it('keeps a checksum per version so tampering is detectable', () => {
     const { s, policyId } = store();
     const v2 = s.publish(policyId, { ...doc, name: 'renamed' }, 'bob');
     expect(v2.checksum).not.toBe(s.history(policyId)[0]?.checksum);
@@ -211,14 +258,24 @@ describe('PolicyVersionStore', () => {
 
   it('produces a readable diff between versions', () => {
     const { s, policyId } = store();
-    s.publish(policyId, { ...doc, routing: { strategy: 'lowest_cost', models: ['mock/mock-fast'] } }, 'bob');
+    s.publish(
+      policyId,
+      { ...doc, routing: { strategy: 'lowest_cost', models: ['mock/mock-fast'] } },
+      'bob',
+    );
     const diff = s.diff(policyId, 1, 2);
     expect(diff.join('\n')).toContain('~ routing.strategy: "highest_reliability" -> "lowest_cost"');
   });
 
   it('scopes listing by organization and project', () => {
     const s = new PolicyVersionStore();
-    s.create({ organizationId: 'org_1', projectId: 'proj_1', name: 'a', document: doc, createdBy: 'x' });
+    s.create({
+      organizationId: 'org_1',
+      projectId: 'proj_1',
+      name: 'a',
+      document: doc,
+      createdBy: 'x',
+    });
     s.create({ organizationId: 'org_2', name: 'b', document: doc, createdBy: 'x' });
     expect(s.list('org_1')).toHaveLength(1);
     expect(s.list('org_1', 'proj_1')).toHaveLength(1);
@@ -234,7 +291,12 @@ describe('policy engine', () => {
     scopes: ['inference.create', 'models.read'],
   };
 
-  const registered = ['openai/gpt-4o-mini', 'anthropic/claude-haiku-4-20250514', 'mock/mock-fast', 'mock/mock-smart'];
+  const registered = [
+    'openai/gpt-4o-mini',
+    'anthropic/claude-haiku-4-20250514',
+    'mock/mock-fast',
+    'mock/mock-smart',
+  ];
 
   function subject(over: Partial<PolicySubject> = {}): PolicySubject {
     return {
@@ -245,11 +307,16 @@ describe('policy engine', () => {
     };
   }
 
-  const request: ChatRequest = { model: 'mock/mock-fast', messages: [{ role: 'user', content: 'hi' }] };
+  const request: ChatRequest = {
+    model: 'mock/mock-fast',
+    messages: [{ role: 'user', content: 'hi' }],
+  };
 
   it('requires the inference.create scope', () => {
     const readOnly = { ...auth, scopes: ['models.read' as const] };
-    expect(() => evaluatePolicy(subject({ auth: readOnly }), request)).toThrow(/missing the "inference.create" scope/);
+    expect(() => evaluatePolicy(subject({ auth: readOnly }), request)).toThrow(
+      /missing the "inference.create" scope/,
+    );
   });
 
   it('treats admin as satisfying any scope', () => {
@@ -283,28 +350,38 @@ describe('policy engine', () => {
   it('blocks streaming when policy disallows it', () => {
     const policy = { ...parsePolicyOrThrow(validYaml) };
     policy.limits = { ...policy.limits, allowStreaming: false };
-    expect(() => evaluatePolicy(subject({ policy }), { ...request, stream: true })).toThrow(/Streaming is disabled/);
+    expect(() => evaluatePolicy(subject({ policy }), { ...request, stream: true })).toThrow(
+      /Streaming is disabled/,
+    );
   });
 
   it('blocks tool use when policy disallows it', () => {
     const policy = { ...parsePolicyOrThrow(validYaml) };
     policy.limits = { ...policy.limits, allowTools: false };
     expect(() =>
-      evaluatePolicy(subject({ policy }), { ...request, tools: [{ type: 'function', function: { name: 'f' } }] }),
+      evaluatePolicy(subject({ policy }), {
+        ...request,
+        tools: [{ type: 'function', function: { name: 'f' } }],
+      }),
     ).toThrow(/Tool use is disabled/);
   });
 
   it('rejects an oversized body', () => {
     const policy = { ...parsePolicyOrThrow(validYaml) };
     policy.limits = { ...policy.limits, maxRequestBytes: 1024 };
-    expect(() => evaluatePolicy(subject({ policy, requestBytes: 2048 }), request)).toThrow(/above the configured limit/);
+    expect(() => evaluatePolicy(subject({ policy, requestBytes: 2048 }), request)).toThrow(
+      /above the configured limit/,
+    );
   });
 
   it('rejects a prompt over the input limit and labels the count as an estimate', () => {
     const policy = { ...parsePolicyOrThrow(validYaml) };
     policy.limits = { ...policy.limits, maxInputTokens: 5 };
     try {
-      evaluatePolicy(subject({ policy }), { ...request, messages: [{ role: 'user', content: 'x'.repeat(1000) }] });
+      evaluatePolicy(subject({ policy }), {
+        ...request,
+        messages: [{ role: 'user', content: 'x'.repeat(1000) }],
+      });
       expect.unreachable();
     } catch (err) {
       expect((err as GatewayError).details?.['estimateIsApproximate']).toBe(true);
@@ -314,7 +391,12 @@ describe('policy engine', () => {
 
 describe('model allow and deny lists', () => {
   const registered = ['a/1', 'a/2', 'b/1', 'c/1'];
-  const auth: AuthContext = { organizationId: 'o', projectId: 'p', apiKeyId: 'k', scopes: ['inference.create'] };
+  const auth: AuthContext = {
+    organizationId: 'o',
+    projectId: 'p',
+    apiKeyId: 'k',
+    scopes: ['inference.create'],
+  };
   const base = { auth, policy: DEFAULT_POLICY, registeredModels: registered };
 
   it('returns every registered model when nothing is restricted', () => {
@@ -322,7 +404,10 @@ describe('model allow and deny lists', () => {
   });
 
   it('narrows to the organization allowlist', () => {
-    expect(permittedModels({ ...base, organizationAllowedModels: ['a/1', 'b/1'] })).toEqual(['a/1', 'b/1']);
+    expect(permittedModels({ ...base, organizationAllowedModels: ['a/1', 'b/1'] })).toEqual([
+      'a/1',
+      'b/1',
+    ]);
   });
 
   it('lets a project narrow further but never widen', () => {
@@ -335,7 +420,13 @@ describe('model allow and deny lists', () => {
   });
 
   it('lets deny beat allow at every scope', () => {
-    expect(permittedModels({ ...base, organizationAllowedModels: ['a/1'], projectDeniedModels: ['a/1'] })).toEqual([]);
+    expect(
+      permittedModels({
+        ...base,
+        organizationAllowedModels: ['a/1'],
+        projectDeniedModels: ['a/1'],
+      }),
+    ).toEqual([]);
     expect(permittedModels({ ...base, organizationDeniedModels: ['a/1'] })).not.toContain('a/1');
   });
 

@@ -116,10 +116,20 @@ export function Select({
   );
 }
 
-export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+export function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: ReactNode;
+}) {
   return (
     <label className="block">
-      <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-zinc-500">{label}</span>
+      <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-zinc-500">
+        {label}
+      </span>
       {children}
       {hint && <span className="mt-1 block text-2xs leading-relaxed text-zinc-600">{hint}</span>}
     </label>
@@ -174,7 +184,13 @@ export function QueryFilter({
   );
 }
 
-export function SearchBox({ param = 'search', placeholder }: { param?: string; placeholder?: string }) {
+export function SearchBox({
+  param = 'search',
+  placeholder,
+}: {
+  param?: string;
+  placeholder?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

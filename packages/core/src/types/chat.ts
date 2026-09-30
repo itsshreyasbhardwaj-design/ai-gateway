@@ -38,10 +38,7 @@ export interface ToolDefinition {
 }
 
 export type ToolChoice =
-  | 'none'
-  | 'auto'
-  | 'required'
-  | { type: 'function'; function: { name: string } };
+  'none' | 'auto' | 'required' | { type: 'function'; function: { name: string } };
 
 export interface ResponseFormat {
   type: 'text' | 'json_object' | 'json_schema';
@@ -117,13 +114,7 @@ export interface MeasuredUsage extends TokenUsage {
 }
 
 export type FinishReason =
-  | 'stop'
-  | 'length'
-  | 'tool_calls'
-  | 'content_filter'
-  | 'error'
-  | 'cancelled'
-  | null;
+  'stop' | 'length' | 'tool_calls' | 'content_filter' | 'error' | 'cancelled' | null;
 
 export interface ChatChoice {
   index: number;

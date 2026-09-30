@@ -11,7 +11,13 @@ import { Button } from '@/components/ui/controls';
  * reason is visible rather than a surprise 400), and it requires a second click
  * to confirm. Replay costs money and must never be something a stray click does.
  */
-export function ReplayButton({ requestId, bodyStored }: { requestId: string; bodyStored: boolean }) {
+export function ReplayButton({
+  requestId,
+  bodyStored,
+}: {
+  requestId: string;
+  bodyStored: boolean;
+}) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -33,7 +39,10 @@ export function ReplayButton({ requestId, bodyStored }: { requestId: string; bod
 
   if (!confirming) {
     return (
-      <Button onClick={() => setConfirming(true)} title="Re-send this exact request through the pipeline.">
+      <Button
+        onClick={() => setConfirming(true)}
+        title="Re-send this exact request through the pipeline."
+      >
         Replay
       </Button>
     );

@@ -83,7 +83,8 @@ export interface AlertRule {
   id: string;
   organizationId: string;
   name: string;
-  metric: 'error_rate' | 'p95_latency_ms' | 'monthly_cost' | 'provider_unavailable' | 'fallback_rate';
+  metric:
+    'error_rate' | 'p95_latency_ms' | 'monthly_cost' | 'provider_unavailable' | 'fallback_rate';
   comparator: 'gt' | 'lt';
   threshold: number;
   /** Minutes the condition must hold before firing, to suppress spikes. */
@@ -216,12 +217,18 @@ export interface Store {
   listPolicyVersions(policyId: string): Promise<PolicyVersionRow[]>;
 
   // --- requests and traces -------------------------------------------
-  recordRequest(record: RequestRecord, steps: TraceStep[], attempts: RequestAttempt[]): Promise<void>;
+  recordRequest(
+    record: RequestRecord,
+    steps: TraceStep[],
+    attempts: RequestAttempt[],
+  ): Promise<void>;
   getRequest(organizationId: string, requestId: string): Promise<RequestRecord | undefined>;
   getRequestTrace(
     organizationId: string,
     requestId: string,
-  ): Promise<{ request: RequestRecord; steps: TraceStep[]; attempts: RequestAttempt[] } | undefined>;
+  ): Promise<
+    { request: RequestRecord; steps: TraceStep[]; attempts: RequestAttempt[] } | undefined
+  >;
   queryRequests(query: RequestQuery): Promise<{ records: RequestRecord[]; nextCursor?: string }>;
   /** Delete request rows older than the cutoff. Returns rows removed. */
   pruneRequests(organizationId: string, olderThan: Date): Promise<number>;

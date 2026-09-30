@@ -55,7 +55,9 @@ export async function connectGateway(formData: FormData): Promise<ActionResult> 
   // Admin screens need the admin scope; warn rather than silently 403 later.
   let adminCapable = true;
   try {
-    await gatewayFetch<unknown>('/api/v1/providers', { session: { apiKey, gatewayUrl, source: 'cookie' } });
+    await gatewayFetch<unknown>('/api/v1/providers', {
+      session: { apiKey, gatewayUrl, source: 'cookie' },
+    });
   } catch (err) {
     if (err instanceof GatewayRequestError && err.status === 403) adminCapable = false;
   }
@@ -83,16 +85,21 @@ export async function probeGateway(gatewayUrl: string): Promise<ActionResult> {
 export async function createApiKey(formData: FormData): Promise<ActionResult> {
   try {
     const scopes = formData.getAll('scopes').map(String);
-    const result = await gatewayFetch<{ secret: string; prefix: string; id: string }>('/api/v1/api-keys', {
-      method: 'POST',
-      body: {
-        name: String(formData.get('name') ?? ''),
-        projectId: String(formData.get('projectId') ?? ''),
-        scopes: scopes.length ? scopes : ['inference.create', 'models.read'],
-        environment: String(formData.get('environment') ?? 'live'),
-        ...(formData.get('expiresAt') ? { expiresAt: new Date(String(formData.get('expiresAt'))).toISOString() } : {}),
+    const result = await gatewayFetch<{ secret: string; prefix: string; id: string }>(
+      '/api/v1/api-keys',
+      {
+        method: 'POST',
+        body: {
+          name: String(formData.get('name') ?? ''),
+          projectId: String(formData.get('projectId') ?? ''),
+          scopes: scopes.length ? scopes : ['inference.create', 'models.read'],
+          environment: String(formData.get('environment') ?? 'live'),
+          ...(formData.get('expiresAt')
+            ? { expiresAt: new Date(String(formData.get('expiresAt'))).toISOString() }
+            : {}),
+        },
       },
-    });
+    );
     revalidatePath('/api-keys');
     return {
       ok: true,
@@ -153,10 +160,13 @@ export async function updateProjectModels(formData: FormData): Promise<ActionRes
   try {
     const raw = String(formData.get('allowedModels') ?? '').trim();
     const allowedModels = raw ? raw.split(/[\s,]+/).filter(Boolean) : null;
-    await gatewayFetch(`/api/v1/projects/${encodeURIComponent(String(formData.get('projectId')))}`, {
-      method: 'PATCH',
-      body: { allowedModels },
-    });
+    await gatewayFetch(
+      `/api/v1/projects/${encodeURIComponent(String(formData.get('projectId')))}`,
+      {
+        method: 'PATCH',
+        body: { allowedModels },
+      },
+    );
     revalidatePath('/projects');
     return {
       ok: true,
@@ -222,17 +232,22 @@ export async function createProvider(formData: FormData): Promise<ActionResult> 
           }))
       : undefined;
 
-    const result = await gatewayFetch<{ registered: boolean; registrationError?: string }>('/api/v1/providers', {
-      method: 'POST',
-      body: {
-        id: String(formData.get('id') ?? ''),
-        kind: String(formData.get('kind') ?? 'openai-compatible'),
-        displayName: String(formData.get('displayName') ?? ''),
-        ...(formData.get('baseUrl') ? { baseUrl: String(formData.get('baseUrl')) } : {}),
-        ...(formData.get('credentialValue') ? { credentialValue: String(formData.get('credentialValue')) } : {}),
-        ...(models ? { models } : {}),
+    const result = await gatewayFetch<{ registered: boolean; registrationError?: string }>(
+      '/api/v1/providers',
+      {
+        method: 'POST',
+        body: {
+          id: String(formData.get('id') ?? ''),
+          kind: String(formData.get('kind') ?? 'openai-compatible'),
+          displayName: String(formData.get('displayName') ?? ''),
+          ...(formData.get('baseUrl') ? { baseUrl: String(formData.get('baseUrl')) } : {}),
+          ...(formData.get('credentialValue')
+            ? { credentialValue: String(formData.get('credentialValue')) }
+            : {}),
+          ...(models ? { models } : {}),
+        },
       },
-    });
+    );
     revalidatePath('/providers');
     revalidatePath('/models');
     return {
@@ -259,10 +274,9 @@ export async function deleteProvider(id: string): Promise<ActionResult> {
 
 export async function probeProvider(id: string): Promise<ActionResult> {
   try {
-    const result = await gatewayFetch<{ probe: { state: string; latencyMs?: number; message?: string } }>(
-      `/api/v1/providers/${encodeURIComponent(id)}/health`,
-      { method: 'POST' },
-    );
+    const result = await gatewayFetch<{
+      probe: { state: string; latencyMs?: number; message?: string };
+    }>(`/api/v1/providers/${encodeURIComponent(id)}/health`, { method: 'POST' });
     revalidatePath('/providers');
     return {
       ok: true,
@@ -308,7 +322,11 @@ export async function createPolicy(formData: FormData): Promise<ActionResult> {
 }
 
 /** Publish a new version without activating it: editing is not deploying. */
-export async function publishPolicyVersion(policyId: string, document: string, note: string): Promise<ActionResult> {
+export async function publishPolicyVersion(
+  policyId: string,
+  document: string,
+  note: string,
+): Promise<ActionResult> {
   try {
     const result = await gatewayFetch<{ version: { version: number } }>(
       `/api/v1/routing-policies/${encodeURIComponent(policyId)}/versions`,
@@ -324,7 +342,10 @@ export async function publishPolicyVersion(policyId: string, document: string, n
   }
 }
 
-export async function activatePolicyVersion(policyId: string, version: number): Promise<ActionResult> {
+export async function activatePolicyVersion(
+  policyId: string,
+  version: number,
+): Promise<ActionResult> {
   try {
     await gatewayFetch(`/api/v1/routing-policies/${encodeURIComponent(policyId)}/activate`, {
       method: 'POST',
@@ -424,9 +445,13 @@ export async function runPlaygroundRequest(formData: FormData): Promise<ActionRe
       body: {
         model: String(formData.get('model') ?? 'gateway/auto'),
         messages: [{ role: 'user', content: String(formData.get('prompt') ?? '') }],
-        ...(formData.get('temperature') ? { temperature: Number(formData.get('temperature')) } : {}),
+        ...(formData.get('temperature')
+          ? { temperature: Number(formData.get('temperature')) }
+          : {}),
         ...(formData.get('maxTokens') ? { max_tokens: Number(formData.get('maxTokens')) } : {}),
-        ...(formData.get('strategy') ? { gateway: { strategy: String(formData.get('strategy')) } } : {}),
+        ...(formData.get('strategy')
+          ? { gateway: { strategy: String(formData.get('strategy')) } }
+          : {}),
       },
     });
     revalidatePath('/requests');
@@ -454,7 +479,9 @@ export async function simulateProviderFailure(formData: FormData): Promise<Actio
 
 export async function resetCircuits(): Promise<ActionResult> {
   try {
-    const result = await gatewayFetch<{ reset: number }>('/api/v1/playground/reset-circuits', { method: 'POST' });
+    const result = await gatewayFetch<{ reset: number }>('/api/v1/playground/reset-circuits', {
+      method: 'POST',
+    });
     revalidatePath('/providers');
     revalidatePath('/models');
     return { ok: true, message: `Reset ${result.reset} circuit breaker(s).` };

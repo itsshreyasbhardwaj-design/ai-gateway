@@ -63,7 +63,9 @@ export async function registerV1Routes(app: FastifyInstance, ctx: GatewayContext
         signal,
         userAgent: request.headers['user-agent'],
         requestBytes: bytes,
-        endpoint: request.url.startsWith('/v1/responses') ? '/v1/responses' : '/v1/chat/completions',
+        endpoint: request.url.startsWith('/v1/responses')
+          ? '/v1/responses'
+          : '/v1/chat/completions',
       });
 
       if (result.kind === 'json') {
@@ -93,7 +95,9 @@ export async function registerV1Routes(app: FastifyInstance, ctx: GatewayContext
    */
   app.post('/v1/responses', async (request, reply) => {
     const body = request.body as Record<string, unknown> | undefined;
-    const unsupported = ['previous_response_id', 'store', 'conversation'].filter((key) => body?.[key] !== undefined);
+    const unsupported = ['previous_response_id', 'store', 'conversation'].filter(
+      (key) => body?.[key] !== undefined,
+    );
     if (unsupported.length > 0) {
       return sendError(
         reply,
@@ -115,7 +119,11 @@ export async function registerV1Routes(app: FastifyInstance, ctx: GatewayContext
     try {
       const identity = await auth(request);
       requireScopes(identity, 'inference.create');
-      const parsed = parseOrThrow(embeddingsRequestSchema, request.body, 'embeddings request') as EmbeddingsRequest;
+      const parsed = parseOrThrow(
+        embeddingsRequestSchema,
+        request.body,
+        'embeddings request',
+      ) as EmbeddingsRequest;
       const result = await embeddingsPipeline.run({
         auth: identity,
         request: parsed,
@@ -167,7 +175,9 @@ export async function registerV1Routes(app: FastifyInstance, ctx: GatewayContext
           return {
             id: model.id,
             object: 'model' as const,
-            created: Math.floor(Date.parse(organization?.createdAt ?? new Date().toISOString()) / 1000),
+            created: Math.floor(
+              Date.parse(organization?.createdAt ?? new Date().toISOString()) / 1000,
+            ),
             owned_by: model.providerId,
             gateway: {
               displayName: model.displayName,
@@ -202,7 +212,12 @@ export async function registerV1Routes(app: FastifyInstance, ctx: GatewayContext
         gateway: {
           pricingVersion: ctx.pricing.version,
           pricingAgeDays: ctx.pricing.ageInDays(),
-          virtualModels: ['gateway/auto', 'gateway/cheapest', 'gateway/fastest', 'gateway/most-reliable'],
+          virtualModels: [
+            'gateway/auto',
+            'gateway/cheapest',
+            'gateway/fastest',
+            'gateway/most-reliable',
+          ],
         },
       });
     } catch (err) {

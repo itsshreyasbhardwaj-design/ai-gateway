@@ -15,7 +15,9 @@ function provider(stub: ReturnType<typeof stubFetch>) {
 
 const ok = {
   json: {
-    candidates: [{ content: { role: 'model', parts: [{ text: 'Hi there' }] }, finishReason: 'STOP' }],
+    candidates: [
+      { content: { role: 'model', parts: [{ text: 'Hi there' }] }, finishReason: 'STOP' },
+    ],
     usageMetadata: { promptTokenCount: 7, candidatesTokenCount: 2, totalTokenCount: 9 },
   },
 };
@@ -23,7 +25,10 @@ const ok = {
 describe('GoogleProvider - request translation', () => {
   it('puts the model in the URL path and keeps the key in a header', async () => {
     const stub = stubFetch(ok);
-    await provider(stub).chat({ model: 'google/gemini-x', messages: [{ role: 'user', content: 'Hi' }] }, testCallContext({ model }));
+    await provider(stub).chat(
+      { model: 'google/gemini-x', messages: [{ role: 'user', content: 'Hi' }] },
+      testCallContext({ model }),
+    );
     expect(stub.calls[0]?.url).toContain('/models/gemini-x:generateContent');
     expect(stub.calls[0]?.headers['x-goog-api-key']).toBe('AIza-test-key');
     // A key in the query string ends up in proxy logs; it must not be there.
@@ -67,7 +72,13 @@ describe('GoogleProvider - request translation', () => {
   it('moves sampling parameters into generationConfig', async () => {
     const stub = stubFetch(ok);
     await provider(stub).chat(
-      { model: 'google/gemini-x', messages: [{ role: 'user', content: 'Hi' }], temperature: 0.4, max_tokens: 256, stop: ['X'] },
+      {
+        model: 'google/gemini-x',
+        messages: [{ role: 'user', content: 'Hi' }],
+        temperature: 0.4,
+        max_tokens: 256,
+        stop: ['X'],
+      },
       testCallContext({ model }),
     );
     expect((stub.calls[0]?.body as Record<string, unknown>)['generationConfig']).toEqual({
@@ -88,7 +99,8 @@ describe('GoogleProvider - request translation', () => {
       },
       testCallContext({ model }),
     );
-    const cfg = (stub.calls[0]?.body as { generationConfig: Record<string, unknown> }).generationConfig;
+    const cfg = (stub.calls[0]?.body as { generationConfig: Record<string, unknown> })
+      .generationConfig;
     expect(cfg['responseMimeType']).toBe('application/json');
     expect(cfg['responseSchema']).toEqual(schema);
   });
@@ -99,12 +111,21 @@ describe('GoogleProvider - request translation', () => {
       {
         model: 'google/gemini-x',
         messages: [{ role: 'user', content: 'Hi' }],
-        tools: [{ type: 'function', function: { name: 'f', parameters: { type: 'object', properties: {} } } }],
+        tools: [
+          {
+            type: 'function',
+            function: { name: 'f', parameters: { type: 'object', properties: {} } },
+          },
+        ],
       },
       testCallContext({ model }),
     );
     expect((stub.calls[0]?.body as Record<string, unknown>)['tools']).toEqual([
-      { functionDeclarations: [{ name: 'f', description: undefined, parameters: { type: 'object', properties: {} } }] },
+      {
+        functionDeclarations: [
+          { name: 'f', description: undefined, parameters: { type: 'object', properties: {} } },
+        ],
+      },
     ]);
   });
 });
@@ -121,19 +142,35 @@ describe('GoogleProvider - response translation', () => {
   });
 
   it('maps a SAFETY finish reason to content_filter', async () => {
-    const stub = stubFetch({ json: { candidates: [{ content: { parts: [] }, finishReason: 'SAFETY' }] } });
-    const res = await provider(stub).chat({ model: 'google/gemini-x', messages: [{ role: 'user', content: 'Hi' }] }, testCallContext({ model }));
+    const stub = stubFetch({
+      json: { candidates: [{ content: { parts: [] }, finishReason: 'SAFETY' }] },
+    });
+    const res = await provider(stub).chat(
+      { model: 'google/gemini-x', messages: [{ role: 'user', content: 'Hi' }] },
+      testCallContext({ model }),
+    );
     expect(res.choices[0]?.finish_reason).toBe('content_filter');
   });
 
   it('converts functionCall parts into tool_calls', async () => {
     const stub = stubFetch({
       json: {
-        candidates: [{ content: { parts: [{ functionCall: { name: 'lookup', args: { q: 'x' } } }] }, finishReason: 'STOP' }],
+        candidates: [
+          {
+            content: { parts: [{ functionCall: { name: 'lookup', args: { q: 'x' } } }] },
+            finishReason: 'STOP',
+          },
+        ],
       },
     });
-    const res = await provider(stub).chat({ model: 'google/gemini-x', messages: [{ role: 'user', content: 'Hi' }] }, testCallContext({ model }));
-    expect(res.choices[0]?.message.tool_calls?.[0]?.function).toEqual({ name: 'lookup', arguments: '{"q":"x"}' });
+    const res = await provider(stub).chat(
+      { model: 'google/gemini-x', messages: [{ role: 'user', content: 'Hi' }] },
+      testCallContext({ model }),
+    );
+    expect(res.choices[0]?.message.tool_calls?.[0]?.function).toEqual({
+      name: 'lookup',
+      arguments: '{"q":"x"}',
+    });
   });
 
   it('errors rather than fabricating output when no candidate comes back', async () => {
@@ -152,11 +189,17 @@ describe('GoogleProvider - streaming', () => {
       sse: [
         { candidates: [{ content: { parts: [{ text: 'Hel' }] } }] },
         { candidates: [{ content: { parts: [{ text: 'lo' }] } }] },
-        { candidates: [{ content: { parts: [] }, finishReason: 'STOP' }], usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 2, totalTokenCount: 5 } },
+        {
+          candidates: [{ content: { parts: [] }, finishReason: 'STOP' }],
+          usageMetadata: { promptTokenCount: 3, candidatesTokenCount: 2, totalTokenCount: 5 },
+        },
       ],
     });
     const chunks = await collect(
-      provider(stub).stream({ model: 'google/gemini-x', messages: [{ role: 'user', content: 'Hi' }], stream: true }, testCallContext({ model })),
+      provider(stub).stream(
+        { model: 'google/gemini-x', messages: [{ role: 'user', content: 'Hi' }], stream: true },
+        testCallContext({ model }),
+      ),
     );
     expect(stub.calls[0]?.url).toContain(':streamGenerateContent?alt=sse');
     expect(chunks[0]?.choices[0]?.delta.role).toBe('assistant');
@@ -178,7 +221,10 @@ describe('GoogleProvider - error normalization', () => {
     it(`maps ${googleStatus} to ${expected}`, async () => {
       const stub = stubFetch({ status, json: { error: { status: googleStatus, message: 'x' } } });
       await expect(
-        provider(stub).chat({ model: 'google/gemini-x', messages: [{ role: 'user', content: 'Hi' }] }, testCallContext({ model })),
+        provider(stub).chat(
+          { model: 'google/gemini-x', messages: [{ role: 'user', content: 'Hi' }] },
+          testCallContext({ model }),
+        ),
       ).rejects.toMatchObject({ type: expected });
     });
   }

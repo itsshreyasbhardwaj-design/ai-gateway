@@ -151,7 +151,11 @@ export class GatewayError extends Error {
     if (GatewayError.is(e)) return e;
     if (e instanceof Error) {
       if (e.name === 'AbortError' || e.message === 'aborted') {
-        return new GatewayError('client_disconnected', 'The client disconnected before the request completed.', { cause: e });
+        return new GatewayError(
+          'client_disconnected',
+          'The client disconnected before the request completed.',
+          { cause: e },
+        );
       }
       return new GatewayError(fallbackType, e.message, { cause: e });
     }
@@ -194,10 +198,18 @@ export function classifyHttpStatus(status: number, body?: unknown): GatewayError
 function classify400(body: unknown): GatewayErrorType {
   const text = typeof body === 'string' ? body : JSON.stringify(body ?? '');
   const lowered = text.toLowerCase();
-  if (lowered.includes('context length') || lowered.includes('context_length') || lowered.includes('too many tokens')) {
+  if (
+    lowered.includes('context length') ||
+    lowered.includes('context_length') ||
+    lowered.includes('too many tokens')
+  ) {
     return 'context_length_exceeded';
   }
-  if (lowered.includes('content filter') || lowered.includes('content_filter') || lowered.includes('safety')) {
+  if (
+    lowered.includes('content filter') ||
+    lowered.includes('content_filter') ||
+    lowered.includes('safety')
+  ) {
     return 'content_filter';
   }
   return 'invalid_request';

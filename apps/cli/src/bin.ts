@@ -14,18 +14,78 @@ interface Route {
 }
 
 const ROUTES: Route[] = [
-  { path: ['login'], summary: 'Store gateway credentials in a local profile', usage: 'aigw login [--url URL] [--key KEY] [--profile NAME]', run: commands.login },
-  { path: ['logout'], summary: 'Remove a stored profile', usage: 'aigw logout [--profile NAME]', run: commands.logout },
-  { path: ['whoami'], summary: 'Show which gateway and profile are in use', usage: 'aigw whoami', run: commands.whoami },
-  { path: ['models', 'list'], summary: 'List models this key can use', usage: 'aigw models list [--provider ID] [--capability CAP]', run: commands.modelsList },
-  { path: ['providers', 'list'], summary: 'Show provider health as measured by the gateway', usage: 'aigw providers list', run: commands.providersList },
-  { path: ['usage'], summary: 'Usage, cost and latency summary', usage: 'aigw usage [--range 1h|24h|7d|30d|90d] [--include-test]', run: commands.usage },
-  { path: ['requests', 'list'], summary: 'List recent requests', usage: 'aigw requests list [--limit N] [--status S] [--provider P] [--search Q]', run: commands.requestsList },
-  { path: ['request', 'get'], summary: 'Show a full request trace', usage: 'aigw request get REQUEST_ID', run: commands.requestGet },
-  { path: ['routing', 'list'], summary: 'List routing policies', usage: 'aigw routing list', run: commands.routingList },
-  { path: ['routing', 'validate'], summary: 'Validate a policy file without deploying it', usage: 'aigw routing validate POLICY_FILE', run: commands.routingValidate },
-  { path: ['routing', 'test'], summary: 'Dry-run the router; contacts no provider', usage: 'aigw routing test [PROMPT] [--model M] [--strategy S]', run: commands.routingTest },
-  { path: ['chat'], summary: 'Send a completion through the gateway', usage: 'aigw chat "PROMPT" [--model M] [--no-stream]', run: commands.chat },
+  {
+    path: ['login'],
+    summary: 'Store gateway credentials in a local profile',
+    usage: 'aigw login [--url URL] [--key KEY] [--profile NAME]',
+    run: commands.login,
+  },
+  {
+    path: ['logout'],
+    summary: 'Remove a stored profile',
+    usage: 'aigw logout [--profile NAME]',
+    run: commands.logout,
+  },
+  {
+    path: ['whoami'],
+    summary: 'Show which gateway and profile are in use',
+    usage: 'aigw whoami',
+    run: commands.whoami,
+  },
+  {
+    path: ['models', 'list'],
+    summary: 'List models this key can use',
+    usage: 'aigw models list [--provider ID] [--capability CAP]',
+    run: commands.modelsList,
+  },
+  {
+    path: ['providers', 'list'],
+    summary: 'Show provider health as measured by the gateway',
+    usage: 'aigw providers list',
+    run: commands.providersList,
+  },
+  {
+    path: ['usage'],
+    summary: 'Usage, cost and latency summary',
+    usage: 'aigw usage [--range 1h|24h|7d|30d|90d] [--include-test]',
+    run: commands.usage,
+  },
+  {
+    path: ['requests', 'list'],
+    summary: 'List recent requests',
+    usage: 'aigw requests list [--limit N] [--status S] [--provider P] [--search Q]',
+    run: commands.requestsList,
+  },
+  {
+    path: ['request', 'get'],
+    summary: 'Show a full request trace',
+    usage: 'aigw request get REQUEST_ID',
+    run: commands.requestGet,
+  },
+  {
+    path: ['routing', 'list'],
+    summary: 'List routing policies',
+    usage: 'aigw routing list',
+    run: commands.routingList,
+  },
+  {
+    path: ['routing', 'validate'],
+    summary: 'Validate a policy file without deploying it',
+    usage: 'aigw routing validate POLICY_FILE',
+    run: commands.routingValidate,
+  },
+  {
+    path: ['routing', 'test'],
+    summary: 'Dry-run the router; contacts no provider',
+    usage: 'aigw routing test [PROMPT] [--model M] [--strategy S]',
+    run: commands.routingTest,
+  },
+  {
+    path: ['chat'],
+    summary: 'Send a completion through the gateway',
+    usage: 'aigw chat "PROMPT" [--model M] [--no-stream]',
+    run: commands.chat,
+  },
 ];
 
 interface Parsed {
@@ -170,7 +230,11 @@ async function main(): Promise<number> {
 const invokedDirectly = (() => {
   const entry = process.argv[1];
   if (!entry) return false;
-  return import.meta.url === pathToFileURL(entry).href || entry.endsWith('bin.ts') || entry.endsWith('bin.js');
+  return (
+    import.meta.url === pathToFileURL(entry).href ||
+    entry.endsWith('bin.ts') ||
+    entry.endsWith('bin.js')
+  );
 })();
 
 if (invokedDirectly) {
@@ -179,22 +243,22 @@ if (invokedDirectly) {
 
 function run(): void {
   main()
-  .then((code) => process.exit(code))
-  .catch((err) => {
-    errOut('');
-    if (AIGatewayError.isAIGatewayError(err)) {
-      errOut(`${red(err.type)}  ${err.message}`);
-      if (err.requestId) errOut(dim(`  request id: ${err.requestId}`));
-      if (err.details) errOut(dim(`  details: ${JSON.stringify(err.details)}`));
-    } else if (err instanceof AIGatewayConnectionError) {
-      errOut(`${red('connection failed')}  ${err.message}`);
-      errOut(dim('  Is the gateway running? Try: pnpm dev'));
-    } else if (err instanceof AIGatewayTimeoutError) {
-      errOut(`${red('timed out')}  ${err.message}`);
-    } else {
-      errOut(`${red('error')}  ${(err as Error).message}`);
-    }
-    errOut('');
-    process.exit(1);
-  });
+    .then((code) => process.exit(code))
+    .catch((err) => {
+      errOut('');
+      if (AIGatewayError.isAIGatewayError(err)) {
+        errOut(`${red(err.type)}  ${err.message}`);
+        if (err.requestId) errOut(dim(`  request id: ${err.requestId}`));
+        if (err.details) errOut(dim(`  details: ${JSON.stringify(err.details)}`));
+      } else if (err instanceof AIGatewayConnectionError) {
+        errOut(`${red('connection failed')}  ${err.message}`);
+        errOut(dim('  Is the gateway running? Try: pnpm dev'));
+      } else if (err instanceof AIGatewayTimeoutError) {
+        errOut(`${red('timed out')}  ${err.message}`);
+      } else {
+        errOut(`${red('error')}  ${(err as Error).message}`);
+      }
+      errOut('');
+      process.exit(1);
+    });
 }

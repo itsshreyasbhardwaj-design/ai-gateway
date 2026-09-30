@@ -20,7 +20,9 @@ export default async function PlaygroundPage() {
     );
   }
 
-  const mockModels = models.filter((model) => model.providerId === 'mock' || model.providerId.startsWith('mock'));
+  const mockModels = models.filter(
+    (model) => model.providerId === 'mock' || model.providerId.startsWith('mock'),
+  );
 
   return (
     <>
@@ -31,14 +33,20 @@ export default async function PlaygroundPage() {
 
       <div className="mb-4">
         <Notice tone="info" title="Test traffic is separated, not hidden">
-          Requests sent from here are recorded in the request log with an <code className="font-mono">isTest</code> flag
-          and a <code className="font-mono">playground</code> tag. They count against rate limits — a flag that exempted
-          a request from the limiter would make the limiter meaningless — but never against a budget.
+          Requests sent from here are recorded in the request log with an{' '}
+          <code className="font-mono">isTest</code> flag and a{' '}
+          <code className="font-mono">playground</code> tag. They count against rate limits — a flag
+          that exempted a request from the limiter would make the limiter meaningless — but never
+          against a budget.
         </Notice>
       </div>
 
       <PlaygroundClient
-        models={models.map((m) => ({ id: m.id, capabilities: m.capabilities, providerId: m.providerId }))}
+        models={models.map((m) => ({
+          id: m.id,
+          capabilities: m.capabilities,
+          providerId: m.providerId,
+        }))}
         mockModels={mockModels.map((m) => m.id)}
       />
     </>

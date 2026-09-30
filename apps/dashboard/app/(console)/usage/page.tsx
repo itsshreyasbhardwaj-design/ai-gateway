@@ -1,8 +1,22 @@
 import {
-  formatCompact, formatCurrency, formatDuration, formatNumber, formatPercent,
+  formatCompact,
+  formatCurrency,
+  formatDuration,
+  formatNumber,
+  formatPercent,
 } from '@ai-gateway/ui';
 import { gatewayFetch, type ProviderComparisonRow, type UsageReport } from '@/lib/gateway';
-import { EmptyState, Mono, Notice, PageHeader, Panel, Stat, Table, Td, Th } from '@/components/ui/primitives';
+import {
+  EmptyState,
+  Mono,
+  Notice,
+  PageHeader,
+  Panel,
+  Stat,
+  Table,
+  Td,
+  Th,
+} from '@/components/ui/primitives';
 import { RangeTabs, Toggle } from '@/components/ui/controls';
 import { CostChart, LatencyChart, RequestsChart, TokensChart } from '@/components/charts';
 import { GatewayError } from '../error-panel';
@@ -24,7 +38,9 @@ export default async function UsagePage({
   let comparison: ProviderComparisonRow[] = [];
   try {
     usage = await gatewayFetch<UsageReport>(`/api/v1/usage?${query}`);
-    const result = await gatewayFetch<{ data: ProviderComparisonRow[] }>(`/api/v1/usage/providers?${query}`);
+    const result = await gatewayFetch<{ data: ProviderComparisonRow[] }>(
+      `/api/v1/usage/providers?${query}`,
+    );
     comparison = result.data;
   } catch (error) {
     return (
@@ -57,20 +73,32 @@ export default async function UsagePage({
       {includeTest && (
         <div className="mb-4">
           <Notice tone="warn" title="Test traffic included">
-            Playground runs, failover simulations and replays are counted in these figures. Turn the toggle off for
-            production-only numbers.
+            Playground runs, failover simulations and replays are counted in these figures. Turn the
+            toggle off for production-only numbers.
           </Notice>
         </div>
       )}
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Requests" value={formatNumber(s.totalRequests)} sub={`${formatNumber(s.successfulRequests)} ok · ${formatNumber(s.failedRequests)} failed · ${formatNumber(s.cancelledRequests)} cancelled`} />
-        <Stat label="Tokens" value={formatCompact(s.totalTokens)} sub={`in ${formatCompact(s.inputTokens)} / out ${formatCompact(s.outputTokens)}`} />
+        <Stat
+          label="Requests"
+          value={formatNumber(s.totalRequests)}
+          sub={`${formatNumber(s.successfulRequests)} ok · ${formatNumber(s.failedRequests)} failed · ${formatNumber(s.cancelledRequests)} cancelled`}
+        />
+        <Stat
+          label="Tokens"
+          value={formatCompact(s.totalTokens)}
+          sub={`in ${formatCompact(s.inputTokens)} / out ${formatCompact(s.outputTokens)}`}
+        />
         <Stat
           label="Estimated cost"
           value={formatCurrency(s.estimatedCost, s.currency)}
           hint={`From price table "${usage.disclosure.pricingVersion}", last verified ${usage.disclosure.pricingAgeDays} day(s) ago.`}
-          sub={s.pricingVersions.length > 1 ? `spans ${s.pricingVersions.length} pricing versions` : undefined}
+          sub={
+            s.pricingVersions.length > 1
+              ? `spans ${s.pricingVersions.length} pricing versions`
+              : undefined
+          }
         />
         <Stat
           label="Time to first token"
@@ -83,9 +111,10 @@ export default async function UsagePage({
       {s.estimatedUsageShare > 0 && (
         <div className="mb-4">
           <Notice tone="warn" title="Some token counts are estimates">
-            {formatPercent(s.estimatedUsageShare)} of requests in this window had their token counts approximated by
-            the gateway because the provider did not report usage. Cost figures for those rows are correspondingly
-            approximate. The gateway never presents an estimate as a provider-reported number.
+            {formatPercent(s.estimatedUsageShare)} of requests in this window had their token counts
+            approximated by the gateway because the provider did not report usage. Cost figures for
+            those rows are correspondingly approximate. The gateway never presents an estimate as a
+            provider-reported number.
           </Notice>
         </div>
       )}
@@ -153,7 +182,10 @@ export default async function UsagePage({
                     <Td align="right">{formatCurrency(row.estimatedCost, s.currency)}</Td>
                     <Td align="right">
                       {row.costPerMillionTokens === null ? (
-                        <span className="text-zinc-600" title="No tokens were counted for this provider in the window.">
+                        <span
+                          className="text-zinc-600"
+                          title="No tokens were counted for this provider in the window."
+                        >
                           —
                         </span>
                       ) : (
@@ -162,7 +194,8 @@ export default async function UsagePage({
                     </Td>
                     <Td>
                       <span className="text-2xs text-zinc-500">
-                        {row.usageSourceMix.provider_reported} reported / {row.usageSourceMix.estimated} estimated
+                        {row.usageSourceMix.provider_reported} reported /{' '}
+                        {row.usageSourceMix.estimated} estimated
                       </span>
                     </Td>
                   </tr>

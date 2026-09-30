@@ -83,7 +83,7 @@ export function ActionForm({
  * a Server Component can only hand a Client Component a module-level
  * `'use server'` function, never an inline arrow that captures the row.
  */
-export function RowAction({
+export function RowAction<A extends string | undefined = undefined>({
   action,
   arg,
   label,
@@ -92,8 +92,8 @@ export function RowAction({
   title,
 }: {
   /** A module-level server action, or (inside a Client Component) any thunk. */
-  action: (arg?: string) => Promise<ActionResult>;
-  arg?: string;
+  action: (arg: A) => Promise<ActionResult>;
+  arg?: A;
   label: string;
   confirmLabel?: string;
   variant?: 'default' | 'danger' | 'ghost' | 'primary';
@@ -107,7 +107,7 @@ export function RowAction({
 
   const run = async () => {
     setBusy(true);
-    const result = await action(arg);
+    const result = await action(arg as A);
     setBusy(false);
     setMessage(result.ok ? (result.message ?? 'Done.') : `Failed: ${result.message}`);
   };
@@ -122,7 +122,12 @@ export function RowAction({
 
   return (
     <span className="flex items-center gap-1">
-      <Button variant={confirmLabel ? 'danger' : variant} disabled={busy} onClick={run} title={title}>
+      <Button
+        variant={confirmLabel ? 'danger' : variant}
+        disabled={busy}
+        onClick={run}
+        title={title}
+      >
         {busy ? '…' : (confirmLabel ?? label)}
       </Button>
       {confirming && (

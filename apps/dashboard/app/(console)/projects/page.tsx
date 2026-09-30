@@ -1,7 +1,22 @@
 import Link from 'next/link';
 import { formatRelativeTime } from '@ai-gateway/ui';
-import { gatewayFetch, type ApiKeyRow, type ModelRow, type PolicyRow, type ProjectRow } from '@/lib/gateway';
-import { Badge, EmptyState, Mono, PageHeader, Panel, Pill, Table, Td, Th } from '@/components/ui/primitives';
+import {
+  gatewayFetch,
+  type ApiKeyRow,
+  type ModelRow,
+  type PolicyRow,
+  type ProjectRow,
+} from '@/lib/gateway';
+import {
+  Badge,
+  EmptyState,
+  PageHeader,
+  Panel,
+  Pill,
+  Table,
+  Td,
+  Th,
+} from '@/components/ui/primitives';
 import { ActionForm } from '@/components/action-form';
 import { Field, Input } from '@/components/ui/controls';
 import { createProject } from '@/app/actions';
@@ -18,9 +33,15 @@ export default async function ProjectsPage() {
   try {
     const [projectResult, keyResult, policyResult, modelResult] = await Promise.all([
       gatewayFetch<{ data: ProjectRow[] }>('/api/v1/projects'),
-      gatewayFetch<{ data: ApiKeyRow[] }>('/api/v1/api-keys').catch(() => ({ data: [] as ApiKeyRow[] })),
-      gatewayFetch<{ data: PolicyRow[] }>('/api/v1/routing-policies').catch(() => ({ data: [] as PolicyRow[] })),
-      gatewayFetch<{ data: ModelRow[] }>('/api/v1/models').catch(() => ({ data: [] as ModelRow[] })),
+      gatewayFetch<{ data: ApiKeyRow[] }>('/api/v1/api-keys').catch(() => ({
+        data: [] as ApiKeyRow[],
+      })),
+      gatewayFetch<{ data: PolicyRow[] }>('/api/v1/routing-policies').catch(() => ({
+        data: [] as PolicyRow[],
+      })),
+      gatewayFetch<{ data: ModelRow[] }>('/api/v1/models').catch(() => ({
+        data: [] as ModelRow[],
+      })),
     ]);
     projects = projectResult.data;
     keys = keyResult.data;
@@ -45,7 +66,10 @@ export default async function ProjectsPage() {
       <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Panel title="Projects">
           {projects.length === 0 ? (
-            <EmptyState title="No projects" body="Create one to group keys, policies and budgets." />
+            <EmptyState
+              title="No projects"
+              body="Create one to group keys, policies and budgets."
+            />
           ) : (
             <Table>
               <thead>
@@ -60,7 +84,9 @@ export default async function ProjectsPage() {
               </thead>
               <tbody>
                 {projects.map((project) => {
-                  const projectKeys = keys.filter((key) => key.projectId === project.id && key.status === 'active');
+                  const projectKeys = keys.filter(
+                    (key) => key.projectId === project.id && key.status === 'active',
+                  );
                   const policy = policies.find((p) => p.id === project.routingPolicyId);
                   return (
                     <tr key={project.id}>
@@ -77,7 +103,8 @@ export default async function ProjectsPage() {
                       <Td>
                         {policy ? (
                           <span className="text-xs text-zinc-300">
-                            {policy.name} <span className="text-zinc-600">v{policy.activeVersion}</span>
+                            {policy.name}{' '}
+                            <span className="text-zinc-600">v{policy.activeVersion}</span>
                           </span>
                         ) : (
                           <span className="text-2xs text-zinc-600">organization default</span>
@@ -85,7 +112,9 @@ export default async function ProjectsPage() {
                       </Td>
                       <Td>
                         {project.allowedModels === null || project.allowedModels === undefined ? (
-                          <span className="text-2xs text-zinc-600">all {models.length} registered</span>
+                          <span className="text-2xs text-zinc-600">
+                            all {models.length} registered
+                          </span>
                         ) : (
                           <span className="flex flex-wrap gap-1">
                             {project.allowedModels.slice(0, 3).map((model) => (
@@ -98,10 +127,15 @@ export default async function ProjectsPage() {
                         )}
                       </Td>
                       <Td>
-                        <span className="text-2xs text-zinc-500">{formatRelativeTime(project.createdAt)}</span>
+                        <span className="text-2xs text-zinc-500">
+                          {formatRelativeTime(project.createdAt)}
+                        </span>
                       </Td>
                       <Td>
-                        <Link href={`/projects/${project.id}`} className="text-xs text-accent hover:underline">
+                        <Link
+                          href={`/projects/${project.id}`}
+                          className="text-xs text-accent hover:underline"
+                        >
                           Manage
                         </Link>
                       </Td>

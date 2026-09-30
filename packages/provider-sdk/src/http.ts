@@ -187,10 +187,12 @@ function extractCode(body: unknown): string | undefined {
   if (!body || typeof body !== 'object') return undefined;
   const err = (body as { error?: unknown }).error;
   if (err && typeof err === 'object') {
-    const code = (err as { code?: unknown; type?: unknown }).code ?? (err as { type?: unknown }).type;
+    const code =
+      (err as { code?: unknown; type?: unknown }).code ?? (err as { type?: unknown }).type;
     if (typeof code === 'string') return code;
   }
-  const top = (body as { code?: unknown; type?: unknown }).code ?? (body as { type?: unknown }).type;
+  const top =
+    (body as { code?: unknown; type?: unknown }).code ?? (body as { type?: unknown }).type;
   return typeof top === 'string' ? top : undefined;
 }
 

@@ -11,7 +11,8 @@ export function GatewayError({ error }: { error: unknown }) {
   if (error instanceof NotConnectedError) {
     return (
       <Notice tone="warn" title="Not connected">
-        No gateway credential is configured. Visit <code className="font-mono">/connect</code> to add one.
+        No gateway credential is configured. Visit <code className="font-mono">/connect</code> to
+        add one.
       </Notice>
     );
   }
@@ -33,7 +34,9 @@ export function GatewayError({ error }: { error: unknown }) {
     return (
       <Notice tone="danger" title={`Gateway error (${error.status})`}>
         {error.message}
-        {error.requestId && <span className="ml-1 font-mono text-2xs opacity-70">request {error.requestId}</span>}
+        {error.requestId && (
+          <span className="ml-1 font-mono text-2xs opacity-70">request {error.requestId}</span>
+        )}
       </Notice>
     );
   }

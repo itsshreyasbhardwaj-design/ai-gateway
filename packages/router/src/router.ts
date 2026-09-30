@@ -26,7 +26,10 @@ export function planRoute(input: RouteInput): RoutePlan {
     //    the caller would pay a round trip to find out.
     const missing = input.requiredCapabilities.filter((cap) => !modelSupports(target.model, cap));
     if (missing.length > 0) {
-      rejected.push({ target: label, reason: `does not support required capability: ${missing.join(', ')}` });
+      rejected.push({
+        target: label,
+        reason: `does not support required capability: ${missing.join(', ')}`,
+      });
       continue;
     }
 
@@ -45,7 +48,9 @@ export function planRoute(input: RouteInput): RoutePlan {
 
     // 4. Measured health.
     if (signals.healthState === 'unavailable') {
-      const rate = signals.health ? ` (success rate ${(signals.health.successRate * 100).toFixed(0)}%)` : '';
+      const rate = signals.health
+        ? ` (success rate ${(signals.health.successRate * 100).toFixed(0)}%)`
+        : '';
       rejected.push({ target: label, reason: `measured as unavailable${rate}` });
       continue;
     }
@@ -67,11 +72,13 @@ export function planRoute(input: RouteInput): RoutePlan {
   }
 
   if (eligible.length === 0) {
-    throw new GatewayError(
-      'no_route_available',
-      'No configured model satisfies this request.',
-      { details: { rejected, strategy: input.strategy, requiredCapabilities: input.requiredCapabilities } },
-    );
+    throw new GatewayError('no_route_available', 'No configured model satisfies this request.', {
+      details: {
+        rejected,
+        strategy: input.strategy,
+        requiredCapabilities: input.requiredCapabilities,
+      },
+    });
   }
 
   const scorer = SCORERS[input.strategy];
@@ -111,7 +118,8 @@ export function planRoute(input: RouteInput): RoutePlan {
     return ai - bi;
   });
 
-  const maxLength = input.fallbackEnabled === false ? 1 : (input.maxChainLength ?? DEFAULT_CHAIN_LENGTH);
+  const maxLength =
+    input.fallbackEnabled === false ? 1 : (input.maxChainLength ?? DEFAULT_CHAIN_LENGTH);
   const chain = eligible.slice(0, Math.max(1, maxLength));
   const primary = chain[0];
 
@@ -121,7 +129,12 @@ export function planRoute(input: RouteInput): RoutePlan {
     `${eligible.length} of ${input.candidates.length} candidates eligible`,
   ];
   if (chain.length > 1) {
-    reasons.push(`fallback chain: ${chain.slice(1).map((t) => t.target.modelId).join(' -> ')}`);
+    reasons.push(
+      `fallback chain: ${chain
+        .slice(1)
+        .map((t) => t.target.modelId)
+        .join(' -> ')}`,
+    );
   } else if (input.fallbackEnabled === false) {
     reasons.push('fallback disabled for this request');
   }
@@ -180,7 +193,9 @@ export function resolveCandidates(input: ResolveInput): ResolveResult {
   const virtualStrategy = VIRTUAL_STRATEGY[input.requestedModel];
   if (virtualStrategy) {
     const candidates = input.policyModels?.length
-      ? input.policyModels.map((id) => byId.get(id)).filter((t): t is RouteInput['candidates'][number] => t !== undefined)
+      ? input.policyModels
+          .map((id) => byId.get(id))
+          .filter((t): t is RouteInput['candidates'][number] => t !== undefined)
       : input.allowed;
     if (candidates.length === 0) {
       throw new GatewayError(

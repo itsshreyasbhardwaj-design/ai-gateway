@@ -58,7 +58,10 @@ export class WebhookDispatcher {
   }
 
   /** Drain due deliveries. Called on a timer by the worker. */
-  async drain(limit = 25, now = new Date()): Promise<{ delivered: number; failed: number; retried: number }> {
+  async drain(
+    limit = 25,
+    now = new Date(),
+  ): Promise<{ delivered: number; failed: number; retried: number }> {
     const due = await this.opts.store.claimPendingDeliveries(now, limit);
     let delivered = 0;
     let failed = 0;
@@ -73,13 +76,19 @@ export class WebhookDispatcher {
     return { delivered, failed, retried };
   }
 
-  private async deliver(delivery: WebhookDelivery, now: Date): Promise<'delivered' | 'retry' | 'failed'> {
+  private async deliver(
+    delivery: WebhookDelivery,
+    now: Date,
+  ): Promise<'delivered' | 'retry' | 'failed'> {
     const endpoints = await this.opts.store.listWebhooks(
       (delivery.payload as WebhookPayload).organizationId,
     );
     const endpoint = endpoints.find((e) => e.id === delivery.webhookId);
     if (!endpoint) {
-      await this.opts.store.updateDelivery(delivery.id, { status: 'failed', lastError: 'endpoint no longer exists' });
+      await this.opts.store.updateDelivery(delivery.id, {
+        status: 'failed',
+        lastError: 'endpoint no longer exists',
+      });
       return 'failed';
     }
 
@@ -120,9 +129,19 @@ export class WebhookDispatcher {
         return 'delivered';
       }
 
-      return this.scheduleRetry(delivery, attempts, `endpoint returned HTTP ${response.status}`, endpoint.id, now, response.status);
+      return this.scheduleRetry(
+        delivery,
+        attempts,
+        `endpoint returned HTTP ${response.status}`,
+        endpoint.id,
+        now,
+        response.status,
+      );
     } catch (err) {
-      const message = err instanceof Error && err.name === 'AbortError' ? 'delivery timed out' : 'could not reach endpoint';
+      const message =
+        err instanceof Error && err.name === 'AbortError'
+          ? 'delivery timed out'
+          : 'could not reach endpoint';
       return this.scheduleRetry(delivery, attempts, message, endpoint.id, now);
     } finally {
       clearTimeout(timer);
@@ -137,7 +156,9 @@ export class WebhookDispatcher {
     now: Date,
     status?: number,
   ): Promise<'retry' | 'failed'> {
-    const endpoints = await this.opts.store.listWebhooks((delivery.payload as WebhookPayload).organizationId);
+    const endpoints = await this.opts.store.listWebhooks(
+      (delivery.payload as WebhookPayload).organizationId,
+    );
     const endpoint = endpoints.find((e) => e.id === webhookId);
     if (endpoint) {
       const consecutiveFailures = endpoint.consecutiveFailures + 1;
@@ -153,8 +174,16 @@ export class WebhookDispatcher {
     }
 
     if (attempts >= this.maxAttempts) {
-      this.opts.logger.warn('webhook delivery exhausted retries', { deliveryId: delivery.id, attempts, error });
-      await this.opts.store.updateDelivery(delivery.id, { status: 'failed', attempts, lastError: error });
+      this.opts.logger.warn('webhook delivery exhausted retries', {
+        deliveryId: delivery.id,
+        attempts,
+        error,
+      });
+      await this.opts.store.updateDelivery(delivery.id, {
+        status: 'failed',
+        attempts,
+        lastError: error,
+      });
       return 'failed';
     }
 

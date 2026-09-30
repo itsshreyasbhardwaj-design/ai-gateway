@@ -96,5 +96,7 @@ export function backoffDelay(
 
 /** Full schedule of delays, for docs, tests and the retry-policy preview UI. */
 export function backoffSchedule(policy: RetryPolicy, random: () => number = () => 1): number[] {
-  return Array.from({ length: policy.maxAttempts }, (_, i) => backoffDelay(i + 1, policy, undefined, random));
+  return Array.from({ length: policy.maxAttempts }, (_, i) =>
+    backoffDelay(i + 1, policy, undefined, random),
+  );
 }

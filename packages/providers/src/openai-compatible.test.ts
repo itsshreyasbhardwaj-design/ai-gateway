@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { GatewayError, type ChatRequest } from '@ai-gateway/core';
+import { type GatewayError, type ChatRequest } from '@ai-gateway/core';
 import { OpenAICompatibleProvider } from './openai-compatible.js';
 import { collect, stubFetch, testCallContext, testModel } from './testing.js';
 
-const model = testModel({ id: 'acme/model-a', providerId: 'acme', providerModelId: 'upstream-model-a' });
+const model = testModel({
+  id: 'acme/model-a',
+  providerId: 'acme',
+  providerModelId: 'upstream-model-a',
+});
 
 function provider(stub: ReturnType<typeof stubFetch>) {
   return new OpenAICompatibleProvider({
@@ -31,7 +35,9 @@ describe('OpenAICompatibleProvider - non-streaming', () => {
       json: {
         id: 'chatcmpl-1',
         created: 1,
-        choices: [{ index: 0, message: { role: 'assistant', content: 'Hi' }, finish_reason: 'stop' }],
+        choices: [
+          { index: 0, message: { role: 'assistant', content: 'Hi' }, finish_reason: 'stop' },
+        ],
         usage: { prompt_tokens: 10, completion_tokens: 2, total_tokens: 12 },
       },
     });
@@ -47,7 +53,11 @@ describe('OpenAICompatibleProvider - non-streaming', () => {
 
   it('authenticates with a bearer token', async () => {
     const stub = stubFetch({
-      json: { choices: [{ index: 0, message: { role: 'assistant', content: 'Hi' }, finish_reason: 'stop' }] },
+      json: {
+        choices: [
+          { index: 0, message: { role: 'assistant', content: 'Hi' }, finish_reason: 'stop' },
+        ],
+      },
     });
     await provider(stub).chat(request, testCallContext({ model }));
     expect(stub.calls[0]?.headers['authorization']).toBe('Bearer sk-test-secret-value-1234567890');
@@ -55,7 +65,12 @@ describe('OpenAICompatibleProvider - non-streaming', () => {
 
   it('returns the gateway model id so callers never see the upstream name', async () => {
     const stub = stubFetch({
-      json: { model: 'upstream-model-a-2024', choices: [{ index: 0, message: { role: 'assistant', content: 'Hi' }, finish_reason: 'stop' }] },
+      json: {
+        model: 'upstream-model-a-2024',
+        choices: [
+          { index: 0, message: { role: 'assistant', content: 'Hi' }, finish_reason: 'stop' },
+        ],
+      },
     });
     const res = await provider(stub).chat(request, testCallContext({ model }));
     expect(res.model).toBe('acme/model-a');
@@ -64,7 +79,9 @@ describe('OpenAICompatibleProvider - non-streaming', () => {
   it('marks provider-reported usage as such and carries cached tokens', async () => {
     const stub = stubFetch({
       json: {
-        choices: [{ index: 0, message: { role: 'assistant', content: 'Hi' }, finish_reason: 'stop' }],
+        choices: [
+          { index: 0, message: { role: 'assistant', content: 'Hi' }, finish_reason: 'stop' },
+        ],
         usage: {
           prompt_tokens: 100,
           completion_tokens: 20,
@@ -74,12 +91,26 @@ describe('OpenAICompatibleProvider - non-streaming', () => {
       },
     });
     const res = await provider(stub).chat(request, testCallContext({ model }));
-    expect(res.usage).toMatchObject({ input: 100, output: 20, total: 120, cachedInput: 64, source: 'provider_reported' });
+    expect(res.usage).toMatchObject({
+      input: 100,
+      output: 20,
+      total: 120,
+      cachedInput: 64,
+      source: 'provider_reported',
+    });
   });
 
   it('maps a legacy function_call finish reason onto tool_calls', async () => {
     const stub = stubFetch({
-      json: { choices: [{ index: 0, message: { role: 'assistant', content: null }, finish_reason: 'function_call' }] },
+      json: {
+        choices: [
+          {
+            index: 0,
+            message: { role: 'assistant', content: null },
+            finish_reason: 'function_call',
+          },
+        ],
+      },
     });
     const res = await provider(stub).chat(request, testCallContext({ model }));
     expect(res.choices[0]?.finish_reason).toBe('tool_calls');
@@ -87,14 +118,23 @@ describe('OpenAICompatibleProvider - non-streaming', () => {
 
   it('errors rather than inventing a response when the upstream returns no choices', async () => {
     const stub = stubFetch({ json: { choices: [] } });
-    await expect(provider(stub).chat(request, testCallContext({ model }))).rejects.toThrow(/no choices/);
+    await expect(provider(stub).chat(request, testCallContext({ model }))).rejects.toThrow(
+      /no choices/,
+    );
   });
 
   it('omits parameters the caller did not set', async () => {
     const stub = stubFetch({
-      json: { choices: [{ index: 0, message: { role: 'assistant', content: 'Hi' }, finish_reason: 'stop' }] },
+      json: {
+        choices: [
+          { index: 0, message: { role: 'assistant', content: 'Hi' }, finish_reason: 'stop' },
+        ],
+      },
     });
-    await provider(stub).chat({ model: 'acme/model-a', messages: [{ role: 'user', content: 'x' }] }, testCallContext({ model }));
+    await provider(stub).chat(
+      { model: 'acme/model-a', messages: [{ role: 'user', content: 'x' }] },
+      testCallContext({ model }),
+    );
     const body = stub.calls[0]?.body as Record<string, unknown>;
     expect('temperature' in body).toBe(false);
     expect('seed' in body).toBe(false);
@@ -105,14 +145,23 @@ describe('OpenAICompatibleProvider - streaming', () => {
   it('translates deltas and asks for usage on the final chunk', async () => {
     const stub = stubFetch({
       sse: [
-        { id: 'c1', choices: [{ index: 0, delta: { role: 'assistant', content: '' }, finish_reason: null }] },
+        {
+          id: 'c1',
+          choices: [{ index: 0, delta: { role: 'assistant', content: '' }, finish_reason: null }],
+        },
         { id: 'c1', choices: [{ index: 0, delta: { content: 'Hello' }, finish_reason: null }] },
         { id: 'c1', choices: [{ index: 0, delta: { content: ' world' }, finish_reason: null }] },
-        { id: 'c1', choices: [{ index: 0, delta: {}, finish_reason: 'stop' }], usage: { prompt_tokens: 5, completion_tokens: 2, total_tokens: 7 } },
+        {
+          id: 'c1',
+          choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+          usage: { prompt_tokens: 5, completion_tokens: 2, total_tokens: 7 },
+        },
       ],
     });
 
-    const chunks = await collect(provider(stub).stream({ ...request, stream: true }, testCallContext({ model })));
+    const chunks = await collect(
+      provider(stub).stream({ ...request, stream: true }, testCallContext({ model })),
+    );
 
     expect(chunks).toHaveLength(4);
     expect(chunks.map((c) => c.choices[0]?.delta.content ?? '').join('')).toBe('Hello world');
@@ -129,16 +178,21 @@ describe('OpenAICompatibleProvider - streaming', () => {
       choices: [{ index: 0, delta: { content: `tok${i} ` }, finish_reason: null }],
     }));
     const stub = stubFetch({ sse: events });
-    const chunks = await collect(provider(stub).stream({ ...request, stream: true }, testCallContext({ model })));
+    const chunks = await collect(
+      provider(stub).stream({ ...request, stream: true }, testCallContext({ model })),
+    );
     expect(chunks).toHaveLength(30);
     expect(chunks[29]?.choices[0]?.delta.content).toBe('tok29 ');
   });
 
   it('stops cleanly at [DONE] without emitting it as a chunk', async () => {
     const stub = stubFetch({
-      sseRaw: 'data: {"choices":[{"index":0,"delta":{"content":"a"},"finish_reason":null}]}\n\ndata: [DONE]\n\n',
+      sseRaw:
+        'data: {"choices":[{"index":0,"delta":{"content":"a"},"finish_reason":null}]}\n\ndata: [DONE]\n\n',
     });
-    const chunks = await collect(provider(stub).stream({ ...request, stream: true }, testCallContext({ model })));
+    const chunks = await collect(
+      provider(stub).stream({ ...request, stream: true }, testCallContext({ model })),
+    );
     expect(chunks).toHaveLength(1);
   });
 
@@ -191,7 +245,9 @@ describe('OpenAICompatibleProvider - error normalization', () => {
       status: 400,
       json: { error: { message: 'Your prompt contained: my-secret-customer-data' } },
     });
-    const err = await provider(stub).chat(request, testCallContext({ model })).catch((e) => e as GatewayError);
+    const err = await provider(stub)
+      .chat(request, testCallContext({ model }))
+      .catch((e) => e as GatewayError);
     expect(err.message).not.toContain('my-secret-customer-data');
   });
 
@@ -221,7 +277,10 @@ describe('OpenAICompatibleProvider - error normalization', () => {
   it('distinguishes client cancellation from a timeout', async () => {
     const controller = new AbortController();
     const stub = stubFetch({ hang: true });
-    const promise = provider(stub).chat(request, testCallContext({ model, signal: controller.signal, timeoutMs: 5_000 }));
+    const promise = provider(stub).chat(
+      request,
+      testCallContext({ model, signal: controller.signal, timeoutMs: 5_000 }),
+    );
     setTimeout(() => controller.abort(), 10);
     await expect(promise).rejects.toMatchObject({ type: 'client_disconnected' });
   });

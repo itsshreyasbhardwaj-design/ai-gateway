@@ -137,12 +137,16 @@ function semanticChecks(policy: RoutingPolicyDocument): {
   if (policy.retry.maxAttempts > 1 && policy.retry.jitter === 'none') {
     warnings.push({
       path: 'retry.jitter',
-      message: 'jitter is disabled; concurrent clients will retry in lockstep and can amplify a provider outage',
+      message:
+        'jitter is disabled; concurrent clients will retry in lockstep and can amplify a provider outage',
     });
   }
 
   if (policy.retry.maxDelayMs < policy.retry.initialDelayMs) {
-    issues.push({ path: 'retry.maxDelayMs', message: 'maxDelayMs must be greater than or equal to initialDelayMs' });
+    issues.push({
+      path: 'retry.maxDelayMs',
+      message: 'maxDelayMs must be greater than or equal to initialDelayMs',
+    });
   }
 
   return { errors: issues, warnings };
@@ -158,7 +162,9 @@ export function policyToYaml(policy: RoutingPolicyDocument): string {
 }
 
 /** Ordered model references for the router. */
-export function policyTargets(policy: RoutingPolicyDocument): Array<{ model: string; weight?: number; priority?: number }> {
+export function policyTargets(
+  policy: RoutingPolicyDocument,
+): Array<{ model: string; weight?: number; priority?: number }> {
   return policy.routing.models.map(normalizeModelEntry);
 }
 

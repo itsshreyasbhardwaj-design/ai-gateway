@@ -77,7 +77,8 @@ export function summarize(samples: number[]): LatencySummary {
     return { count: 0, min: 0, p50: 0, p75: 0, p90: 0, p95: 0, p99: 0, max: 0, mean: 0 };
   }
   const sorted = [...samples].sort((a, b) => a - b);
-  const at = (q: number) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(q * sorted.length) - 1))] ?? 0;
+  const at = (q: number) =>
+    sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(q * sorted.length) - 1))] ?? 0;
   return {
     count: sorted.length,
     min: round(sorted[0] ?? 0),
@@ -137,7 +138,8 @@ export async function run(
         const measurement = await fn(index);
         if (!measurement.ok) errors++;
         latencies.push(measurement.latencyMs);
-        if (measurement.gatewayOverheadMs !== undefined) overheads.push(measurement.gatewayOverheadMs);
+        if (measurement.gatewayOverheadMs !== undefined)
+          overheads.push(measurement.gatewayOverheadMs);
         if (measurement.providerMs !== undefined) providerTimes.push(measurement.providerMs);
       } catch {
         errors++;
@@ -176,9 +178,13 @@ export function formatTable(results: BenchmarkResult[]): string {
     `${result.latency.max.toFixed(2)}ms`,
   ]);
 
-  const widths = header.map((_, i) => Math.max(header[i]!.length, ...rows.map((r) => r[i]!.length)));
+  const widths = header.map((_, i) =>
+    Math.max(header[i]!.length, ...rows.map((r) => r[i]!.length)),
+  );
   const line = (cells: string[]) =>
-    cells.map((cell, i) => (i === 0 ? cell.padEnd(widths[i]!) : cell.padStart(widths[i]!))).join('  ');
+    cells
+      .map((cell, i) => (i === 0 ? cell.padEnd(widths[i]!) : cell.padStart(widths[i]!)))
+      .join('  ');
 
   return [line(header), widths.map((w) => '-'.repeat(w)).join('  '), ...rows.map(line)].join('\n');
 }

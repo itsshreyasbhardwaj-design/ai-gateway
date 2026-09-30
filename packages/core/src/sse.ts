@@ -25,9 +25,7 @@ export function sseData(payload: unknown): string {
  * Buffers only up to one event boundary, so a long streaming response never
  * accumulates in gateway memory.
  */
-export async function* parseSseStream(
-  stream: AsyncIterable<Uint8Array>,
-): AsyncGenerator<SseEvent> {
+export async function* parseSseStream(stream: AsyncIterable<Uint8Array>): AsyncGenerator<SseEvent> {
   const decoder = new TextDecoder();
   let buffer = '';
 

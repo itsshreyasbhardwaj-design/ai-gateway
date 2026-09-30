@@ -60,7 +60,9 @@ describe('SSRF guard', () => {
   });
 
   it('throws a normalized gateway error from the assert form', () => {
-    expect(() => assertSafeProviderUrl('http://169.254.169.254/')).toThrow(/Rejected provider base URL/);
+    expect(() => assertSafeProviderUrl('http://169.254.169.254/')).toThrow(
+      /Rejected provider base URL/,
+    );
   });
 
   it('classifies loopback and link-local hosts as private', () => {

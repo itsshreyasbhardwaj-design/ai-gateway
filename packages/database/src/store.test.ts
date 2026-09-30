@@ -15,7 +15,13 @@ function org(id = 'org_1'): Organization {
 }
 
 function project(organizationId: string, id = 'proj_1'): Project {
-  return { id, organizationId, name: 'Production', slug: 'production', createdAt: new Date().toISOString() };
+  return {
+    id,
+    organizationId,
+    name: 'Production',
+    slug: 'production',
+    createdAt: new Date().toISOString(),
+  };
 }
 
 function apiKey(organizationId: string, projectId: string, id = 'key_1'): ApiKeyLookup {
@@ -92,7 +98,12 @@ describe('store - tenancy', () => {
 
   it('upserts a membership rather than duplicating it', async () => {
     const store = await seeded();
-    const member = { organizationId: 'org_1', userId: 'user_1', role: 'member' as const, createdAt: new Date().toISOString() };
+    const member = {
+      organizationId: 'org_1',
+      userId: 'user_1',
+      role: 'member' as const,
+      createdAt: new Date().toISOString(),
+    };
     await store.addMember(member);
     await store.addMember({ ...member, role: 'admin' });
     expect(await store.listMembers('org_1')).toHaveLength(1);
@@ -140,7 +151,12 @@ describe('store - api keys', () => {
 describe('store - providers and credentials', () => {
   it('keeps provider config scoped per organization', async () => {
     const store = await seeded();
-    await store.upsertProvider('org_1', { id: 'openai', kind: 'openai', displayName: 'OpenAI', enabled: true });
+    await store.upsertProvider('org_1', {
+      id: 'openai',
+      kind: 'openai',
+      displayName: 'OpenAI',
+      enabled: true,
+    });
     expect(await store.listProviders('org_1')).toHaveLength(1);
     expect(await store.listProviders('org_2')).toHaveLength(0);
     expect(await store.getProvider('org_2', 'openai')).toBeUndefined();
@@ -169,8 +185,27 @@ describe('store - requests and traces', () => {
     const record = request();
     await store.recordRequest(
       record,
-      [{ name: 'routing', status: 'ok', startedAt: 1, durationMs: 2, detail: { strategy: 'explicit' } }],
-      [{ id: 'att_1', requestId: record.id, attemptNumber: 1, providerId: 'mock', modelId: 'mock/mock-fast', startedAt: 1, durationMs: 40, status: 'success' }],
+      [
+        {
+          name: 'routing',
+          status: 'ok',
+          startedAt: 1,
+          durationMs: 2,
+          detail: { strategy: 'explicit' },
+        },
+      ],
+      [
+        {
+          id: 'att_1',
+          requestId: record.id,
+          attemptNumber: 1,
+          providerId: 'mock',
+          modelId: 'mock/mock-fast',
+          startedAt: 1,
+          durationMs: 40,
+          status: 'success',
+        },
+      ],
     );
     const trace = await store.getRequestTrace('org_1', record.id);
     expect(trace?.request.id).toBe(record.id);
@@ -191,18 +226,41 @@ describe('store - requests and traces', () => {
     await store.recordRequest(request(), [], []);
     await store.recordRequest(request({ isTest: true }), [], []);
     expect((await store.queryRequests({ organizationId: 'org_1' })).records).toHaveLength(1);
-    expect((await store.queryRequests({ organizationId: 'org_1', includeTest: true })).records).toHaveLength(2);
+    expect(
+      (await store.queryRequests({ organizationId: 'org_1', includeTest: true })).records,
+    ).toHaveLength(2);
   });
 
   it('filters by provider, model, status and project', async () => {
     const store = await seeded();
-    await store.recordRequest(request({ resolvedProviderId: 'openai', resolvedModelId: 'openai/a' }), [], []);
-    await store.recordRequest(request({ resolvedProviderId: 'anthropic', resolvedModelId: 'anthropic/b', status: 'error', errorType: 'provider_timeout' }), [], []);
+    await store.recordRequest(
+      request({ resolvedProviderId: 'openai', resolvedModelId: 'openai/a' }),
+      [],
+      [],
+    );
+    await store.recordRequest(
+      request({
+        resolvedProviderId: 'anthropic',
+        resolvedModelId: 'anthropic/b',
+        status: 'error',
+        errorType: 'provider_timeout',
+      }),
+      [],
+      [],
+    );
 
-    expect((await store.queryRequests({ organizationId: 'org_1', providerId: 'openai' })).records).toHaveLength(1);
-    expect((await store.queryRequests({ organizationId: 'org_1', modelId: 'anthropic/b' })).records).toHaveLength(1);
-    expect((await store.queryRequests({ organizationId: 'org_1', status: 'error' })).records).toHaveLength(1);
-    expect((await store.queryRequests({ organizationId: 'org_1', projectId: 'nope' })).records).toHaveLength(0);
+    expect(
+      (await store.queryRequests({ organizationId: 'org_1', providerId: 'openai' })).records,
+    ).toHaveLength(1);
+    expect(
+      (await store.queryRequests({ organizationId: 'org_1', modelId: 'anthropic/b' })).records,
+    ).toHaveLength(1);
+    expect(
+      (await store.queryRequests({ organizationId: 'org_1', status: 'error' })).records,
+    ).toHaveLength(1);
+    expect(
+      (await store.queryRequests({ organizationId: 'org_1', projectId: 'nope' })).records,
+    ).toHaveLength(0);
   });
 
   it('pages newest-first with a stable cursor', async () => {
@@ -218,10 +276,16 @@ describe('store - requests and traces', () => {
     expect(first.records[0]?.id).toBe(ids.at(-1));
     expect(first.nextCursor).toBeDefined();
 
-    const second = await store.queryRequests({ organizationId: 'org_1', limit: 4, cursor: first.nextCursor });
+    const second = await store.queryRequests({
+      organizationId: 'org_1',
+      limit: 4,
+      cursor: first.nextCursor,
+    });
     expect(second.records).toHaveLength(4);
     // No overlap between pages.
-    expect(second.records.map((r) => r.id).some((id) => first.records.some((r) => r.id === id))).toBe(false);
+    expect(
+      second.records.map((r) => r.id).some((id) => first.records.some((r) => r.id === id)),
+    ).toBe(false);
   });
 
   it('searches by request id and error type', async () => {
@@ -229,8 +293,12 @@ describe('store - requests and traces', () => {
     const record = request({ errorType: 'provider_rate_limit', status: 'error' });
     await store.recordRequest(record, [], []);
     await store.recordRequest(request(), [], []);
-    expect((await store.queryRequests({ organizationId: 'org_1', search: 'rate_limit' })).records).toHaveLength(1);
-    expect((await store.queryRequests({ organizationId: 'org_1', search: record.id })).records).toHaveLength(1);
+    expect(
+      (await store.queryRequests({ organizationId: 'org_1', search: 'rate_limit' })).records,
+    ).toHaveLength(1);
+    expect(
+      (await store.queryRequests({ organizationId: 'org_1', search: record.id })).records,
+    ).toHaveLength(1);
   });
 
   it('filters by time range', async () => {
@@ -280,10 +348,36 @@ describe('store - policies', () => {
     const store = await seeded();
     const policyId = 'pol_1';
     await store.createPolicy(
-      { id: policyId, organizationId: 'org_1', projectId: 'proj_1', name: 'prod', activeVersion: 1, createdAt: 'now', updatedAt: 'now' },
-      { id: 'ver_1', policyId, version: 1, document: { name: 'v1' }, checksum: 'c1', createdBy: 'alice', active: true, createdAt: 'now' },
+      {
+        id: policyId,
+        organizationId: 'org_1',
+        projectId: 'proj_1',
+        name: 'prod',
+        activeVersion: 1,
+        createdAt: 'now',
+        updatedAt: 'now',
+      },
+      {
+        id: 'ver_1',
+        policyId,
+        version: 1,
+        document: { name: 'v1' },
+        checksum: 'c1',
+        createdBy: 'alice',
+        active: true,
+        createdAt: 'now',
+      },
     );
-    await store.addPolicyVersion({ id: 'ver_2', policyId, version: 2, document: { name: 'v2' }, checksum: 'c2', createdBy: 'bob', active: false, createdAt: 'now' });
+    await store.addPolicyVersion({
+      id: 'ver_2',
+      policyId,
+      version: 2,
+      document: { name: 'v2' },
+      checksum: 'c2',
+      createdBy: 'bob',
+      active: false,
+      createdAt: 'now',
+    });
 
     expect((await store.getActivePolicyVersion(policyId))?.version).toBe(1);
     await store.activatePolicyVersion(policyId, 2, 'later');
@@ -295,17 +389,45 @@ describe('store - policies', () => {
   it('rejects activating a version that does not exist', async () => {
     const store = await seeded();
     await store.createPolicy(
-      { id: 'pol_1', organizationId: 'org_1', projectId: null, name: 'p', activeVersion: 1, createdAt: 'now', updatedAt: 'now' },
-      { id: 'ver_1', policyId: 'pol_1', version: 1, document: {}, checksum: 'c', createdBy: 'a', active: true, createdAt: 'now' },
+      {
+        id: 'pol_1',
+        organizationId: 'org_1',
+        projectId: null,
+        name: 'p',
+        activeVersion: 1,
+        createdAt: 'now',
+        updatedAt: 'now',
+      },
+      {
+        id: 'ver_1',
+        policyId: 'pol_1',
+        version: 1,
+        document: {},
+        checksum: 'c',
+        createdBy: 'a',
+        active: true,
+        createdAt: 'now',
+      },
     );
-    await expect(store.activatePolicyVersion('pol_1', 99, 'now')).rejects.toThrow(/unknown version/);
+    await expect(store.activatePolicyVersion('pol_1', 99, 'now')).rejects.toThrow(
+      /unknown version/,
+    );
   });
 });
 
 describe('store - budgets, webhooks and audit', () => {
   it('scopes budgets and refuses cross-tenant deletion', async () => {
     const store = await seeded();
-    const budget = { id: 'bud_1', organizationId: 'org_1', scope: 'organization' as const, period: 'monthly' as const, limit: 100, currency: 'USD', action: 'BLOCK' as const, enabled: true };
+    const budget = {
+      id: 'bud_1',
+      organizationId: 'org_1',
+      scope: 'organization' as const,
+      period: 'monthly' as const,
+      limit: 100,
+      currency: 'USD',
+      action: 'BLOCK' as const,
+      enabled: true,
+    };
     await store.upsertBudget(budget);
     await store.deleteBudget('org_2', 'bud_1');
     expect(await store.listBudgets('org_1')).toHaveLength(1);
@@ -315,7 +437,14 @@ describe('store - budgets, webhooks and audit', () => {
 
   it('claims only deliveries that are due', async () => {
     const store = await seeded();
-    const base = { webhookId: 'whk_1', event: 'budget.exceeded' as const, payload: {}, attempts: 0, status: 'pending' as const, createdAt: '2026-01-01T00:00:00.000Z' };
+    const base = {
+      webhookId: 'whk_1',
+      event: 'budget.exceeded' as const,
+      payload: {},
+      attempts: 0,
+      status: 'pending' as const,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    };
     await store.enqueueDelivery({ ...base, id: 'd1' });
     await store.enqueueDelivery({ ...base, id: 'd2', nextAttemptAt: '2030-01-01T00:00:00.000Z' });
     await store.enqueueDelivery({ ...base, id: 'd3', status: 'delivered' });

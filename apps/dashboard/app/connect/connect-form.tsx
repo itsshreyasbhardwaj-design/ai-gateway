@@ -24,7 +24,12 @@ export function ConnectForm({ defaultUrl }: { defaultUrl: string }) {
         className="space-y-4"
       >
         <Field label="Gateway URL" hint="Where the gateway service is listening.">
-          <Input name="gatewayUrl" defaultValue={defaultUrl} mono placeholder="http://localhost:8787" />
+          <Input
+            name="gatewayUrl"
+            defaultValue={defaultUrl}
+            mono
+            placeholder="http://localhost:8787"
+          />
         </Field>
 
         <Field
@@ -61,9 +66,10 @@ export function ConnectForm({ defaultUrl }: { defaultUrl: string }) {
       </form>
 
       <p className="mt-5 border-t border-surface-border pt-4 text-2xs leading-relaxed text-zinc-600">
-        Running the gateway for the first time? <code className="font-mono">pnpm dev</code> prints a bootstrap key once
-        on stdout. Alternatively set <code className="font-mono">AI_GATEWAY_ADMIN_KEY</code> in the dashboard&apos;s
-        environment to skip this screen.
+        Running the gateway for the first time? <code className="font-mono">pnpm dev</code> prints a
+        bootstrap key once on stdout. Alternatively set{' '}
+        <code className="font-mono">AI_GATEWAY_ADMIN_KEY</code> in the dashboard&apos;s environment
+        to skip this screen.
       </p>
     </Panel>
   );

@@ -54,7 +54,11 @@ export function evaluatePolicy(subject: PolicySubject, request: ChatRequest): Po
     throw new GatewayError('policy_violation', 'Tool use is disabled for this project by policy.');
   }
 
-  if (policy.limits.maxRequestBytes && subject.requestBytes && subject.requestBytes > policy.limits.maxRequestBytes) {
+  if (
+    policy.limits.maxRequestBytes &&
+    subject.requestBytes &&
+    subject.requestBytes > policy.limits.maxRequestBytes
+  ) {
     throw new GatewayError(
       'payload_too_large',
       `Request body is ${subject.requestBytes} bytes, above the configured limit of ${policy.limits.maxRequestBytes}.`,
@@ -67,7 +71,13 @@ export function evaluatePolicy(subject: PolicySubject, request: ChatRequest): Po
       throw new GatewayError(
         'policy_violation',
         `Estimated prompt size (~${estimated} tokens) exceeds the configured limit of ${policy.limits.maxInputTokens}.`,
-        { details: { estimatedInputTokens: estimated, limit: policy.limits.maxInputTokens, estimateIsApproximate: true } },
+        {
+          details: {
+            estimatedInputTokens: estimated,
+            limit: policy.limits.maxInputTokens,
+            estimateIsApproximate: true,
+          },
+        },
       );
     }
   }
@@ -77,18 +87,29 @@ export function evaluatePolicy(subject: PolicySubject, request: ChatRequest): Po
   if (policy.limits.maxOutputTokens !== undefined) {
     if (requestedMax === undefined) {
       effective = { ...effective, max_tokens: policy.limits.maxOutputTokens };
-      adjustments.push(`max_tokens defaulted to the policy ceiling of ${policy.limits.maxOutputTokens}`);
+      adjustments.push(
+        `max_tokens defaulted to the policy ceiling of ${policy.limits.maxOutputTokens}`,
+      );
     } else if (requestedMax > policy.limits.maxOutputTokens) {
-      effective = { ...effective, max_tokens: policy.limits.maxOutputTokens, max_completion_tokens: undefined };
+      effective = {
+        ...effective,
+        max_tokens: policy.limits.maxOutputTokens,
+        max_completion_tokens: undefined,
+      };
       adjustments.push(
         `max_tokens lowered from ${requestedMax} to the policy ceiling of ${policy.limits.maxOutputTokens}`,
       );
     }
   }
 
-  const timeoutMs = Math.min(request.gateway?.timeoutMs ?? policy.limits.timeoutMs, policy.limits.timeoutMs);
+  const timeoutMs = Math.min(
+    request.gateway?.timeoutMs ?? policy.limits.timeoutMs,
+    policy.limits.timeoutMs,
+  );
   if (request.gateway?.timeoutMs && request.gateway.timeoutMs > policy.limits.timeoutMs) {
-    adjustments.push(`timeout clamped from ${request.gateway.timeoutMs}ms to the policy limit of ${policy.limits.timeoutMs}ms`);
+    adjustments.push(
+      `timeout clamped from ${request.gateway.timeoutMs}ms to the policy limit of ${policy.limits.timeoutMs}ms`,
+    );
   }
 
   return {
@@ -136,14 +157,14 @@ export function assertModelAllowed(model: string, permitted: string[], registere
       { model, details: { code: 'MODEL_NOT_ALLOWED' } },
     );
   }
-  throw new GatewayError('model_not_found', `Model "${model}" is not registered on this gateway.`, { model });
+  throw new GatewayError('model_not_found', `Model "${model}" is not registered on this gateway.`, {
+    model,
+  });
 }
 
 export function requireScope(auth: Pick<AuthContext, 'scopes'>, scope: ApiKeyScope): void {
   if (hasScope(auth, scope)) return;
-  throw new GatewayError(
-    'permission_denied',
-    `This API key is missing the "${scope}" scope.`,
-    { details: { requiredScope: scope, grantedScopes: auth.scopes } },
-  );
+  throw new GatewayError('permission_denied', `This API key is missing the "${scope}" scope.`, {
+    details: { requiredScope: scope, grantedScopes: auth.scopes },
+  });
 }

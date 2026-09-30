@@ -1,6 +1,17 @@
 import { formatRelativeTime, formatTimestamp } from '@ai-gateway/ui';
 import { gatewayFetch, type WebhookRow } from '@/lib/gateway';
-import { Badge, EmptyState, Mono, Notice, PageHeader, Panel, Pill, Table, Td, Th } from '@/components/ui/primitives';
+import {
+  Badge,
+  EmptyState,
+  Mono,
+  Notice,
+  PageHeader,
+  Panel,
+  Pill,
+  Table,
+  Td,
+  Th,
+} from '@/components/ui/primitives';
 import { ActionForm, RowAction } from '@/components/action-form';
 import { Field, Input } from '@/components/ui/controls';
 import { createWebhook, deleteWebhook } from '@/app/actions';
@@ -42,18 +53,22 @@ export default async function WebhooksPage() {
 
       <div className="mb-4">
         <Notice tone="info" title="Verifying a delivery">
-          Each request carries <Mono>x-aigw-signature</Mono> in the form <Mono>t=&lt;unix&gt;,v1=&lt;hex&gt;</Mono>, an
-          HMAC-SHA256 over <Mono>&lt;timestamp&gt;.&lt;body&gt;</Mono>. Signing the timestamp alongside the body is what
-          makes a captured payload unusable later. Compare in constant time and reject a timestamp outside a few minutes.
-          Failed deliveries retry with exponential backoff; an endpoint that fails persistently is disabled rather than
-          retried forever.
+          Each request carries <Mono>x-aigw-signature</Mono> in the form{' '}
+          <Mono>t=&lt;unix&gt;,v1=&lt;hex&gt;</Mono>, an HMAC-SHA256 over{' '}
+          <Mono>&lt;timestamp&gt;.&lt;body&gt;</Mono>. Signing the timestamp alongside the body is
+          what makes a captured payload unusable later. Compare in constant time and reject a
+          timestamp outside a few minutes. Failed deliveries retry with exponential backoff; an
+          endpoint that fails persistently is disabled rather than retried forever.
         </Notice>
       </div>
 
       <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Panel title="Endpoints">
           {webhooks.length === 0 ? (
-            <EmptyState title="No webhooks configured" body="Add one to receive budget and provider-health events." />
+            <EmptyState
+              title="No webhooks configured"
+              body="Add one to receive budget and provider-health events."
+            />
           ) : (
             <Table>
               <thead>
@@ -84,7 +99,11 @@ export default async function WebhooksPage() {
                         {webhook.enabled ? 'enabled' : 'disabled'}
                       </Badge>
                     </Td>
-                    <Td title={webhook.lastDeliveryAt ? formatTimestamp(webhook.lastDeliveryAt) : undefined}>
+                    <Td
+                      title={
+                        webhook.lastDeliveryAt ? formatTimestamp(webhook.lastDeliveryAt) : undefined
+                      }
+                    >
                       {webhook.lastDeliveryAt ? (
                         <span className="text-2xs text-zinc-500">
                           {formatRelativeTime(webhook.lastDeliveryAt)}
@@ -94,12 +113,16 @@ export default async function WebhooksPage() {
                         <span className="text-2xs text-zinc-600">never</span>
                       )}
                     </Td>
-                    <Td align="right" className={webhook.consecutiveFailures > 0 ? 'text-amber-300' : undefined}>
+                    <Td
+                      align="right"
+                      className={webhook.consecutiveFailures > 0 ? 'text-amber-300' : undefined}
+                    >
                       {webhook.consecutiveFailures}
                     </Td>
                     <Td>
                       <RowAction
-                        action={deleteWebhook} arg={webhook.id}
+                        action={deleteWebhook}
+                        arg={webhook.id}
                         label="Delete"
                         confirmLabel="Confirm delete"
                         variant="ghost"
@@ -115,8 +138,9 @@ export default async function WebhooksPage() {
         <Panel title="Add an endpoint">
           <div className="p-4">
             <Notice tone="warn" title="URLs are SSRF-checked">
-              A webhook target is an outbound request from inside your network, so the same rules apply as to provider
-              base URLs: private and link-local addresses are refused unless explicitly allowlisted.
+              A webhook target is an outbound request from inside your network, so the same rules
+              apply as to provider base URLs: private and link-local addresses are refused unless
+              explicitly allowlisted.
             </Notice>
 
             <ActionForm
@@ -129,10 +153,15 @@ export default async function WebhooksPage() {
                 <Input name="url" placeholder="https://hooks.example.com/aigw" mono required />
               </Field>
               <div>
-                <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-zinc-500">Events</span>
+                <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-zinc-500">
+                  Events
+                </span>
                 <div className="space-y-1.5">
                   {EVENTS.map((event) => (
-                    <label key={event.value} className="flex items-start gap-2 text-xs text-zinc-300">
+                    <label
+                      key={event.value}
+                      className="flex items-start gap-2 text-xs text-zinc-300"
+                    >
                       <input
                         type="checkbox"
                         name="events"

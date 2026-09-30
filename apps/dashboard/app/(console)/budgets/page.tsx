@@ -1,6 +1,16 @@
 import { formatCurrency, formatPercent, formatTimestamp } from '@ai-gateway/ui';
 import { gatewayFetch, type ApiKeyRow, type BudgetStateRow, type ProjectRow } from '@/lib/gateway';
-import { Badge, EmptyState, Meter, Mono, Notice, PageHeader, Panel, Table, Td, Th } from '@/components/ui/primitives';
+import {
+  Badge,
+  EmptyState,
+  Meter,
+  Notice,
+  PageHeader,
+  Panel,
+  Table,
+  Td,
+  Th,
+} from '@/components/ui/primitives';
 import { ActionForm, RowAction } from '@/components/action-form';
 import { Field, Input, Select } from '@/components/ui/controls';
 import { createBudget, deleteBudget } from '@/app/actions';
@@ -22,8 +32,12 @@ export default async function BudgetsPage() {
   try {
     const [budgetResult, projectResult, keyResult] = await Promise.all([
       gatewayFetch<{ data: BudgetStateRow[] }>('/api/v1/budgets'),
-      gatewayFetch<{ data: ProjectRow[] }>('/api/v1/projects').catch(() => ({ data: [] as ProjectRow[] })),
-      gatewayFetch<{ data: ApiKeyRow[] }>('/api/v1/api-keys').catch(() => ({ data: [] as ApiKeyRow[] })),
+      gatewayFetch<{ data: ProjectRow[] }>('/api/v1/projects').catch(() => ({
+        data: [] as ProjectRow[],
+      })),
+      gatewayFetch<{ data: ApiKeyRow[] }>('/api/v1/api-keys').catch(() => ({
+        data: [] as ApiKeyRow[],
+      })),
     ]);
     budgets = budgetResult.data;
     projects = projectResult.data;
@@ -46,9 +60,10 @@ export default async function BudgetsPage() {
 
       <div className="mb-4">
         <Notice tone="info" title="Spend is measured against the configured price table">
-          Budget accounting uses the same estimated costs shown elsewhere in the dashboard, not provider invoices. If the
-          price table is unverified, budget thresholds are approximate in the same way. Test traffic (playground,
-          simulations, replays) is metered for rate limits but never charged against a budget.
+          Budget accounting uses the same estimated costs shown elsewhere in the dashboard, not
+          provider invoices. If the price table is unverified, budget thresholds are approximate in
+          the same way. Test traffic (playground, simulations, replays) is metered for rate limits
+          but never charged against a budget.
         </Notice>
       </div>
 
@@ -76,13 +91,22 @@ export default async function BudgetsPage() {
               </thead>
               <tbody>
                 {budgets.map((state) => {
-                  const tone = state.utilization >= 1 ? 'danger' : state.utilization >= 0.8 ? 'warn' : 'default';
+                  const tone =
+                    state.utilization >= 1
+                      ? 'danger'
+                      : state.utilization >= 0.8
+                        ? 'warn'
+                        : 'default';
                   const scopeLabel =
                     state.budget.scope === 'organization'
                       ? 'organization'
                       : state.budget.scope === 'project'
-                        ? (projects.find((p) => p.id === state.budget.scopeId)?.slug ?? state.budget.scopeId ?? 'project')
-                        : (keys.find((k) => k.id === state.budget.scopeId)?.name ?? state.budget.scopeId ?? 'api key');
+                        ? (projects.find((p) => p.id === state.budget.scopeId)?.slug ??
+                          state.budget.scopeId ??
+                          'project')
+                        : (keys.find((k) => k.id === state.budget.scopeId)?.name ??
+                          state.budget.scopeId ??
+                          'api key');
                   return (
                     <tr key={state.budget.id}>
                       <Td>
@@ -90,11 +114,24 @@ export default async function BudgetsPage() {
                         <div className="text-2xs text-zinc-600">{state.budget.scope}</div>
                       </Td>
                       <Td>{state.budget.period}</Td>
-                      <Td align="right">{formatCurrency(state.budget.limit, state.budget.currency)}</Td>
-                      <Td align="right" className={tone === 'danger' ? 'text-red-300' : tone === 'warn' ? 'text-amber-300' : undefined}>
+                      <Td align="right">
+                        {formatCurrency(state.budget.limit, state.budget.currency)}
+                      </Td>
+                      <Td
+                        align="right"
+                        className={
+                          tone === 'danger'
+                            ? 'text-red-300'
+                            : tone === 'warn'
+                              ? 'text-amber-300'
+                              : undefined
+                        }
+                      >
                         {formatCurrency(state.spent, state.budget.currency)}
                       </Td>
-                      <Td align="right">{formatCurrency(state.remaining, state.budget.currency)}</Td>
+                      <Td align="right">
+                        {formatCurrency(state.remaining, state.budget.currency)}
+                      </Td>
                       <Td className="w-32">
                         <div className="flex items-center gap-2">
                           <Meter value={state.utilization} tone={tone} />
@@ -105,10 +142,18 @@ export default async function BudgetsPage() {
                       </Td>
                       <Td>
                         <Badge
-                          tone={state.budget.action === 'BLOCK' ? 'error' : state.budget.action === 'WARN' ? 'cancelled' : 'pending'}
+                          tone={
+                            state.budget.action === 'BLOCK'
+                              ? 'error'
+                              : state.budget.action === 'WARN'
+                                ? 'cancelled'
+                                : 'pending'
+                          }
                           title={ACTION_DESCRIPTIONS[state.budget.action]}
                         >
-                          {state.budget.action === 'FALLBACK_TO_CHEAPER_MODEL' ? 'downgrade' : state.budget.action.toLowerCase()}
+                          {state.budget.action === 'FALLBACK_TO_CHEAPER_MODEL'
+                            ? 'downgrade'
+                            : state.budget.action.toLowerCase()}
                         </Badge>
                         {state.budget.warnThreshold !== undefined && (
                           <span className="ml-1.5 text-2xs text-zinc-600">
@@ -117,11 +162,14 @@ export default async function BudgetsPage() {
                         )}
                       </Td>
                       <Td title={formatTimestamp(state.periodEnd)}>
-                        <span className="text-2xs text-zinc-500">{formatTimestamp(state.periodEnd).slice(0, 10)}</span>
+                        <span className="text-2xs text-zinc-500">
+                          {formatTimestamp(state.periodEnd).slice(0, 10)}
+                        </span>
                       </Td>
                       <Td>
                         <RowAction
-                          action={deleteBudget} arg={state.budget.id}
+                          action={deleteBudget}
+                          arg={state.budget.id}
                           label="Delete"
                           confirmLabel="Confirm delete"
                           variant="ghost"
@@ -150,14 +198,19 @@ export default async function BudgetsPage() {
                   ]}
                 />
               </Field>
-              <Field label="Scope id" hint="Required for a project or API-key budget. Leave empty for the organization.">
+              <Field
+                label="Scope id"
+                hint="Required for a project or API-key budget. Leave empty for the organization."
+              >
                 <Select
                   name="scopeId"
                   className="w-full"
                   options={[
                     { value: '', label: '(organization)' },
                     ...projects.map((p) => ({ value: p.id, label: `project · ${p.slug}` })),
-                    ...keys.filter((k) => k.status === 'active').map((k) => ({ value: k.id, label: `key · ${k.name}` })),
+                    ...keys
+                      .filter((k) => k.status === 'active')
+                      .map((k) => ({ value: k.id, label: `key · ${k.name}` })),
                   ]}
                 />
               </Field>
@@ -199,7 +252,10 @@ export default async function BudgetsPage() {
                   ]}
                 />
               </Field>
-              <Field label="Warn at (%)" hint="Optional. Fires a budget.warning webhook before the limit is hit.">
+              <Field
+                label="Warn at (%)"
+                hint="Optional. Fires a budget.warning webhook before the limit is hit."
+              >
                 <Input name="warnThreshold" type="number" min="1" placeholder="80" />
               </Field>
             </ActionForm>

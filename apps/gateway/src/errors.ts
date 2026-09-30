@@ -15,13 +15,16 @@ interface ZodLikeIssue {
  */
 function asValidationError(err: unknown): GatewayError | undefined {
   const candidate = err as { name?: string; issues?: ZodLikeIssue[] } | null;
-  if (!candidate || candidate.name !== 'ZodError' || !Array.isArray(candidate.issues)) return undefined;
+  if (!candidate || candidate.name !== 'ZodError' || !Array.isArray(candidate.issues))
+    return undefined;
 
   const first = candidate.issues[0];
   const path = first?.path.join('.') ?? '';
   return new GatewayError(
     'invalid_request',
-    path ? `Invalid request: ${path} ${first?.message ?? 'is invalid'}` : `Invalid request: ${first?.message ?? 'failed validation'}`,
+    path
+      ? `Invalid request: ${path} ${first?.message ?? 'is invalid'}`
+      : `Invalid request: ${first?.message ?? 'failed validation'}`,
     {
       details: {
         ...(path ? { param: path } : {}),
@@ -41,13 +44,20 @@ function asValidationError(err: unknown): GatewayError | undefined {
  * support request, and the body never contains a provider's raw error text
  * (which can echo the caller's own prompt back through logs).
  */
-export function toErrorResponse(err: unknown, requestId: string): { status: number; body: GatewayErrorBody } {
+export function toErrorResponse(
+  err: unknown,
+  requestId: string,
+): { status: number; body: GatewayErrorBody } {
   const gatewayError = asValidationError(err) ?? GatewayError.from(err);
   gatewayError.requestId ??= requestId;
   return { status: gatewayError.status, body: gatewayError.toBody() };
 }
 
-export async function sendError(reply: FastifyReply, err: unknown, requestId: string): Promise<void> {
+export async function sendError(
+  reply: FastifyReply,
+  err: unknown,
+  requestId: string,
+): Promise<void> {
   const { status, body } = toErrorResponse(err, requestId);
   const gatewayError = GatewayError.is(err) ? err : undefined;
   if (gatewayError?.retryAfterSeconds !== undefined) {

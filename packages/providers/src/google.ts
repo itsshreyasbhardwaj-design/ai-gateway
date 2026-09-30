@@ -231,11 +231,18 @@ export class GoogleProvider implements AIProvider {
     const startedAt = Date.now();
     try {
       await this.http.requestJson({ path: '/models', method: 'GET', signal, timeoutMs: 10_000 });
-      return { providerId: this.id, state: 'healthy', latencyMs: Date.now() - startedAt, checkedAt: Date.now() };
+      return {
+        providerId: this.id,
+        state: 'healthy',
+        latencyMs: Date.now() - startedAt,
+        checkedAt: Date.now(),
+      };
     } catch (err) {
       const gwErr = GatewayError.from(err);
       const state =
-        gwErr.type === 'authentication_error' || gwErr.type === 'permission_denied' ? 'degraded' : 'unavailable';
+        gwErr.type === 'authentication_error' || gwErr.type === 'permission_denied'
+          ? 'degraded'
+          : 'unavailable';
       return {
         providerId: this.id,
         state,
@@ -288,7 +295,9 @@ export class GoogleProvider implements AIProvider {
     const maxTokens = request.max_completion_tokens ?? request.max_tokens;
     if (maxTokens !== undefined) generationConfig['maxOutputTokens'] = maxTokens;
     if (request.stop !== undefined) {
-      generationConfig['stopSequences'] = Array.isArray(request.stop) ? request.stop : [request.stop];
+      generationConfig['stopSequences'] = Array.isArray(request.stop)
+        ? request.stop
+        : [request.stop];
     }
     if (request.response_format?.type === 'json_object') {
       generationConfig['responseMimeType'] = 'application/json';
@@ -299,7 +308,8 @@ export class GoogleProvider implements AIProvider {
     }
 
     const wire: Record<string, unknown> = { contents };
-    if (systemParts.length) wire['systemInstruction'] = { parts: [{ text: systemParts.join('\n\n') }] };
+    if (systemParts.length)
+      wire['systemInstruction'] = { parts: [{ text: systemParts.join('\n\n') }] };
     if (Object.keys(generationConfig).length) wire['generationConfig'] = generationConfig;
     if (request.tools?.length) {
       wire['tools'] = [
@@ -411,7 +421,10 @@ export function classifyGoogleError(status: number, body: unknown): GatewayError
       break;
   }
   const message = (err?.message ?? '').toLowerCase();
-  if (message.includes('exceeds the maximum number of tokens') || message.includes('input token count')) {
+  if (
+    message.includes('exceeds the maximum number of tokens') ||
+    message.includes('input token count')
+  ) {
     return 'context_length_exceeded';
   }
   if (message.includes('safety') || message.includes('blocked')) return 'content_filter';

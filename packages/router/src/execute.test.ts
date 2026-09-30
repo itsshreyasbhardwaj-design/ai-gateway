@@ -2,7 +2,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { FakeClock, GatewayError, type ModelDescriptor } from '@ai-gateway/core';
 import { TraceBuilder } from '@ai-gateway/observability';
 import { executeWithFallback } from './execute.js';
-import { DEFAULT_RETRY_POLICY, NO_RETRY, backoffDelay, backoffSchedule, isRetryable } from './retry.js';
+import {
+  DEFAULT_RETRY_POLICY,
+  NO_RETRY,
+  backoffDelay,
+  backoffSchedule,
+  isRetryable,
+} from './retry.js';
 import type { RoutePlan, ScoredTarget } from './types.js';
 
 function scored(id: string): ScoredTarget {
@@ -28,8 +34,17 @@ function plan(...ids: string[]): RoutePlan {
   return { strategy: 'explicit', chain: ids.map(scored), rejected: [], reasons: [] };
 }
 
-const err = (type: Parameters<typeof GatewayError>[0] extends never ? never : ConstructorParameters<typeof GatewayError>[0], retryAfter?: number) =>
-  new GatewayError(type, `synthetic ${type}`, retryAfter !== undefined ? { retryAfterSeconds: retryAfter } : {});
+const err = (
+  type: Parameters<typeof GatewayError>[0] extends never
+    ? never
+    : ConstructorParameters<typeof GatewayError>[0],
+  retryAfter?: number,
+) =>
+  new GatewayError(
+    type,
+    `synthetic ${type}`,
+    retryAfter !== undefined ? { retryAfterSeconds: retryAfter } : {},
+  );
 
 function harness(chain: string[]) {
   const clock = new FakeClock();
@@ -46,13 +61,28 @@ function autoAdvance(clock: FakeClock) {
 
 describe('retry classification', () => {
   it('retries transient provider failures', () => {
-    for (const type of ['provider_timeout', 'provider_unavailable', 'provider_overloaded', 'provider_error', 'provider_rate_limit'] as const) {
+    for (const type of [
+      'provider_timeout',
+      'provider_unavailable',
+      'provider_overloaded',
+      'provider_error',
+      'provider_rate_limit',
+    ] as const) {
       expect(isRetryable(err(type), DEFAULT_RETRY_POLICY)).toBe(true);
     }
   });
 
   it('never retries caller-side failures', () => {
-    for (const type of ['invalid_request', 'authentication_error', 'permission_denied', 'model_not_allowed', 'policy_violation', 'budget_exceeded', 'content_filter', 'context_length_exceeded'] as const) {
+    for (const type of [
+      'invalid_request',
+      'authentication_error',
+      'permission_denied',
+      'model_not_allowed',
+      'policy_violation',
+      'budget_exceeded',
+      'content_filter',
+      'context_length_exceeded',
+    ] as const) {
       expect(isRetryable(err(type), DEFAULT_RETRY_POLICY)).toBe(false);
     }
   });
@@ -68,7 +98,13 @@ describe('backoff', () => {
   });
 
   it('grows exponentially and stays under the cap', () => {
-    const policy = { ...DEFAULT_RETRY_POLICY, jitter: 'none' as const, initialDelayMs: 100, factor: 2, maxDelayMs: 500 };
+    const policy = {
+      ...DEFAULT_RETRY_POLICY,
+      jitter: 'none' as const,
+      initialDelayMs: 100,
+      factor: 2,
+      maxDelayMs: 500,
+    };
     expect(backoffSchedule(policy)).toEqual([0, 100, 200]);
     expect(backoffDelay(10, policy)).toBe(500);
   });
@@ -102,7 +138,13 @@ describe('backoff', () => {
   });
 
   it('supports linear and constant schedules', () => {
-    const linear = { ...DEFAULT_RETRY_POLICY, jitter: 'none' as const, backoff: 'linear' as const, initialDelayMs: 100, maxAttempts: 4 };
+    const linear = {
+      ...DEFAULT_RETRY_POLICY,
+      jitter: 'none' as const,
+      backoff: 'linear' as const,
+      initialDelayMs: 100,
+      maxAttempts: 4,
+    };
     expect(backoffSchedule(linear)).toEqual([0, 100, 200, 300]);
     const constant = { ...linear, backoff: 'constant' as const };
     expect(backoffSchedule(constant)).toEqual([0, 100, 100, 100]);
@@ -113,7 +155,14 @@ describe('executeWithFallback', () => {
   it('returns the first success without touching the fallbacks', async () => {
     const h = harness(['a/1', 'b/2']);
     const attempt = vi.fn(async () => 'ok');
-    const result = await executeWithFallback({ plan: h.plan, retry: DEFAULT_RETRY_POLICY, trace: h.trace, signal: h.controller.signal, clock: h.clock, attempt });
+    const result = await executeWithFallback({
+      plan: h.plan,
+      retry: DEFAULT_RETRY_POLICY,
+      trace: h.trace,
+      signal: h.controller.signal,
+      clock: h.clock,
+      attempt,
+    });
     expect(result.value).toBe('ok');
     expect(result.attempts).toBe(1);
     expect(result.fallbackUsed).toBe(false);
@@ -195,25 +244,42 @@ describe('executeWithFallback', () => {
       throw err('invalid_request');
     });
     await expect(
-      executeWithFallback({ plan: h.plan, retry: DEFAULT_RETRY_POLICY, trace: h.trace, signal: h.controller.signal, clock: h.clock, attempt }),
+      executeWithFallback({
+        plan: h.plan,
+        retry: DEFAULT_RETRY_POLICY,
+        trace: h.trace,
+        signal: h.controller.signal,
+        clock: h.clock,
+        attempt,
+      }),
     ).rejects.toMatchObject({ type: 'invalid_request' });
     // A malformed request must not be replayed against every provider.
     expect(attempt).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['authentication_error', 'permission_denied', 'content_filter', 'budget_exceeded', 'model_not_allowed'] as const)(
-    'does not fail over on %s',
-    async (type) => {
-      const h = harness(['a/1', 'b/2']);
-      const attempt = vi.fn(async () => {
-        throw err(type);
-      });
-      await expect(
-        executeWithFallback({ plan: h.plan, retry: DEFAULT_RETRY_POLICY, trace: h.trace, signal: h.controller.signal, clock: h.clock, attempt }),
-      ).rejects.toMatchObject({ type });
-      expect(attempt).toHaveBeenCalledTimes(1);
-    },
-  );
+  it.each([
+    'authentication_error',
+    'permission_denied',
+    'content_filter',
+    'budget_exceeded',
+    'model_not_allowed',
+  ] as const)('does not fail over on %s', async (type) => {
+    const h = harness(['a/1', 'b/2']);
+    const attempt = vi.fn(async () => {
+      throw err(type);
+    });
+    await expect(
+      executeWithFallback({
+        plan: h.plan,
+        retry: DEFAULT_RETRY_POLICY,
+        trace: h.trace,
+        signal: h.controller.signal,
+        clock: h.clock,
+        attempt,
+      }),
+    ).rejects.toMatchObject({ type });
+    expect(attempt).toHaveBeenCalledTimes(1);
+  });
 
   it('surfaces the provider error unchanged when there was only one target', async () => {
     // With no fallback to exhaust, `fallback_exhausted` would hide the cause.
@@ -273,7 +339,14 @@ describe('executeWithFallback', () => {
       throw new GatewayError('client_disconnected', 'gone');
     });
     await expect(
-      executeWithFallback({ plan: h.plan, retry: DEFAULT_RETRY_POLICY, trace: h.trace, signal: h.controller.signal, clock: h.clock, attempt }),
+      executeWithFallback({
+        plan: h.plan,
+        retry: DEFAULT_RETRY_POLICY,
+        trace: h.trace,
+        signal: h.controller.signal,
+        clock: h.clock,
+        attempt,
+      }),
     ).rejects.toMatchObject({ type: 'client_disconnected' });
     expect(attempt).toHaveBeenCalledTimes(1);
   });
@@ -283,7 +356,14 @@ describe('executeWithFallback', () => {
     h.controller.abort();
     const attempt = vi.fn(async () => 'ok');
     await expect(
-      executeWithFallback({ plan: h.plan, retry: DEFAULT_RETRY_POLICY, trace: h.trace, signal: h.controller.signal, clock: h.clock, attempt }),
+      executeWithFallback({
+        plan: h.plan,
+        retry: DEFAULT_RETRY_POLICY,
+        trace: h.trace,
+        signal: h.controller.signal,
+        clock: h.clock,
+        attempt,
+      }),
     ).rejects.toMatchObject({ type: 'client_disconnected' });
     expect(attempt).not.toHaveBeenCalled();
   });
@@ -307,7 +387,11 @@ describe('executeWithFallback', () => {
     stop();
     const { attempts } = h.trace.snapshot();
     expect(attempts).toHaveLength(3);
-    expect(attempts[0]).toMatchObject({ providerId: 'a', attemptNumber: 1, errorType: 'provider_rate_limit' });
+    expect(attempts[0]).toMatchObject({
+      providerId: 'a',
+      attemptNumber: 1,
+      errorType: 'provider_rate_limit',
+    });
     expect(attempts[1]).toMatchObject({ attemptNumber: 2, backoffMs: 100 });
     expect(attempts[2]).toMatchObject({ providerId: 'b', status: 'success' });
   });
@@ -330,7 +414,9 @@ describe('executeWithFallback', () => {
       }),
     ).rejects.toThrow();
     stop();
-    expect(onRetry).toHaveBeenCalledWith(expect.objectContaining({ delayMs: 50, attemptNumber: 2 }));
+    expect(onRetry).toHaveBeenCalledWith(
+      expect.objectContaining({ delayMs: 50, attemptNumber: 2 }),
+    );
   });
 
   it('waits the provider-supplied retry-after before retrying a 429', async () => {
@@ -358,7 +444,14 @@ describe('executeWithFallback', () => {
   it('refuses an empty plan', async () => {
     const h = harness([]);
     await expect(
-      executeWithFallback({ plan: h.plan, retry: NO_RETRY, trace: h.trace, signal: h.controller.signal, clock: h.clock, attempt: async () => 'x' }),
+      executeWithFallback({
+        plan: h.plan,
+        retry: NO_RETRY,
+        trace: h.trace,
+        signal: h.controller.signal,
+        clock: h.clock,
+        attempt: async () => 'x',
+      }),
     ).rejects.toMatchObject({ type: 'no_route_available' });
   });
 

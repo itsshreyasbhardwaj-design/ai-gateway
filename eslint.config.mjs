@@ -10,6 +10,7 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/*.config.js',
       '**/*.config.mjs',
+      '**/*.config.ts',
       'apps/dashboard/next-env.d.ts',
     ],
   },

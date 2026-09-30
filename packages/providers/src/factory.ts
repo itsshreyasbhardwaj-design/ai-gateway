@@ -1,4 +1,9 @@
-import { GatewayError, type AIProvider, type ModelDescriptor, type ProviderConfig } from '@ai-gateway/core';
+import {
+  GatewayError,
+  type AIProvider,
+  type ModelDescriptor,
+  type ProviderConfig,
+} from '@ai-gateway/core';
 import { requireCredential, type CredentialResolver } from '@ai-gateway/provider-sdk';
 import { assertSafeProviderUrl, type UrlGuardOptions } from '@ai-gateway/security';
 import { AnthropicProvider } from './anthropic.js';
@@ -8,13 +13,7 @@ import { OpenAICompatibleProvider } from './openai-compatible.js';
 import { SEED_CATALOG } from './catalog.js';
 
 export type ProviderKind =
-  | 'openai'
-  | 'openai-compatible'
-  | 'anthropic'
-  | 'google'
-  | 'openrouter'
-  | 'local'
-  | 'mock';
+  'openai' | 'openai-compatible' | 'anthropic' | 'google' | 'openrouter' | 'local' | 'mock';
 
 export const DEFAULT_BASE_URLS: Record<string, string> = {
   openai: 'https://api.openai.com/v1',

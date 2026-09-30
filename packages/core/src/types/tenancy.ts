@@ -1,9 +1,4 @@
-export type ApiKeyScope =
-  | 'models.read'
-  | 'inference.create'
-  | 'usage.read'
-  | 'logs.read'
-  | 'admin';
+export type ApiKeyScope = 'models.read' | 'inference.create' | 'usage.read' | 'logs.read' | 'admin';
 
 export const ALL_SCOPES: ApiKeyScope[] = [
   'models.read',

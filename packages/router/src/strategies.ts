@@ -18,11 +18,15 @@ const lowestCost: ScoreFn = (target, all) => {
   const costs = all.map((t) => t.signals.projectedCost).filter((c): c is number => c !== undefined);
   const cost = target.signals.projectedCost;
   if (cost === undefined) {
-    return { score: 0, reason: 'no pricing configured for this model, ranked last under lowest_cost' };
+    return {
+      score: 0,
+      reason: 'no pricing configured for this model, ranked last under lowest_cost',
+    };
   }
   const max = Math.max(...costs, 0);
   const min = Math.min(...costs);
-  if (max === min) return { score: 1, reason: `projected cost ${cost.toFixed(6)} (all candidates equal)` };
+  if (max === min)
+    return { score: 1, reason: `projected cost ${cost.toFixed(6)} (all candidates equal)` };
   return {
     score: 1 - (cost - min) / (max - min),
     reason: `lowest projected cost among candidates (${cost.toFixed(6)})`,
@@ -32,7 +36,11 @@ const lowestCost: ScoreFn = (target, all) => {
 /** Lowest observed p95. A target with no history is treated as unproven-but-usable. */
 const lowestLatency: ScoreFn = (target, all) => {
   const p95 = target.signals.p95LatencyMs;
-  if (p95 === undefined || target.signals.health === undefined || target.signals.health.successes === 0) {
+  if (
+    p95 === undefined ||
+    target.signals.health === undefined ||
+    target.signals.health.successes === 0
+  ) {
     return { score: 0.5, reason: 'no measured latency yet, ranked mid-pack' };
   }
   const measured = all
@@ -100,20 +108,33 @@ const priority: ScoreFn = (target, all) => {
 
 /** Even distribution by position. */
 const roundRobin: ScoreFn = (target, all, cursor) => {
-  const index = all.findIndex((t) => t.target.modelId === target.target.modelId && t.target.providerId === target.target.providerId);
+  const index = all.findIndex(
+    (t) =>
+      t.target.modelId === target.target.modelId &&
+      t.target.providerId === target.target.providerId,
+  );
   const chosen = all.length > 0 && index === cursor % all.length;
   return {
     score: chosen ? 1 : 0.5 - index / (all.length * 2),
-    reason: chosen ? `round-robin position ${index} selected for cursor ${cursor}` : `round-robin position ${index}`,
+    reason: chosen
+      ? `round-robin position ${index} selected for cursor ${cursor}`
+      : `round-robin position ${index}`,
   };
 };
 
 /** Preserve the order the policy declared. */
 const declaredOrder: ScoreFn = (target, all) => {
-  const index = all.findIndex((t) => t.target.modelId === target.target.modelId && t.target.providerId === target.target.providerId);
+  const index = all.findIndex(
+    (t) =>
+      t.target.modelId === target.target.modelId &&
+      t.target.providerId === target.target.providerId,
+  );
   return {
     score: all.length > 1 ? 1 - index / all.length : 1,
-    reason: index === 0 ? 'first entry in the configured chain' : `position ${index} in the configured chain`,
+    reason:
+      index === 0
+        ? 'first entry in the configured chain'
+        : `position ${index} in the configured chain`,
   };
 };
 

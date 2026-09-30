@@ -12,14 +12,17 @@ import type { ProjectRow } from '@/lib/gateway';
  * `dynamic()` import without one suspends the whole page until the editor
  * chunk arrives, which makes the rest of the screen appear broken.
  */
-const MonacoEditor = dynamicImport(() => import('@monaco-editor/react').then((mod) => mod.default), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-72 items-center justify-center rounded border border-surface-border bg-surface text-xs text-zinc-600">
-      Loading editor…
-    </div>
-  ),
-});
+const MonacoEditor = dynamicImport(
+  () => import('@monaco-editor/react').then((mod) => mod.default),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-72 items-center justify-center rounded border border-surface-border bg-surface text-xs text-zinc-600">
+        Loading editor…
+      </div>
+    ),
+  },
+);
 
 interface ValidationState {
   valid: boolean;
@@ -43,7 +46,10 @@ export function PolicyEditor({ projects, starter }: { projects: ProjectRow[]; st
   };
 
   return (
-    <Panel title="Create a policy" subtitle="Validated against the same parser the gateway uses at request time">
+    <Panel
+      title="Create a policy"
+      subtitle="Validated against the same parser the gateway uses at request time"
+    >
       <div className="space-y-3 p-4">
         <form
           action={async (formData) => {
@@ -66,7 +72,10 @@ export function PolicyEditor({ projects, starter }: { projects: ProjectRow[]; st
                 className="w-full"
                 options={[
                   { value: '', label: 'Organization default' },
-                  ...projects.map((project) => ({ value: project.id, label: `${project.name} (${project.slug})` })),
+                  ...projects.map((project) => ({
+                    value: project.id,
+                    label: `${project.name} (${project.slug})`,
+                  })),
                 ]}
               />
             </Field>
@@ -119,14 +128,16 @@ export function PolicyEditor({ projects, starter }: { projects: ProjectRow[]; st
           <div className="space-y-2">
             {validation.valid ? (
               <Notice tone="info" title="Valid">
-                Checksum <Mono>{validation.checksum}</Mono>. Creating it publishes version 1 and activates it.
+                Checksum <Mono>{validation.checksum}</Mono>. Creating it publishes version 1 and
+                activates it.
               </Notice>
             ) : (
               <Notice tone="danger" title="Invalid policy">
                 <ul className="space-y-1">
                   {validation.errors?.map((issue, index) => (
                     <li key={index}>
-                      {issue.path && <Mono className="text-red-200">{issue.path}</Mono>} {issue.message}
+                      {issue.path && <Mono className="text-red-200">{issue.path}</Mono>}{' '}
+                      {issue.message}
                     </li>
                   ))}
                 </ul>
@@ -137,7 +148,8 @@ export function PolicyEditor({ projects, starter }: { projects: ProjectRow[]; st
                 <ul className="space-y-1">
                   {validation.warnings.map((issue, index) => (
                     <li key={index}>
-                      {issue.path && <Mono className="text-amber-200">{issue.path}</Mono>} {issue.message}
+                      {issue.path && <Mono className="text-amber-200">{issue.path}</Mono>}{' '}
+                      {issue.message}
                     </li>
                   ))}
                 </ul>

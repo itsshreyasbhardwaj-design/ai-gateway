@@ -62,7 +62,9 @@ export function formatNumber(value: number | null | undefined): string {
 export function formatCompact(value: number | null | undefined): string {
   if (value === null || value === undefined || Number.isNaN(value)) return '—';
   if (Math.abs(value) < 1000) return String(Math.round(value));
-  return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+  return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(
+    value,
+  );
 }
 
 export function formatPercent(value: number | null | undefined, digits = 1): string {
@@ -72,7 +74,8 @@ export function formatPercent(value: number | null | undefined, digits = 1): str
 
 export function formatCurrency(amount: number | null | undefined, currency = 'USD'): string {
   if (amount === null || amount === undefined || Number.isNaN(amount)) return '—';
-  const symbol = currency === 'USD' ? '$' : currency === 'INR' ? '₹' : currency === 'EUR' ? '€' : '';
+  const symbol =
+    currency === 'USD' ? '$' : currency === 'INR' ? '₹' : currency === 'EUR' ? '€' : '';
   if (amount === 0) return `${symbol}0.00`;
   // Sub-cent costs are normal per request, so do not round them away.
   if (Math.abs(amount) < 0.01) return `${symbol}${amount.toFixed(6)}`;

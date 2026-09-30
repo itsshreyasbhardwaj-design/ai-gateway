@@ -53,10 +53,15 @@ export class AIGateway {
 
   constructor(options: AIGatewayOptions) {
     if (!options.apiKey) {
-      throw new Error('AIGateway requires an apiKey. Pass it explicitly or read it from AI_GATEWAY_API_KEY.');
+      throw new Error(
+        'AIGateway requires an apiKey. Pass it explicitly or read it from AI_GATEWAY_API_KEY.',
+      );
     }
     this.apiKey = options.apiKey;
-    this.baseUrl = (options.baseUrl ?? readEnv('AI_GATEWAY_URL') ?? DEFAULT_BASE_URL).replace(/\/+$/, '');
+    this.baseUrl = (options.baseUrl ?? readEnv('AI_GATEWAY_URL') ?? DEFAULT_BASE_URL).replace(
+      /\/+$/,
+      '',
+    );
     this.timeoutMs = options.timeoutMs ?? 120_000;
     this.maxRetries = options.maxRetries ?? 2;
     this.defaultHeaders = options.defaultHeaders ?? {};
@@ -107,8 +112,14 @@ export class AIGateway {
       this.get<{
         object: 'list';
         data: Array<{
-          rule: string; subject: string; unit: string; window: string;
-          limit: number; used: number; remaining: number; resetAt: number;
+          rule: string;
+          subject: string;
+          unit: string;
+          window: string;
+          limit: number;
+          used: number;
+          remaining: number;
+          resetAt: number;
         }>;
       }>('/v1/limits', options),
   };
@@ -132,7 +143,11 @@ export class AIGateway {
 
   readonly usage = {
     retrieve: (
-      query: { range?: '1h' | '24h' | '7d' | '30d' | '90d'; projectId?: string; includeTest?: boolean } = {},
+      query: {
+        range?: '1h' | '24h' | '7d' | '30d' | '90d';
+        projectId?: string;
+        includeTest?: boolean;
+      } = {},
       options?: RequestOptions,
     ) => {
       const search = new URLSearchParams();
@@ -210,16 +225,29 @@ export class AIGateway {
       }
     }
 
-    throw new AIGatewayConnectionError(`Could not reach the AI Gateway at ${this.baseUrl}.`, lastError);
+    throw new AIGatewayConnectionError(
+      `Could not reach the AI Gateway at ${this.baseUrl}.`,
+      lastError,
+    );
   }
 
-  private async postStream(path: string, body: unknown, options?: RequestOptions): Promise<ChatCompletionStream> {
+  private async postStream(
+    path: string,
+    body: unknown,
+    options?: RequestOptions,
+  ): Promise<ChatCompletionStream> {
     const controller = new AbortController();
     if (options?.signal) {
       options.signal.addEventListener('abort', () => controller.abort(), { once: true });
     }
 
-    const response = await this.send('POST', path, body, { ...options, signal: controller.signal }, true);
+    const response = await this.send(
+      'POST',
+      path,
+      body,
+      { ...options, signal: controller.signal },
+      true,
+    );
     if (!response.ok) throw await this.toError(response);
     if (!response.body) {
       throw new AIGatewayConnectionError('The gateway returned a streaming response with no body.');
@@ -317,15 +345,31 @@ export interface UsageResponse {
   summary: Record<string, number | string | string[] | null>;
   series: Array<Record<string, number | string>>;
   breakdown: Record<string, Array<Record<string, number | string>>>;
-  disclosure: { pricingVersion: string; pricingAgeDays: number; estimatedUsageShare: number; note: string };
+  disclosure: {
+    pricingVersion: string;
+    pricingAgeDays: number;
+    estimatedUsageShare: number;
+    note: string;
+  };
 }
 
 export interface RequestTrace {
   request: Record<string, unknown>;
-  steps: Array<{ name: string; status: string; startedAt: number; durationMs: number; detail?: Record<string, unknown> }>;
+  steps: Array<{
+    name: string;
+    status: string;
+    startedAt: number;
+    durationMs: number;
+    detail?: Record<string, unknown>;
+  }>;
   attempts: Array<{
-    attemptNumber: number; providerId: string; modelId: string; status: string;
-    durationMs: number; errorType?: string; backoffMs?: number;
+    attemptNumber: number;
+    providerId: string;
+    modelId: string;
+    status: string;
+    durationMs: number;
+    errorType?: string;
+    backoffMs?: number;
   }>;
   body: unknown;
   privacy: { mode?: string; retentionDays?: number; bodyStored: boolean; note: string };
@@ -351,6 +395,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 function readEnv(name: string): string | undefined {
-  const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env;
+  const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process
+    ?.env;
   return env?.[name];
 }

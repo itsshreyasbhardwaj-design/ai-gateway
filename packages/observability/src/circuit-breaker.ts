@@ -116,7 +116,10 @@ export class CircuitBreaker {
     }
 
     const { total, failures } = this.window();
-    if (total >= this.config.minimumThroughput && failures / total >= this.config.failureRateThreshold) {
+    if (
+      total >= this.config.minimumThroughput &&
+      failures / total >= this.config.failureRateThreshold
+    ) {
       this.open();
     }
   }

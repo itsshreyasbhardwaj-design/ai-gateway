@@ -14,7 +14,10 @@ export async function registerOpsRoutes(app: FastifyInstance, ctx: GatewayContex
   const startedAt = Date.now();
 
   /** Liveness: is the process up? */
-  app.get('/healthz', async () => ({ status: 'ok', uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000) }));
+  app.get('/healthz', async () => ({
+    status: 'ok',
+    uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
+  }));
 
   /**
    * Readiness: can this replica actually serve a request?
@@ -48,7 +51,9 @@ export async function registerOpsRoutes(app: FastifyInstance, ctx: GatewayContex
       ctx.metrics.setGauge('aigw_provider_p95_latency_ms', stats.p95LatencyMs, { provider });
     }
     for (const snapshot of ctx.circuits.snapshots()) {
-      ctx.metrics.setGauge('aigw_circuit_state', circuitGauge(snapshot.state), { target: snapshot.key });
+      ctx.metrics.setGauge('aigw_circuit_state', circuitGauge(snapshot.state), {
+        target: snapshot.key,
+      });
     }
     reply.header('content-type', 'text/plain; version=0.0.4; charset=utf-8');
     return reply.send(ctx.metrics.render());
@@ -121,10 +126,12 @@ export async function registerOpsRoutes(app: FastifyInstance, ctx: GatewayContex
           p99LatencyMs: stats.p99LatencyMs,
           windowMs: stats.windowMs,
         },
-        circuits: ctx.circuits.snapshots().filter((c) => c.key.startsWith(`${provider}::`) || c.key === provider),
+        circuits: ctx.circuits
+          .snapshots()
+          .filter((c) => c.key.startsWith(`${provider}::`) || c.key === provider),
       };
     }),
-    note: 'These are measurements of this gateway\'s own traffic over the health window, not vendor-published availability.',
+    note: "These are measurements of this gateway's own traffic over the health window, not vendor-published availability.",
   }));
 }
 

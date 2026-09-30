@@ -28,7 +28,12 @@ export default async function ConsoleLayout({ children }: { children: ReactNode 
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar gatewayUrl={session.gatewayUrl} source={session.source} info={info} reachable={reachable} />
+        <TopBar
+          gatewayUrl={session.gatewayUrl}
+          source={session.source}
+          info={info}
+          reachable={reachable}
+        />
         <main className="flex-1 overflow-y-auto px-6 py-5">
           <div className="mx-auto max-w-[1600px]">{children}</div>
         </main>

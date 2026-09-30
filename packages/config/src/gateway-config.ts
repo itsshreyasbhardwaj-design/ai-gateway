@@ -1,6 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import type { ProviderConfig } from '@ai-gateway/core';
-import { availableProviderCredentials, mockProviderEnabled, parseEnv, type EnvIssue, type RawEnv } from './env.js';
+import {
+  availableProviderCredentials,
+  mockProviderEnabled,
+  parseEnv,
+  type EnvIssue,
+  type RawEnv,
+} from './env.js';
 
 export interface GatewayConfig {
   env: RawEnv;
@@ -94,16 +100,44 @@ export function providersFromEnv(env: RawEnv): ProviderConfig[] {
   const providers: ProviderConfig[] = [];
 
   if (available.has('OPENAI_API_KEY')) {
-    providers.push({ id: 'openai', kind: 'openai', displayName: 'OpenAI', credential: { ref: 'OPENAI_API_KEY' }, enabled: true, priority: 10 });
+    providers.push({
+      id: 'openai',
+      kind: 'openai',
+      displayName: 'OpenAI',
+      credential: { ref: 'OPENAI_API_KEY' },
+      enabled: true,
+      priority: 10,
+    });
   }
   if (available.has('ANTHROPIC_API_KEY')) {
-    providers.push({ id: 'anthropic', kind: 'anthropic', displayName: 'Anthropic', credential: { ref: 'ANTHROPIC_API_KEY' }, enabled: true, priority: 10 });
+    providers.push({
+      id: 'anthropic',
+      kind: 'anthropic',
+      displayName: 'Anthropic',
+      credential: { ref: 'ANTHROPIC_API_KEY' },
+      enabled: true,
+      priority: 10,
+    });
   }
   if (available.has('GOOGLE_AI_API_KEY')) {
-    providers.push({ id: 'google', kind: 'google', displayName: 'Google AI', credential: { ref: 'GOOGLE_AI_API_KEY' }, enabled: true, priority: 20 });
+    providers.push({
+      id: 'google',
+      kind: 'google',
+      displayName: 'Google AI',
+      credential: { ref: 'GOOGLE_AI_API_KEY' },
+      enabled: true,
+      priority: 20,
+    });
   }
   if (available.has('OPENROUTER_API_KEY')) {
-    providers.push({ id: 'openrouter', kind: 'openrouter', displayName: 'OpenRouter', credential: { ref: 'OPENROUTER_API_KEY' }, enabled: true, priority: 30 });
+    providers.push({
+      id: 'openrouter',
+      kind: 'openrouter',
+      displayName: 'OpenRouter',
+      credential: { ref: 'OPENROUTER_API_KEY' },
+      enabled: true,
+      priority: 30,
+    });
   }
   if (env.LOCAL_MODEL_BASE_URL) {
     providers.push({
@@ -111,13 +145,21 @@ export function providersFromEnv(env: RawEnv): ProviderConfig[] {
       kind: 'local',
       displayName: 'Self-hosted',
       baseUrl: env.LOCAL_MODEL_BASE_URL,
-      ...(available.has('LOCAL_MODEL_API_KEY') ? { credential: { ref: 'LOCAL_MODEL_API_KEY' } } : {}),
+      ...(available.has('LOCAL_MODEL_API_KEY')
+        ? { credential: { ref: 'LOCAL_MODEL_API_KEY' } }
+        : {}),
       enabled: true,
       priority: 5,
     });
   }
   if (mockProviderEnabled(env)) {
-    providers.push({ id: 'mock', kind: 'mock', displayName: 'Mock (synthetic, development only)', enabled: true, priority: 90 });
+    providers.push({
+      id: 'mock',
+      kind: 'mock',
+      displayName: 'Mock (synthetic, development only)',
+      enabled: true,
+      priority: 90,
+    });
   }
 
   return providers;
@@ -132,7 +174,9 @@ export function describeConfig(config: GatewayConfig): string[] {
     `providers: ${config.providers.length ? config.providers.map((p) => p.id).join(', ') : 'none configured'}`,
   ];
   if (config.providers.length === 1 && config.providers[0]?.kind === 'mock') {
-    lines.push('note: only the synthetic mock provider is configured. Set a provider API key to route real traffic.');
+    lines.push(
+      'note: only the synthetic mock provider is configured. Set a provider API key to route real traffic.',
+    );
   }
   for (const secret of config.ephemeralSecrets) {
     lines.push(`warning: ${secret} was generated for this process only and will change on restart`);

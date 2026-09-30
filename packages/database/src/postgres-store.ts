@@ -58,7 +58,10 @@ export class PostgresStore implements Store {
 
   private constructor(private readonly pool: PoolLike) {}
 
-  static async connect(connectionString: string, options: Record<string, unknown> = {}): Promise<PostgresStore> {
+  static async connect(
+    connectionString: string,
+    options: Record<string, unknown> = {},
+  ): Promise<PostgresStore> {
     const pg = (await import('pg')) as unknown as {
       default?: { Pool: new (config: Record<string, unknown>) => PoolLike };
       Pool?: new (config: Record<string, unknown>) => PoolLike;
@@ -113,7 +116,16 @@ export class PostgresStore implements Store {
     await this.pool.query(
       `INSERT INTO organizations (id, name, slug, currency, privacy, allowed_models, denied_models, created_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [org.id, org.name, org.slug, org.currency, JSON.stringify(org.privacy), org.allowedModels ?? null, org.deniedModels ?? [], org.createdAt],
+      [
+        org.id,
+        org.name,
+        org.slug,
+        org.currency,
+        JSON.stringify(org.privacy),
+        org.allowedModels ?? null,
+        org.deniedModels ?? [],
+        org.createdAt,
+      ],
     );
     return org;
   }
@@ -134,7 +146,15 @@ export class PostgresStore implements Store {
     const next = { ...current, ...patch, id };
     await this.pool.query(
       `UPDATE organizations SET name=$2, slug=$3, currency=$4, privacy=$5, allowed_models=$6, denied_models=$7 WHERE id=$1`,
-      [id, next.name, next.slug, next.currency, JSON.stringify(next.privacy), next.allowedModels ?? null, next.deniedModels ?? []],
+      [
+        id,
+        next.name,
+        next.slug,
+        next.currency,
+        JSON.stringify(next.privacy),
+        next.allowedModels ?? null,
+        next.deniedModels ?? [],
+      ],
     );
     return next;
   }
@@ -154,7 +174,10 @@ export class PostgresStore implements Store {
   }
 
   async listMembers(organizationId: string): Promise<OrganizationMember[]> {
-    const { rows } = await this.pool.query('SELECT * FROM organization_members WHERE organization_id=$1', [organizationId]);
+    const { rows } = await this.pool.query(
+      'SELECT * FROM organization_members WHERE organization_id=$1',
+      [organizationId],
+    );
     return rows.map((r) => ({
       organizationId: String(r['organization_id']),
       userId: String(r['user_id']),
@@ -163,7 +186,10 @@ export class PostgresStore implements Store {
     }));
   }
 
-  async getMembership(organizationId: string, userId: string): Promise<OrganizationMember | undefined> {
+  async getMembership(
+    organizationId: string,
+    userId: string,
+  ): Promise<OrganizationMember | undefined> {
     const { rows } = await this.pool.query(
       'SELECT * FROM organization_members WHERE organization_id=$1 AND user_id=$2',
       [organizationId, userId],
@@ -184,9 +210,16 @@ export class PostgresStore implements Store {
       `INSERT INTO projects (id, organization_id, name, slug, allowed_models, denied_models, routing_policy_id, privacy, archived, created_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [
-        project.id, project.organizationId, project.name, project.slug,
-        project.allowedModels ?? null, project.deniedModels ?? [], project.routingPolicyId ?? null,
-        project.privacy ? JSON.stringify(project.privacy) : null, project.archived ?? false, project.createdAt,
+        project.id,
+        project.organizationId,
+        project.name,
+        project.slug,
+        project.allowedModels ?? null,
+        project.deniedModels ?? [],
+        project.routingPolicyId ?? null,
+        project.privacy ? JSON.stringify(project.privacy) : null,
+        project.archived ?? false,
+        project.createdAt,
       ],
     );
     return project;
@@ -198,7 +231,10 @@ export class PostgresStore implements Store {
   }
 
   async listProjects(organizationId: string): Promise<Project[]> {
-    const { rows } = await this.pool.query('SELECT * FROM projects WHERE organization_id=$1 ORDER BY created_at', [organizationId]);
+    const { rows } = await this.pool.query(
+      'SELECT * FROM projects WHERE organization_id=$1 ORDER BY created_at',
+      [organizationId],
+    );
     return rows.map(mapProject);
   }
 
@@ -209,8 +245,14 @@ export class PostgresStore implements Store {
     await this.pool.query(
       `UPDATE projects SET name=$2, slug=$3, allowed_models=$4, denied_models=$5, routing_policy_id=$6, privacy=$7, archived=$8 WHERE id=$1`,
       [
-        id, next.name, next.slug, next.allowedModels ?? null, next.deniedModels ?? [],
-        next.routingPolicyId ?? null, next.privacy ? JSON.stringify(next.privacy) : null, next.archived ?? false,
+        id,
+        next.name,
+        next.slug,
+        next.allowedModels ?? null,
+        next.deniedModels ?? [],
+        next.routingPolicyId ?? null,
+        next.privacy ? JSON.stringify(next.privacy) : null,
+        next.archived ?? false,
       ],
     );
     return next;
@@ -223,15 +265,27 @@ export class PostgresStore implements Store {
       `INSERT INTO api_keys (id, organization_id, project_id, name, prefix, hash, lookup_index, scopes, created_by, rotated_from, expires_at, created_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
       [
-        key.id, key.organizationId, key.projectId, key.name, key.prefix, key.hash, key.lookupIndex,
-        key.scopes, key.createdBy ?? null, key.rotatedFrom ?? null, key.expiresAt ?? null, key.createdAt,
+        key.id,
+        key.organizationId,
+        key.projectId,
+        key.name,
+        key.prefix,
+        key.hash,
+        key.lookupIndex,
+        key.scopes,
+        key.createdBy ?? null,
+        key.rotatedFrom ?? null,
+        key.expiresAt ?? null,
+        key.createdAt,
       ],
     );
     return key;
   }
 
   async findApiKeyByIndex(lookupIndex: string): Promise<ApiKeyLookup | undefined> {
-    const { rows } = await this.pool.query('SELECT * FROM api_keys WHERE lookup_index=$1', [lookupIndex]);
+    const { rows } = await this.pool.query('SELECT * FROM api_keys WHERE lookup_index=$1', [
+      lookupIndex,
+    ]);
     return rows[0] ? mapApiKey(rows[0]) : undefined;
   }
 
@@ -242,8 +296,14 @@ export class PostgresStore implements Store {
 
   async listApiKeys(organizationId: string, projectId?: string): Promise<ApiKeyRecord[]> {
     const { rows } = projectId
-      ? await this.pool.query('SELECT * FROM api_keys WHERE organization_id=$1 AND project_id=$2 ORDER BY created_at DESC', [organizationId, projectId])
-      : await this.pool.query('SELECT * FROM api_keys WHERE organization_id=$1 ORDER BY created_at DESC', [organizationId]);
+      ? await this.pool.query(
+          'SELECT * FROM api_keys WHERE organization_id=$1 AND project_id=$2 ORDER BY created_at DESC',
+          [organizationId, projectId],
+        )
+      : await this.pool.query(
+          'SELECT * FROM api_keys WHERE organization_id=$1 ORDER BY created_at DESC',
+          [organizationId],
+        );
     // The lookup index is a lookup secret; it never leaves the store.
     return rows.map((r) => {
       const { lookupIndex: _lookupIndex, ...rest } = mapApiKey(r);
@@ -274,29 +334,50 @@ export class PostgresStore implements Store {
          credential_ref=EXCLUDED.credential_ref, headers=EXCLUDED.headers, timeout_ms=EXCLUDED.timeout_ms,
          weight=EXCLUDED.weight, priority=EXCLUDED.priority, enabled=EXCLUDED.enabled, updated_at=now()`,
       [
-        organizationId, config.id, config.kind, config.displayName, config.baseUrl ?? null,
-        config.credential?.ref ?? null, config.headers ? JSON.stringify(config.headers) : null,
-        config.timeoutMs ?? null, config.weight ?? null, config.priority ?? null, config.enabled,
+        organizationId,
+        config.id,
+        config.kind,
+        config.displayName,
+        config.baseUrl ?? null,
+        config.credential?.ref ?? null,
+        config.headers ? JSON.stringify(config.headers) : null,
+        config.timeoutMs ?? null,
+        config.weight ?? null,
+        config.priority ?? null,
+        config.enabled,
       ],
     );
     return config;
   }
 
   async listProviders(organizationId: string): Promise<ProviderConfig[]> {
-    const { rows } = await this.pool.query('SELECT * FROM providers WHERE organization_id=$1 ORDER BY id', [organizationId]);
+    const { rows } = await this.pool.query(
+      'SELECT * FROM providers WHERE organization_id=$1 ORDER BY id',
+      [organizationId],
+    );
     return rows.map(mapProvider);
   }
 
   async getProvider(organizationId: string, id: string): Promise<ProviderConfig | undefined> {
-    const { rows } = await this.pool.query('SELECT * FROM providers WHERE organization_id=$1 AND id=$2', [organizationId, id]);
+    const { rows } = await this.pool.query(
+      'SELECT * FROM providers WHERE organization_id=$1 AND id=$2',
+      [organizationId, id],
+    );
     return rows[0] ? mapProvider(rows[0]) : undefined;
   }
 
   async deleteProvider(organizationId: string, id: string): Promise<void> {
-    await this.pool.query('DELETE FROM providers WHERE organization_id=$1 AND id=$2', [organizationId, id]);
+    await this.pool.query('DELETE FROM providers WHERE organization_id=$1 AND id=$2', [
+      organizationId,
+      id,
+    ]);
   }
 
-  async putProviderCredential(organizationId: string, ref: string, encrypted: string): Promise<void> {
+  async putProviderCredential(
+    organizationId: string,
+    ref: string,
+    encrypted: string,
+  ): Promise<void> {
     await this.pool.query(
       `INSERT INTO provider_credentials (organization_id, ref, encrypted, updated_at) VALUES ($1,$2,$3, now())
        ON CONFLICT (organization_id, ref) DO UPDATE SET encrypted=EXCLUDED.encrypted, updated_at=now()`,
@@ -305,12 +386,18 @@ export class PostgresStore implements Store {
   }
 
   async getProviderCredential(organizationId: string, ref: string): Promise<string | undefined> {
-    const { rows } = await this.pool.query('SELECT encrypted FROM provider_credentials WHERE organization_id=$1 AND ref=$2', [organizationId, ref]);
+    const { rows } = await this.pool.query(
+      'SELECT encrypted FROM provider_credentials WHERE organization_id=$1 AND ref=$2',
+      [organizationId, ref],
+    );
     return rows[0] ? String(rows[0]['encrypted']) : undefined;
   }
 
   async listProviderCredentialRefs(organizationId: string): Promise<string[]> {
-    const { rows } = await this.pool.query('SELECT ref FROM provider_credentials WHERE organization_id=$1 ORDER BY ref', [organizationId]);
+    const { rows } = await this.pool.query(
+      'SELECT ref FROM provider_credentials WHERE organization_id=$1 ORDER BY ref',
+      [organizationId],
+    );
     return rows.map((r) => String(r['ref']));
   }
 
@@ -325,32 +412,57 @@ export class PostgresStore implements Store {
          status=EXCLUDED.status, family=EXCLUDED.family, description=EXCLUDED.description,
          deprecated_at=EXCLUDED.deprecated_at`,
       [
-        organizationId, model.id, model.providerId, model.providerModelId, model.displayName,
-        model.contextWindow, model.maxOutputTokens ?? null, model.capabilities, model.status,
-        model.family ?? null, model.description ?? null, model.deprecatedAt ?? null,
+        organizationId,
+        model.id,
+        model.providerId,
+        model.providerModelId,
+        model.displayName,
+        model.contextWindow,
+        model.maxOutputTokens ?? null,
+        model.capabilities,
+        model.status,
+        model.family ?? null,
+        model.description ?? null,
+        model.deprecatedAt ?? null,
       ],
     );
     return model;
   }
 
   async listModels(organizationId: string): Promise<ModelDescriptor[]> {
-    const { rows } = await this.pool.query('SELECT * FROM models WHERE organization_id=$1 ORDER BY id', [organizationId]);
+    const { rows } = await this.pool.query(
+      'SELECT * FROM models WHERE organization_id=$1 ORDER BY id',
+      [organizationId],
+    );
     return rows.map(mapModel);
   }
 
   async deleteModel(organizationId: string, modelId: string): Promise<void> {
-    await this.pool.query('DELETE FROM models WHERE organization_id=$1 AND id=$2', [organizationId, modelId]);
+    await this.pool.query('DELETE FROM models WHERE organization_id=$1 AND id=$2', [
+      organizationId,
+      modelId,
+    ]);
   }
 
   async publishPricing(organizationId: string, snapshot: PricingSnapshot): Promise<void> {
     await this.pool.query(
       `INSERT INTO pricing_versions (organization_id, version, as_of, source, notes, prices) VALUES ($1,$2,$3,$4,$5,$6)`,
-      [organizationId, snapshot.version, snapshot.asOf, snapshot.source, snapshot.notes ?? null, JSON.stringify(snapshot.prices)],
+      [
+        organizationId,
+        snapshot.version,
+        snapshot.asOf,
+        snapshot.source,
+        snapshot.notes ?? null,
+        JSON.stringify(snapshot.prices),
+      ],
     );
   }
 
   async listPricingSnapshots(organizationId: string): Promise<PricingSnapshot[]> {
-    const { rows } = await this.pool.query('SELECT * FROM pricing_versions WHERE organization_id=$1 ORDER BY as_of', [organizationId]);
+    const { rows } = await this.pool.query(
+      'SELECT * FROM pricing_versions WHERE organization_id=$1 ORDER BY as_of',
+      [organizationId],
+    );
     return rows.map((r) => ({
       version: String(r['version']),
       asOf: isoOf(r['as_of']).slice(0, 10),
@@ -369,12 +481,30 @@ export class PostgresStore implements Store {
       await client.query(
         `INSERT INTO routing_policies (id, organization_id, project_id, name, active_version, created_at, updated_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [row.id, row.organizationId, row.projectId, row.name, row.activeVersion, row.createdAt, row.updatedAt],
+        [
+          row.id,
+          row.organizationId,
+          row.projectId,
+          row.name,
+          row.activeVersion,
+          row.createdAt,
+          row.updatedAt,
+        ],
       );
       await client.query(
         `INSERT INTO routing_policy_versions (id, policy_id, version, document, checksum, created_by, note, active, created_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-        [version.id, version.policyId, version.version, JSON.stringify(version.document), version.checksum, version.createdBy, version.note ?? null, version.active, version.createdAt],
+        [
+          version.id,
+          version.policyId,
+          version.version,
+          JSON.stringify(version.document),
+          version.checksum,
+          version.createdBy,
+          version.note ?? null,
+          version.active,
+          version.createdAt,
+        ],
       );
       await client.query('COMMIT');
     } catch (err) {
@@ -389,7 +519,17 @@ export class PostgresStore implements Store {
     await this.pool.query(
       `INSERT INTO routing_policy_versions (id, policy_id, version, document, checksum, created_by, note, active, created_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [version.id, version.policyId, version.version, JSON.stringify(version.document), version.checksum, version.createdBy, version.note ?? null, false, version.createdAt],
+      [
+        version.id,
+        version.policyId,
+        version.version,
+        JSON.stringify(version.document),
+        version.checksum,
+        version.createdBy,
+        version.note ?? null,
+        false,
+        version.createdAt,
+      ],
     );
   }
 
@@ -398,10 +538,19 @@ export class PostgresStore implements Store {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
-      await client.query('UPDATE routing_policy_versions SET active=FALSE WHERE policy_id=$1 AND active', [policyId]);
-      const result = await client.query('UPDATE routing_policy_versions SET active=TRUE WHERE policy_id=$1 AND version=$2', [policyId, version]);
+      await client.query(
+        'UPDATE routing_policy_versions SET active=FALSE WHERE policy_id=$1 AND active',
+        [policyId],
+      );
+      const result = await client.query(
+        'UPDATE routing_policy_versions SET active=TRUE WHERE policy_id=$1 AND version=$2',
+        [policyId, version],
+      );
       if (!result.rowCount) throw new Error(`unknown version ${version} for policy ${policyId}`);
-      await client.query('UPDATE routing_policies SET active_version=$2, updated_at=$3 WHERE id=$1', [policyId, version, at]);
+      await client.query(
+        'UPDATE routing_policies SET active_version=$2, updated_at=$3 WHERE id=$1',
+        [policyId, version, at],
+      );
       await client.query('COMMIT');
     } catch (err) {
       await client.query('ROLLBACK').catch(() => undefined);
@@ -418,25 +567,40 @@ export class PostgresStore implements Store {
 
   async listPolicies(organizationId: string, projectId?: string): Promise<StoredPolicyRow[]> {
     const { rows } = projectId
-      ? await this.pool.query('SELECT * FROM routing_policies WHERE organization_id=$1 AND project_id=$2', [organizationId, projectId])
-      : await this.pool.query('SELECT * FROM routing_policies WHERE organization_id=$1', [organizationId]);
+      ? await this.pool.query(
+          'SELECT * FROM routing_policies WHERE organization_id=$1 AND project_id=$2',
+          [organizationId, projectId],
+        )
+      : await this.pool.query('SELECT * FROM routing_policies WHERE organization_id=$1', [
+          organizationId,
+        ]);
     return rows.map(mapPolicy);
   }
 
   async getActivePolicyVersion(policyId: string): Promise<PolicyVersionRow | undefined> {
-    const { rows } = await this.pool.query('SELECT * FROM routing_policy_versions WHERE policy_id=$1 AND active', [policyId]);
+    const { rows } = await this.pool.query(
+      'SELECT * FROM routing_policy_versions WHERE policy_id=$1 AND active',
+      [policyId],
+    );
     return rows[0] ? mapPolicyVersion(rows[0]) : undefined;
   }
 
   async listPolicyVersions(policyId: string): Promise<PolicyVersionRow[]> {
-    const { rows } = await this.pool.query('SELECT * FROM routing_policy_versions WHERE policy_id=$1 ORDER BY version', [policyId]);
+    const { rows } = await this.pool.query(
+      'SELECT * FROM routing_policy_versions WHERE policy_id=$1 ORDER BY version',
+      [policyId],
+    );
     return rows.map(mapPolicyVersion);
   }
 
   // --- requests ------------------------------------------------------
 
   /** One transaction: a trace without its request row would be unreadable. */
-  async recordRequest(record: RequestRecord, steps: TraceStep[], attempts: RequestAttempt[]): Promise<void> {
+  async recordRequest(
+    record: RequestRecord,
+    steps: TraceStep[],
+    attempts: RequestAttempt[],
+  ): Promise<void> {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -450,14 +614,40 @@ export class PostgresStore implements Store {
            prompt_ref, user_agent, created_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34)`,
         [
-          record.id, record.organizationId, record.projectId, record.apiKeyId, record.endpoint, record.requestedModel,
-          record.resolvedProviderId ?? null, record.resolvedModelId ?? null, record.strategy ?? null, record.status,
-          record.errorType ?? null, record.errorMessage ?? null, record.httpStatus, record.streamed, record.latencyMs,
-          record.timeToFirstTokenMs ?? null, record.cacheStatus, record.cacheSimilarity ?? null, record.fallbackUsed,
-          record.attemptCount, record.usage?.input ?? null, record.usage?.output ?? null, record.usage?.total ?? null,
-          record.usage?.cachedInput ?? null, record.usage?.source ?? null, record.estimatedCost ?? null,
-          record.currency ?? null, record.pricingVersion ?? null, record.isTest, record.tags ?? [],
-          record.routingReasons ?? null, record.promptRef ?? null, record.userAgent ?? null, record.createdAt,
+          record.id,
+          record.organizationId,
+          record.projectId,
+          record.apiKeyId,
+          record.endpoint,
+          record.requestedModel,
+          record.resolvedProviderId ?? null,
+          record.resolvedModelId ?? null,
+          record.strategy ?? null,
+          record.status,
+          record.errorType ?? null,
+          record.errorMessage ?? null,
+          record.httpStatus,
+          record.streamed,
+          record.latencyMs,
+          record.timeToFirstTokenMs ?? null,
+          record.cacheStatus,
+          record.cacheSimilarity ?? null,
+          record.fallbackUsed,
+          record.attemptCount,
+          record.usage?.input ?? null,
+          record.usage?.output ?? null,
+          record.usage?.total ?? null,
+          record.usage?.cachedInput ?? null,
+          record.usage?.source ?? null,
+          record.estimatedCost ?? null,
+          record.currency ?? null,
+          record.pricingVersion ?? null,
+          record.isTest,
+          record.tags ?? [],
+          record.routingReasons ?? null,
+          record.promptRef ?? null,
+          record.userAgent ?? null,
+          record.createdAt,
         ],
       );
 
@@ -469,11 +659,24 @@ export class PostgresStore implements Store {
              backoff_ms, input_tokens, output_tokens, usage_source)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
           [
-            attempt.id, attempt.requestId, record.organizationId, attempt.attemptNumber, attempt.providerId,
-            attempt.modelId, attempt.startedAt, attempt.durationMs, attempt.status, attempt.errorType ?? null,
-            attempt.errorMessage ?? null, attempt.providerStatus ?? null, attempt.httpRetryAfterSeconds ?? null,
-            attempt.timeToFirstTokenMs ?? null, attempt.backoffMs ?? null, attempt.usage?.input ?? null,
-            attempt.usage?.output ?? null, attempt.usage?.source ?? null,
+            attempt.id,
+            attempt.requestId,
+            record.organizationId,
+            attempt.attemptNumber,
+            attempt.providerId,
+            attempt.modelId,
+            attempt.startedAt,
+            attempt.durationMs,
+            attempt.status,
+            attempt.errorType ?? null,
+            attempt.errorMessage ?? null,
+            attempt.providerStatus ?? null,
+            attempt.httpRetryAfterSeconds ?? null,
+            attempt.timeToFirstTokenMs ?? null,
+            attempt.backoffMs ?? null,
+            attempt.usage?.input ?? null,
+            attempt.usage?.output ?? null,
+            attempt.usage?.source ?? null,
           ],
         );
       }
@@ -483,8 +686,16 @@ export class PostgresStore implements Store {
           `INSERT INTO request_events (request_id, organization_id, seq, name, status, started_at, duration_ms, error_type, message, detail)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
           [
-            record.id, record.organizationId, seq, step.name, step.status, step.startedAt, step.durationMs,
-            step.errorType ?? null, step.message ?? null, step.detail ? JSON.stringify(step.detail) : null,
+            record.id,
+            record.organizationId,
+            seq,
+            step.name,
+            step.status,
+            step.startedAt,
+            step.durationMs,
+            step.errorType ?? null,
+            step.message ?? null,
+            step.detail ? JSON.stringify(step.detail) : null,
           ],
         );
       }
@@ -499,7 +710,10 @@ export class PostgresStore implements Store {
   }
 
   async getRequest(organizationId: string, requestId: string): Promise<RequestRecord | undefined> {
-    const { rows } = await this.pool.query('SELECT * FROM requests WHERE organization_id=$1 AND id=$2', [organizationId, requestId]);
+    const { rows } = await this.pool.query(
+      'SELECT * FROM requests WHERE organization_id=$1 AND id=$2',
+      [organizationId, requestId],
+    );
     return rows[0] ? mapRequest(rows[0]) : undefined;
   }
 
@@ -507,8 +721,14 @@ export class PostgresStore implements Store {
     const request = await this.getRequest(organizationId, requestId);
     if (!request) return undefined;
     const [attempts, events] = await Promise.all([
-      this.pool.query('SELECT * FROM request_attempts WHERE request_id=$1 AND organization_id=$2 ORDER BY attempt_number', [requestId, organizationId]),
-      this.pool.query('SELECT * FROM request_events WHERE request_id=$1 AND organization_id=$2 ORDER BY seq', [requestId, organizationId]),
+      this.pool.query(
+        'SELECT * FROM request_attempts WHERE request_id=$1 AND organization_id=$2 ORDER BY attempt_number',
+        [requestId, organizationId],
+      ),
+      this.pool.query(
+        'SELECT * FROM request_events WHERE request_id=$1 AND organization_id=$2 ORDER BY seq',
+        [requestId, organizationId],
+      ),
     ]);
     return {
       request,
@@ -517,7 +737,9 @@ export class PostgresStore implements Store {
     };
   }
 
-  async queryRequests(query: RequestQuery): Promise<{ records: RequestRecord[]; nextCursor?: string }> {
+  async queryRequests(
+    query: RequestQuery,
+  ): Promise<{ records: RequestRecord[]; nextCursor?: string }> {
     const limit = Math.min(query.limit ?? DEFAULT_PAGE, MAX_PAGE);
     const where: string[] = ['organization_id = $1'];
     const values: unknown[] = [query.organizationId];
@@ -538,7 +760,9 @@ export class PostgresStore implements Store {
     if (query.search) {
       values.push(`%${query.search}%`);
       const p = `$${values.length}`;
-      where.push(`(id ILIKE ${p} OR requested_model ILIKE ${p} OR resolved_model_id ILIKE ${p} OR error_type ILIKE ${p})`);
+      where.push(
+        `(id ILIKE ${p} OR requested_model ILIKE ${p} OR resolved_model_id ILIKE ${p} OR error_type ILIKE ${p})`,
+      );
     }
 
     values.push(limit + 1);
@@ -553,10 +777,10 @@ export class PostgresStore implements Store {
   }
 
   async pruneRequests(organizationId: string, olderThan: Date): Promise<number> {
-    const { rowCount } = await this.pool.query('DELETE FROM requests WHERE organization_id=$1 AND created_at < $2', [
-      organizationId,
-      olderThan.toISOString(),
-    ]);
+    const { rowCount } = await this.pool.query(
+      'DELETE FROM requests WHERE organization_id=$1 AND created_at < $2',
+      [organizationId, olderThan.toISOString()],
+    );
     return rowCount ?? 0;
   }
 
@@ -566,16 +790,24 @@ export class PostgresStore implements Store {
        VALUES ($1,$2,$3,$4,$5,$6)
        ON CONFLICT (request_id) DO UPDATE SET request_body=EXCLUDED.request_body, response_body=EXCLUDED.response_body, expires_at=EXCLUDED.expires_at`,
       [
-        body.requestId, body.organizationId,
+        body.requestId,
+        body.organizationId,
         body.request === undefined ? null : JSON.stringify(body.request),
         body.response === undefined ? null : JSON.stringify(body.response),
-        body.storedAt, body.expiresAt,
+        body.storedAt,
+        body.expiresAt,
       ],
     );
   }
 
-  async getPromptBody(organizationId: string, requestId: string): Promise<StoredPromptBody | undefined> {
-    const { rows } = await this.pool.query('SELECT * FROM request_bodies WHERE organization_id=$1 AND request_id=$2', [organizationId, requestId]);
+  async getPromptBody(
+    organizationId: string,
+    requestId: string,
+  ): Promise<StoredPromptBody | undefined> {
+    const { rows } = await this.pool.query(
+      'SELECT * FROM request_bodies WHERE organization_id=$1 AND request_id=$2',
+      [organizationId, requestId],
+    );
     const row = rows[0];
     if (!row) return undefined;
     return {
@@ -589,7 +821,10 @@ export class PostgresStore implements Store {
   }
 
   async prunePromptBodies(now: Date): Promise<number> {
-    const { rowCount } = await this.pool.query('DELETE FROM request_bodies WHERE expires_at <= $1', [now.toISOString()]);
+    const { rowCount } = await this.pool.query(
+      'DELETE FROM request_bodies WHERE expires_at <= $1',
+      [now.toISOString()],
+    );
     return rowCount ?? 0;
   }
 
@@ -602,13 +837,26 @@ export class PostgresStore implements Store {
        ON CONFLICT (id) DO UPDATE SET scope=EXCLUDED.scope, scope_id=EXCLUDED.scope_id, period=EXCLUDED.period,
          budget_limit=EXCLUDED.budget_limit, currency=EXCLUDED.currency, action=EXCLUDED.action,
          warn_threshold=EXCLUDED.warn_threshold, enabled=EXCLUDED.enabled`,
-      [budget.id, budget.organizationId, budget.scope, budget.scopeId ?? null, budget.period, budget.limit, budget.currency, budget.action, budget.warnThreshold ?? null, budget.enabled],
+      [
+        budget.id,
+        budget.organizationId,
+        budget.scope,
+        budget.scopeId ?? null,
+        budget.period,
+        budget.limit,
+        budget.currency,
+        budget.action,
+        budget.warnThreshold ?? null,
+        budget.enabled,
+      ],
     );
     return budget;
   }
 
   async listBudgets(organizationId: string): Promise<Budget[]> {
-    const { rows } = await this.pool.query('SELECT * FROM budgets WHERE organization_id=$1', [organizationId]);
+    const { rows } = await this.pool.query('SELECT * FROM budgets WHERE organization_id=$1', [
+      organizationId,
+    ]);
     return rows.map((r) => ({
       id: String(r['id']),
       organizationId: String(r['organization_id']),
@@ -624,7 +872,10 @@ export class PostgresStore implements Store {
   }
 
   async deleteBudget(organizationId: string, id: string): Promise<void> {
-    await this.pool.query('DELETE FROM budgets WHERE organization_id=$1 AND id=$2', [organizationId, id]);
+    await this.pool.query('DELETE FROM budgets WHERE organization_id=$1 AND id=$2', [
+      organizationId,
+      id,
+    ]);
   }
 
   async upsertAlertRule(rule: AlertRule): Promise<AlertRule> {
@@ -634,13 +885,26 @@ export class PostgresStore implements Store {
        ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, metric=EXCLUDED.metric, comparator=EXCLUDED.comparator,
          threshold=EXCLUDED.threshold, for_minutes=EXCLUDED.for_minutes, cooldown_minutes=EXCLUDED.cooldown_minutes,
          enabled=EXCLUDED.enabled`,
-      [rule.id, rule.organizationId, rule.name, rule.metric, rule.comparator, rule.threshold, rule.forMinutes, rule.cooldownMinutes, rule.enabled, rule.createdAt],
+      [
+        rule.id,
+        rule.organizationId,
+        rule.name,
+        rule.metric,
+        rule.comparator,
+        rule.threshold,
+        rule.forMinutes,
+        rule.cooldownMinutes,
+        rule.enabled,
+        rule.createdAt,
+      ],
     );
     return rule;
   }
 
   async listAlertRules(organizationId: string): Promise<AlertRule[]> {
-    const { rows } = await this.pool.query('SELECT * FROM alerts WHERE organization_id=$1', [organizationId]);
+    const { rows } = await this.pool.query('SELECT * FROM alerts WHERE organization_id=$1', [
+      organizationId,
+    ]);
     return rows.map((r) => ({
       id: String(r['id']),
       organizationId: String(r['organization_id']),
@@ -659,17 +923,32 @@ export class PostgresStore implements Store {
     await this.pool.query(
       `INSERT INTO alert_events (id, alert_id, organization_id, fired_at, resolved_at, observed_value, threshold, message)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [event.id, event.alertId, event.organizationId, event.firedAt, event.resolvedAt ?? null, event.observedValue, event.threshold, event.message],
+      [
+        event.id,
+        event.alertId,
+        event.organizationId,
+        event.firedAt,
+        event.resolvedAt ?? null,
+        event.observedValue,
+        event.threshold,
+        event.message,
+      ],
     );
   }
 
   async listAlertEvents(organizationId: string, limit = 100): Promise<AlertEvent[]> {
-    const { rows } = await this.pool.query('SELECT * FROM alert_events WHERE organization_id=$1 ORDER BY fired_at DESC LIMIT $2', [organizationId, limit]);
+    const { rows } = await this.pool.query(
+      'SELECT * FROM alert_events WHERE organization_id=$1 ORDER BY fired_at DESC LIMIT $2',
+      [organizationId, limit],
+    );
     return rows.map(mapAlertEvent);
   }
 
   async lastAlertEvent(alertId: string): Promise<AlertEvent | undefined> {
-    const { rows } = await this.pool.query('SELECT * FROM alert_events WHERE alert_id=$1 ORDER BY fired_at DESC LIMIT 1', [alertId]);
+    const { rows } = await this.pool.query(
+      'SELECT * FROM alert_events WHERE alert_id=$1 ORDER BY fired_at DESC LIMIT 1',
+      [alertId],
+    );
     return rows[0] ? mapAlertEvent(rows[0]) : undefined;
   }
 
@@ -680,13 +959,26 @@ export class PostgresStore implements Store {
        ON CONFLICT (id) DO UPDATE SET url=EXCLUDED.url, secret_encrypted=EXCLUDED.secret_encrypted,
          events=EXCLUDED.events, enabled=EXCLUDED.enabled, consecutive_failures=EXCLUDED.consecutive_failures,
          last_delivery_at=EXCLUDED.last_delivery_at, last_delivery_status=EXCLUDED.last_delivery_status`,
-      [webhook.id, webhook.organizationId, webhook.url, webhook.secretEncrypted, webhook.events, webhook.enabled, webhook.consecutiveFailures, webhook.lastDeliveryAt ?? null, webhook.lastDeliveryStatus ?? null, webhook.createdAt],
+      [
+        webhook.id,
+        webhook.organizationId,
+        webhook.url,
+        webhook.secretEncrypted,
+        webhook.events,
+        webhook.enabled,
+        webhook.consecutiveFailures,
+        webhook.lastDeliveryAt ?? null,
+        webhook.lastDeliveryStatus ?? null,
+        webhook.createdAt,
+      ],
     );
     return webhook;
   }
 
   async listWebhooks(organizationId: string): Promise<WebhookEndpoint[]> {
-    const { rows } = await this.pool.query('SELECT * FROM webhooks WHERE organization_id=$1', [organizationId]);
+    const { rows } = await this.pool.query('SELECT * FROM webhooks WHERE organization_id=$1', [
+      organizationId,
+    ]);
     return rows.map((r) => ({
       id: String(r['id']),
       organizationId: String(r['organization_id']),
@@ -702,14 +994,28 @@ export class PostgresStore implements Store {
   }
 
   async deleteWebhook(organizationId: string, id: string): Promise<void> {
-    await this.pool.query('DELETE FROM webhooks WHERE organization_id=$1 AND id=$2', [organizationId, id]);
+    await this.pool.query('DELETE FROM webhooks WHERE organization_id=$1 AND id=$2', [
+      organizationId,
+      id,
+    ]);
   }
 
   async enqueueDelivery(delivery: WebhookDelivery): Promise<void> {
     await this.pool.query(
       `INSERT INTO webhook_deliveries (id, webhook_id, event, payload, attempts, status, last_error, next_attempt_at, delivered_at, created_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [delivery.id, delivery.webhookId, delivery.event, JSON.stringify(delivery.payload), delivery.attempts, delivery.status, delivery.lastError ?? null, delivery.nextAttemptAt ?? null, delivery.deliveredAt ?? null, delivery.createdAt],
+      [
+        delivery.id,
+        delivery.webhookId,
+        delivery.event,
+        JSON.stringify(delivery.payload),
+        delivery.attempts,
+        delivery.status,
+        delivery.lastError ?? null,
+        delivery.nextAttemptAt ?? null,
+        delivery.deliveredAt ?? null,
+        delivery.createdAt,
+      ],
     );
   }
 
@@ -749,7 +1055,14 @@ export class PostgresStore implements Store {
          next_attempt_at = COALESCE($5, next_attempt_at),
          delivered_at = COALESCE($6, delivered_at)
        WHERE id = $1`,
-      [id, patch.attempts ?? null, patch.status ?? null, patch.lastError ?? null, patch.nextAttemptAt ?? null, patch.deliveredAt ?? null],
+      [
+        id,
+        patch.attempts ?? null,
+        patch.status ?? null,
+        patch.lastError ?? null,
+        patch.nextAttemptAt ?? null,
+        patch.deliveredAt ?? null,
+      ],
     );
   }
 
@@ -759,12 +1072,26 @@ export class PostgresStore implements Store {
     await this.pool.query(
       `INSERT INTO audit_logs (id, organization_id, actor_id, actor_type, action, resource_type, resource_id, metadata, ip, created_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [entry.id, entry.organizationId, entry.actorId, entry.actorType, entry.action, entry.resourceType, entry.resourceId, entry.metadata ? JSON.stringify(entry.metadata) : null, entry.ip ?? null, entry.createdAt],
+      [
+        entry.id,
+        entry.organizationId,
+        entry.actorId,
+        entry.actorType,
+        entry.action,
+        entry.resourceType,
+        entry.resourceId,
+        entry.metadata ? JSON.stringify(entry.metadata) : null,
+        entry.ip ?? null,
+        entry.createdAt,
+      ],
     );
   }
 
   async listAuditLog(organizationId: string, limit = 100): Promise<AuditLogEntry[]> {
-    const { rows } = await this.pool.query('SELECT * FROM audit_logs WHERE organization_id=$1 ORDER BY created_at DESC LIMIT $2', [organizationId, limit]);
+    const { rows } = await this.pool.query(
+      'SELECT * FROM audit_logs WHERE organization_id=$1 ORDER BY created_at DESC LIMIT $2',
+      [organizationId, limit],
+    );
     return rows.map((r) => ({
       id: String(r['id']),
       organizationId: String(r['organization_id']),
@@ -783,14 +1110,30 @@ export class PostgresStore implements Store {
     await this.pool.query(
       `INSERT INTO provider_health_snapshots (id, provider_id, state, latency_ms, success_rate, p95_latency_ms, sample_count, message, checked_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [snapshot.id, snapshot.providerId, snapshot.state, snapshot.latencyMs ?? null, snapshot.successRate, snapshot.p95LatencyMs, snapshot.sampleCount, snapshot.message ?? null, snapshot.checkedAt],
+      [
+        snapshot.id,
+        snapshot.providerId,
+        snapshot.state,
+        snapshot.latencyMs ?? null,
+        snapshot.successRate,
+        snapshot.p95LatencyMs,
+        snapshot.sampleCount,
+        snapshot.message ?? null,
+        snapshot.checkedAt,
+      ],
     );
   }
 
   async listHealthSnapshots(providerId?: string, limit = 100): Promise<ProviderHealthSnapshot[]> {
     const { rows } = providerId
-      ? await this.pool.query('SELECT * FROM provider_health_snapshots WHERE provider_id=$1 ORDER BY checked_at DESC LIMIT $2', [providerId, limit])
-      : await this.pool.query('SELECT * FROM provider_health_snapshots ORDER BY checked_at DESC LIMIT $1', [limit]);
+      ? await this.pool.query(
+          'SELECT * FROM provider_health_snapshots WHERE provider_id=$1 ORDER BY checked_at DESC LIMIT $2',
+          [providerId, limit],
+        )
+      : await this.pool.query(
+          'SELECT * FROM provider_health_snapshots ORDER BY checked_at DESC LIMIT $1',
+          [limit],
+        );
     return rows.map((r) => ({
       id: String(r['id']),
       providerId: String(r['provider_id']),
@@ -949,7 +1292,8 @@ function mapRequest(r: Record<string, unknown>): RequestRecord {
             input: Number(r['input_tokens'] ?? 0),
             output: Number(r['output_tokens'] ?? 0),
             total: Number(total),
-            cachedInput: r['cached_input_tokens'] === null ? undefined : Number(r['cached_input_tokens']),
+            cachedInput:
+              r['cached_input_tokens'] === null ? undefined : Number(r['cached_input_tokens']),
             source: usageSource,
           },
     usageSource,
@@ -965,7 +1309,11 @@ function mapRequest(r: Record<string, unknown>): RequestRecord {
 }
 
 function mapAttempt(r: Record<string, unknown>): RequestAttempt {
-  const source = r['usage_source'] as RequestAttempt['usage'] extends infer U ? (U extends { source: infer S } ? S : never) : never;
+  const source = r['usage_source'] as RequestAttempt['usage'] extends infer U
+    ? U extends { source: infer S }
+      ? S
+      : never
+    : never;
   const input = r['input_tokens'] as number | null;
   return {
     id: String(r['id']),

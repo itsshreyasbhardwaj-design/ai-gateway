@@ -131,7 +131,12 @@ export class RedisKV implements KeyValueStore {
     return this.redis.zcard(key);
   }
 
-  async listPush(key: string, value: string, maxLength: number, ttlSeconds?: number): Promise<void> {
+  async listPush(
+    key: string,
+    value: string,
+    maxLength: number,
+    ttlSeconds?: number,
+  ): Promise<void> {
     await this.redis.lpush(key, value);
     await this.redis.ltrim(key, 0, maxLength - 1);
     if (ttlSeconds !== undefined) await this.redis.expire(key, ttlSeconds);
@@ -198,7 +203,8 @@ export class ResilientKV implements KeyValueStore {
     this.guard('incrBy', () => this.inner.incrBy(key, amount, ttl), amount);
   incrByFloat = (key: string, amount: number, ttl?: number) =>
     this.guard('incrByFloat', () => this.inner.incrByFloat(key, amount, ttl), amount);
-  expire = (key: string, ttl: number) => this.guard('expire', () => this.inner.expire(key, ttl), undefined);
+  expire = (key: string, ttl: number) =>
+    this.guard('expire', () => this.inner.expire(key, ttl), undefined);
   ttl = (key: string) => this.guard('ttl', () => this.inner.ttl(key), -2);
   keys = (prefix: string) => this.guard('keys', () => this.inner.keys(prefix), []);
   zadd = (key: string, score: number, member: string, ttl?: number) =>

@@ -3,12 +3,25 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Activity, AlertTriangle, BarChart3, Boxes, Coins, FlaskConical, FolderTree,
-  KeyRound, Route, Server, Settings, Webhook,
+  Activity,
+  AlertTriangle,
+  BarChart3,
+  Boxes,
+  Coins,
+  FlaskConical,
+  FolderTree,
+  KeyRound,
+  Route,
+  Server,
+  Settings,
+  Webhook,
 } from 'lucide-react';
 import { cn } from '@ai-gateway/ui';
 
-const SECTIONS: Array<{ label: string; items: Array<{ href: string; label: string; icon: typeof Activity }> }> = [
+const SECTIONS: Array<{
+  label: string;
+  items: Array<{ href: string; label: string; icon: typeof Activity }>;
+}> = [
   {
     label: 'Observe',
     items: [
@@ -43,7 +56,10 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Main" className="flex h-full w-52 shrink-0 flex-col border-r border-surface-border bg-surface-raised">
+    <nav
+      aria-label="Main"
+      className="flex h-full w-52 shrink-0 flex-col border-r border-surface-border bg-surface-raised"
+    >
       <div className="flex h-12 items-center gap-2 border-b border-surface-border px-4">
         <span className="h-2 w-2 rounded-full bg-accent" aria-hidden />
         <span className="text-sm font-semibold tracking-tight text-zinc-100">AI Gateway</span>
@@ -52,7 +68,9 @@ export function Sidebar() {
       <div className="flex-1 overflow-y-auto px-2 py-3">
         {SECTIONS.map((section) => (
           <div key={section.label} className="mb-4">
-            <p className="px-2 pb-1 text-2xs font-medium uppercase tracking-wider text-zinc-600">{section.label}</p>
+            <p className="px-2 pb-1 text-2xs font-medium uppercase tracking-wider text-zinc-600">
+              {section.label}
+            </p>
             <ul>
               {section.items.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(`${item.href}/`);

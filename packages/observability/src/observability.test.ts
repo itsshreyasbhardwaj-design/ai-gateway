@@ -1,13 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { FakeClock } from '@ai-gateway/core';
-import { CircuitBreaker, CircuitBreakerRegistry, DEFAULT_CIRCUIT_CONFIG } from './circuit-breaker.js';
+import {
+  CircuitBreaker,
+  CircuitBreakerRegistry,
+  DEFAULT_CIRCUIT_CONFIG,
+} from './circuit-breaker.js';
 import { HealthTracker, percentile, healthScore } from './health.js';
 import { Logger, MemorySink } from './logger.js';
 import { MetricsRegistry, METRICS } from './metrics.js';
 import { TraceBuilder } from './trace.js';
 
 describe('CircuitBreaker', () => {
-  const config = { ...DEFAULT_CIRCUIT_CONFIG, failureThreshold: 3, openDurationMs: 1_000, successThreshold: 2, halfOpenProbes: 2 };
+  const config = {
+    ...DEFAULT_CIRCUIT_CONFIG,
+    failureThreshold: 3,
+    openDurationMs: 1_000,
+    successThreshold: 2,
+    halfOpenProbes: 2,
+  };
 
   it('stays closed after a single failure', () => {
     const clock = new FakeClock();
@@ -41,7 +51,11 @@ describe('CircuitBreaker', () => {
 
   it('opens on a sustained failure rate once minimum throughput is met', () => {
     const clock = new FakeClock();
-    const breaker = new CircuitBreaker('p', { ...config, failureThreshold: 100, minimumThroughput: 10, failureRateThreshold: 0.5 }, clock);
+    const breaker = new CircuitBreaker(
+      'p',
+      { ...config, failureThreshold: 100, minimumThroughput: 10, failureRateThreshold: 0.5 },
+      clock,
+    );
     for (let i = 0; i < 10; i++) {
       // Alternate so the consecutive-failure rule never fires.
       if (i % 2 === 0) breaker.recordFailure();
@@ -89,7 +103,17 @@ describe('CircuitBreaker', () => {
 
   it('drops outcomes outside the rolling window', async () => {
     const clock = new FakeClock();
-    const breaker = new CircuitBreaker('p', { ...config, rollingWindowMs: 1_000, failureThreshold: 100, minimumThroughput: 2, failureRateThreshold: 0.5 }, clock);
+    const breaker = new CircuitBreaker(
+      'p',
+      {
+        ...config,
+        rollingWindowMs: 1_000,
+        failureThreshold: 100,
+        minimumThroughput: 2,
+        failureRateThreshold: 0.5,
+      },
+      clock,
+    );
     breaker.recordFailure();
     breaker.recordFailure();
     await clock.advance(2_000);
@@ -122,13 +146,25 @@ describe('CircuitBreaker', () => {
 
 describe('HealthTracker', () => {
   it('reports unknown until it has enough samples', () => {
-    const tracker = new HealthTracker({ windowMs: 60_000, maxSamples: 100, degradedBelowSuccessRate: 0.95, unavailableBelowSuccessRate: 0.5, minimumSamples: 10 });
+    const tracker = new HealthTracker({
+      windowMs: 60_000,
+      maxSamples: 100,
+      degradedBelowSuccessRate: 0.95,
+      unavailableBelowSuccessRate: 0.5,
+      minimumSamples: 10,
+    });
     tracker.recordFailure('p', 10, 'provider_error');
     expect(tracker.stats('p').state).toBe('unknown');
   });
 
   it('classifies degraded and unavailable from the success rate', () => {
-    const config = { windowMs: 60_000, maxSamples: 100, degradedBelowSuccessRate: 0.95, unavailableBelowSuccessRate: 0.5, minimumSamples: 10 };
+    const config = {
+      windowMs: 60_000,
+      maxSamples: 100,
+      degradedBelowSuccessRate: 0.95,
+      unavailableBelowSuccessRate: 0.5,
+      minimumSamples: 10,
+    };
     const degraded = new HealthTracker(config);
     for (let i = 0; i < 9; i++) degraded.recordSuccess('p', 10);
     degraded.recordFailure('p', 10, 'provider_error');
@@ -161,7 +197,16 @@ describe('HealthTracker', () => {
 
   it('forgets samples older than the window', async () => {
     const clock = new FakeClock();
-    const tracker = new HealthTracker({ windowMs: 1_000, maxSamples: 100, degradedBelowSuccessRate: 0.95, unavailableBelowSuccessRate: 0.5, minimumSamples: 1 }, clock);
+    const tracker = new HealthTracker(
+      {
+        windowMs: 1_000,
+        maxSamples: 100,
+        degradedBelowSuccessRate: 0.95,
+        unavailableBelowSuccessRate: 0.5,
+        minimumSamples: 1,
+      },
+      clock,
+    );
     tracker.recordFailure('p', 10, 'provider_error');
     expect(tracker.stats('p').total).toBe(1);
     await clock.advance(2_000);
@@ -198,7 +243,9 @@ describe('Logger redaction', () => {
   it('redacts nested structures', () => {
     const sink = new MemorySink();
     new Logger(sink, 'debug').error('failed', {
-      detail: { provider: { credential: 'sk-ant-abcdefghijklmnopqrstuv', baseUrl: 'https://x.example' } },
+      detail: {
+        provider: { credential: 'sk-ant-abcdefghijklmnopqrstuv', baseUrl: 'https://x.example' },
+      },
     });
     expect(sink.text).not.toContain('sk-ant-abcdefghijklmnopqrstuv');
     expect(sink.text).toContain('https://x.example');
@@ -232,7 +279,10 @@ describe('MetricsRegistry', () => {
     expect(registry.getCounter(METRICS.requests, { status: 'success' })).toBe(2);
     expect(registry.getCounter(METRICS.requests, { status: 'error' })).toBe(1);
     expect(registry.getGauge(METRICS.circuitState, { provider: 'p' })).toBe(2);
-    expect(registry.getHistogram(METRICS.requestDuration, { provider: 'p' })).toEqual({ count: 1, sum: 120 });
+    expect(registry.getHistogram(METRICS.requestDuration, { provider: 'p' })).toEqual({
+      count: 1,
+      sum: 120,
+    });
   });
 
   it('renders Prometheus exposition format', () => {
@@ -270,8 +320,17 @@ describe('TraceBuilder', () => {
     skipped.skip('caching disabled for this request');
 
     const { steps } = trace.snapshot();
-    expect(steps[0]).toMatchObject({ name: 'policy_evaluation', status: 'ok', durationMs: 5, detail: { allowed: true } });
-    expect(steps[1]).toMatchObject({ name: 'budget_check', status: 'error', errorType: 'budget_exceeded' });
+    expect(steps[0]).toMatchObject({
+      name: 'policy_evaluation',
+      status: 'ok',
+      durationMs: 5,
+      detail: { allowed: true },
+    });
+    expect(steps[1]).toMatchObject({
+      name: 'budget_check',
+      status: 'error',
+      errorType: 'budget_exceeded',
+    });
     expect(steps[2]).toMatchObject({ status: 'skipped' });
   });
 
@@ -290,8 +349,16 @@ describe('TraceBuilder', () => {
 
     const { attempts } = trace.snapshot();
     expect(attempts).toHaveLength(2);
-    expect(attempts[0]).toMatchObject({ status: 'error', errorType: 'provider_timeout', durationMs: 100 });
-    expect(attempts[1]).toMatchObject({ status: 'success', backoffMs: 250, timeToFirstTokenMs: 50 });
+    expect(attempts[0]).toMatchObject({
+      status: 'error',
+      errorType: 'provider_timeout',
+      durationMs: 100,
+    });
+    expect(attempts[1]).toMatchObject({
+      status: 'success',
+      backoffMs: 250,
+      timeToFirstTokenMs: 50,
+    });
     expect(trace.fallbackUsed()).toBe(true);
     expect(trace.finishedStatus()).toBe('success');
   });

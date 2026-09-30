@@ -1,7 +1,17 @@
 import Link from 'next/link';
 import { formatCompact, formatCurrency, formatDuration, formatRelativeTime } from '@ai-gateway/ui';
 import { gatewayFetch, type ProviderRow, type RequestRow } from '@/lib/gateway';
-import { Badge, EmptyState, Mono, PageHeader, Panel, Pill, Table, Td, Th } from '@/components/ui/primitives';
+import {
+  Badge,
+  EmptyState,
+  Mono,
+  PageHeader,
+  Panel,
+  Pill,
+  Table,
+  Td,
+  Th,
+} from '@/components/ui/primitives';
 import { QueryFilter, SearchBox, Toggle } from '@/components/ui/controls';
 import { GatewayError } from '../error-panel';
 
@@ -18,7 +28,14 @@ export default async function RequestsPage({
   const params = await searchParams;
 
   const query = new URLSearchParams({ limit: '50' });
-  for (const key of ['status', 'providerId', 'modelId', 'search', 'cursor', 'includeTest'] as const) {
+  for (const key of [
+    'status',
+    'providerId',
+    'modelId',
+    'search',
+    'cursor',
+    'includeTest',
+  ] as const) {
     const value = params[key];
     if (value) query.set(key, value);
   }
@@ -26,8 +43,12 @@ export default async function RequestsPage({
   let result: { data: RequestRow[]; nextCursor?: string };
   let providers: ProviderRow[] = [];
   try {
-    result = await gatewayFetch<{ data: RequestRow[]; nextCursor?: string }>(`/api/v1/requests?${query.toString()}`);
-    const providerResult = await gatewayFetch<{ data: ProviderRow[] }>('/api/v1/providers').catch(() => ({ data: [] }));
+    result = await gatewayFetch<{ data: RequestRow[]; nextCursor?: string }>(
+      `/api/v1/requests?${query.toString()}`,
+    );
+    const providerResult = await gatewayFetch<{ data: ProviderRow[] }>('/api/v1/providers').catch(
+      () => ({ data: [] }),
+    );
     providers = providerResult.data;
   } catch (error) {
     return (
@@ -60,9 +81,16 @@ export default async function RequestsPage({
         <QueryFilter
           param="providerId"
           label="Provider"
-          options={[{ value: '', label: 'Any' }, ...providers.map((p) => ({ value: p.id, label: p.id }))]}
+          options={[
+            { value: '', label: 'Any' },
+            ...providers.map((p) => ({ value: p.id, label: p.id })),
+          ]}
         />
-        <Toggle param="includeTest" label="Include test traffic" hint="Playground, simulation and replay requests." />
+        <Toggle
+          param="includeTest"
+          label="Include test traffic"
+          hint="Playground, simulation and replay requests."
+        />
       </div>
 
       <Panel>
@@ -92,17 +120,26 @@ export default async function RequestsPage({
               {result.data.map((request) => (
                 <tr key={request.id}>
                   <Td>
-                    <Link href={`/requests/${request.id}`} className="font-mono text-xs text-accent hover:underline">
+                    <Link
+                      href={`/requests/${request.id}`}
+                      className="font-mono text-xs text-accent hover:underline"
+                    >
                       {request.id}
                     </Link>
                     {request.isTest && (
-                      <Badge tone="cancelled" className="ml-1.5" title="Excluded from production analytics.">
+                      <Badge
+                        tone="cancelled"
+                        className="ml-1.5"
+                        title="Excluded from production analytics."
+                      >
                         test
                       </Badge>
                     )}
                   </Td>
                   <Td title={request.createdAt}>
-                    <span className="text-xs text-zinc-500">{formatRelativeTime(request.createdAt)}</span>
+                    <span className="text-xs text-zinc-500">
+                      {formatRelativeTime(request.createdAt)}
+                    </span>
                   </Td>
                   <Td>
                     <Badge tone={STATUS_TONES[request.status]}>{request.status}</Badge>
@@ -134,7 +171,9 @@ export default async function RequestsPage({
                   <Td align="right">
                     {request.usage ? (
                       <span
-                        className={request.usage.source === 'estimated' ? 'text-amber-300' : undefined}
+                        className={
+                          request.usage.source === 'estimated' ? 'text-amber-300' : undefined
+                        }
                         title={
                           request.usage.source === 'estimated'
                             ? 'Estimated by the gateway; the provider did not report usage.'
@@ -148,12 +187,21 @@ export default async function RequestsPage({
                       <span className="text-zinc-600">—</span>
                     )}
                   </Td>
-                  <Td align="right">{formatCurrency(request.estimatedCost, request.currency ?? 'USD')}</Td>
+                  <Td align="right">
+                    {formatCurrency(request.estimatedCost, request.currency ?? 'USD')}
+                  </Td>
                   <Td>
                     {request.cacheStatus === 'miss' || request.cacheStatus === 'disabled' ? (
                       <span className="text-2xs text-zinc-600">{request.cacheStatus}</span>
                     ) : (
-                      <Badge tone="success" title={request.cacheSimilarity ? `similarity ${request.cacheSimilarity.toFixed(4)}` : undefined}>
+                      <Badge
+                        tone="success"
+                        title={
+                          request.cacheSimilarity
+                            ? `similarity ${request.cacheSimilarity.toFixed(4)}`
+                            : undefined
+                        }
+                      >
                         {request.cacheStatus.replace('_', ' ')}
                       </Badge>
                     )}
@@ -161,7 +209,11 @@ export default async function RequestsPage({
                   <Td>
                     <span className="tabular text-xs">{request.attemptCount}</span>
                     {request.fallbackUsed && (
-                      <Badge tone="cancelled" className="ml-1.5" title="A fallback target served this request.">
+                      <Badge
+                        tone="cancelled"
+                        className="ml-1.5"
+                        title="A fallback target served this request."
+                      >
                         fallback
                       </Badge>
                     )}
@@ -189,6 +241,8 @@ export default async function RequestsPage({
 
 function cleanParams(params: Record<string, string | undefined>): Record<string, string> {
   return Object.fromEntries(
-    Object.entries(params).filter((entry): entry is [string, string] => entry[1] !== undefined && entry[0] !== 'cursor'),
+    Object.entries(params).filter(
+      (entry): entry is [string, string] => entry[1] !== undefined && entry[0] !== 'cursor',
+    ),
   );
 }

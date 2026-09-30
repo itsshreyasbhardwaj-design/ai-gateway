@@ -1,6 +1,13 @@
 import { bootstrap } from '@ai-gateway/gateway';
 import { ConfigError } from '@ai-gateway/config';
-import { deliverWebhooks, enforceRetention, evaluateAlerts, probeProviderHealth, type JobDeps, type JobResult } from './jobs.js';
+import {
+  deliverWebhooks,
+  enforceRetention,
+  evaluateAlerts,
+  probeProviderHealth,
+  type JobDeps,
+  type JobResult,
+} from './jobs.js';
 
 interface ScheduledJob {
   name: string;
@@ -48,7 +55,9 @@ async function main(): Promise<void> {
     webhooks: ctx.webhooks,
   };
 
-  logger.info('worker starting', { jobs: JOBS.map((j) => `${j.name}@${j.intervalMs}ms`).join(', ') });
+  logger.info('worker starting', {
+    jobs: JOBS.map((j) => `${j.name}@${j.intervalMs}ms`).join(', '),
+  });
 
   let running = true;
   const timers: NodeJS.Timeout[] = [];
@@ -65,7 +74,11 @@ async function main(): Promise<void> {
             intervalMs: job.intervalMs,
           });
         }
-        logger.debug('job completed', { job: job.name, ...result.detail, durationMs: result.durationMs });
+        logger.debug('job completed', {
+          job: job.name,
+          ...result.detail,
+          durationMs: result.durationMs,
+        });
       } catch (err) {
         // One failing job must never stop the scheduler.
         logger.error('job failed', { job: job.name, error: (err as Error).message });

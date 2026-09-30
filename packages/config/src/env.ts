@@ -13,7 +13,9 @@ const bool = (def: boolean) =>
   z
     .string()
     .optional()
-    .transform((v) => (v === undefined ? def : ['1', 'true', 'yes', 'on'].includes(v.toLowerCase())));
+    .transform((v) =>
+      v === undefined ? def : ['1', 'true', 'yes', 'on'].includes(v.toLowerCase()),
+    );
 
 const int = (def: number) =>
   z
@@ -26,7 +28,14 @@ const csv = () =>
   z
     .string()
     .optional()
-    .transform((v) => (v ? v.split(',').map((s) => s.trim()).filter(Boolean) : []));
+    .transform((v) =>
+      v
+        ? v
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [],
+    );
 
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -107,9 +116,14 @@ export function parseEnv(source: NodeJS.ProcessEnv = process.env): EnvParseResul
   const isProduction = env.NODE_ENV === 'production';
 
   if (!env.ENCRYPTION_KEY) {
-    const message = 'Required to encrypt provider credentials at rest. Generate one with: openssl rand -base64 32';
+    const message =
+      'Required to encrypt provider credentials at rest. Generate one with: openssl rand -base64 32';
     if (isProduction) issues.push({ variable: 'ENCRYPTION_KEY', message });
-    else warnings.push({ variable: 'ENCRYPTION_KEY', message: `${message} A throwaway key will be generated for this process; stored secrets will not survive a restart.` });
+    else
+      warnings.push({
+        variable: 'ENCRYPTION_KEY',
+        message: `${message} A throwaway key will be generated for this process; stored secrets will not survive a restart.`,
+      });
   } else if (env.ENCRYPTION_KEY.length < 16) {
     issues.push({ variable: 'ENCRYPTION_KEY', message: 'Must be at least 16 characters.' });
   }
@@ -117,29 +131,42 @@ export function parseEnv(source: NodeJS.ProcessEnv = process.env): EnvParseResul
   if (!env.API_KEY_PEPPER) {
     const message = 'Required so API key lookups cannot be precomputed from a database dump.';
     if (isProduction) issues.push({ variable: 'API_KEY_PEPPER', message });
-    else warnings.push({ variable: 'API_KEY_PEPPER', message: `${message} A throwaway pepper will be generated; existing keys will stop resolving after a restart.` });
+    else
+      warnings.push({
+        variable: 'API_KEY_PEPPER',
+        message: `${message} A throwaway pepper will be generated; existing keys will stop resolving after a restart.`,
+      });
   }
 
   if (isProduction && !env.DATABASE_URL) {
     issues.push({
       variable: 'DATABASE_URL',
-      message: 'The in-memory store loses every request, key and policy on restart and cannot be used in production.',
+      message:
+        'The in-memory store loses every request, key and policy on restart and cannot be used in production.',
     });
   }
 
   if (isProduction && !env.REDIS_URL) {
     warnings.push({
       variable: 'REDIS_URL',
-      message: 'Without Redis, rate limits and spend counters are per-process. Correct for one replica only.',
+      message:
+        'Without Redis, rate limits and spend counters are per-process. Correct for one replica only.',
     });
   }
 
   if (!isProduction && !env.DATABASE_URL) {
-    warnings.push({ variable: 'DATABASE_URL', message: 'Using the in-memory store. Data is lost on restart.' });
+    warnings.push({
+      variable: 'DATABASE_URL',
+      message: 'Using the in-memory store. Data is lost on restart.',
+    });
   }
 
   if (env.TRUST_PROXY && !isProduction) {
-    warnings.push({ variable: 'TRUST_PROXY', message: 'Client IPs will be read from X-Forwarded-For, which is spoofable unless a trusted proxy sets it.' });
+    warnings.push({
+      variable: 'TRUST_PROXY',
+      message:
+        'Client IPs will be read from X-Forwarded-For, which is spoofable unless a trusted proxy sets it.',
+    });
   }
 
   return issues.length > 0 ? { ok: false, issues, warnings } : { ok: true, env, warnings };

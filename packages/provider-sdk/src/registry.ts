@@ -67,9 +67,13 @@ export class ProviderRegistry {
   requireModel(id: string): ModelDescriptor {
     const model = this.models.get(id);
     if (!model) {
-      throw new GatewayError('model_not_found', `Model "${id}" is not registered on this gateway.`, {
-        details: { model: id },
-      });
+      throw new GatewayError(
+        'model_not_found',
+        `Model "${id}" is not registered on this gateway.`,
+        {
+          details: { model: id },
+        },
+      );
     }
     return model;
   }

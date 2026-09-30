@@ -23,7 +23,12 @@ export interface FallbackExecutorOptions<T> {
   /** Called once per attempt. Throwing signals failure. */
   attempt: (ctx: AttemptContext) => Promise<T>;
   /** Notified before each wait, for logging. */
-  onRetry?: (info: { target: ScoredTarget; delayMs: number; error: GatewayError; attemptNumber: number }) => void;
+  onRetry?: (info: {
+    target: ScoredTarget;
+    delayMs: number;
+    error: GatewayError;
+    attemptNumber: number;
+  }) => void;
   onFallback?: (info: { from: ScoredTarget; to: ScoredTarget; error: GatewayError }) => void;
 }
 
@@ -47,7 +52,9 @@ export interface ExecutionResult<T> {
  *  - Client disconnection stops everything at once. There is no one left to
  *    receive the response, so continuing would spend money for nobody.
  */
-export async function executeWithFallback<T>(opts: FallbackExecutorOptions<T>): Promise<ExecutionResult<T>> {
+export async function executeWithFallback<T>(
+  opts: FallbackExecutorOptions<T>,
+): Promise<ExecutionResult<T>> {
   const clock = opts.clock ?? systemClock;
   const random = opts.random ?? Math.random;
   const { chain } = opts.plan;
@@ -64,7 +71,10 @@ export async function executeWithFallback<T>(opts: FallbackExecutorOptions<T>): 
 
     for (let targetAttempt = 1; targetAttempt <= opts.retry.maxAttempts; targetAttempt++) {
       if (opts.signal.aborted) {
-        throw new GatewayError('client_disconnected', 'The client disconnected before the request completed.');
+        throw new GatewayError(
+          'client_disconnected',
+          'The client disconnected before the request completed.',
+        );
       }
 
       attemptNumber++;
@@ -78,7 +88,10 @@ export async function executeWithFallback<T>(opts: FallbackExecutorOptions<T>): 
         try {
           await clock.sleep(delayMs, opts.signal);
         } catch {
-          throw new GatewayError('client_disconnected', 'The client disconnected while the gateway was backing off.');
+          throw new GatewayError(
+            'client_disconnected',
+            'The client disconnected while the gateway was backing off.',
+          );
         }
       }
 
@@ -90,7 +103,13 @@ export async function executeWithFallback<T>(opts: FallbackExecutorOptions<T>): 
       );
 
       try {
-        const value = await opts.attempt({ target, attemptNumber, targetAttempt, recorder, signal: opts.signal });
+        const value = await opts.attempt({
+          target,
+          attemptNumber,
+          targetAttempt,
+          recorder,
+          signal: opts.signal,
+        });
         // Callers that know their usage mark the attempt themselves; for the
         // rest, returning without throwing is the success signal.
         if (recorder.record.status !== 'success') recorder.succeed();
@@ -106,7 +125,8 @@ export async function executeWithFallback<T>(opts: FallbackExecutorOptions<T>): 
         // Neither retry nor failover can help; surface it straight away.
         if (!error.retryable && !error.failoverable) throw error;
 
-        const canRetryHere = isRetryable(error, opts.retry) && targetAttempt < opts.retry.maxAttempts;
+        const canRetryHere =
+          isRetryable(error, opts.retry) && targetAttempt < opts.retry.maxAttempts;
         if (canRetryHere) continue;
 
         break; // move to the next target in the chain
@@ -133,7 +153,9 @@ export async function executeWithFallback<T>(opts: FallbackExecutorOptions<T>): 
     {
       requestId: opts.trace.requestId,
       cause: lastError,
-      ...(lastError?.retryAfterSeconds !== undefined ? { retryAfterSeconds: lastError.retryAfterSeconds } : {}),
+      ...(lastError?.retryAfterSeconds !== undefined
+        ? { retryAfterSeconds: lastError.retryAfterSeconds }
+        : {}),
       details: {
         attempts: attemptNumber,
         chain: chain.map((t) => t.target.modelId),

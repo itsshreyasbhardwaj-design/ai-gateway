@@ -1,7 +1,25 @@
 import Link from 'next/link';
-import { formatCompact, formatCurrency, formatDuration, formatPercent, formatRelativeTime, HEALTH_TONES } from '@ai-gateway/ui';
+import {
+  formatCompact,
+  formatCurrency,
+  formatDuration,
+  formatPercent,
+  formatRelativeTime,
+  HEALTH_TONES,
+} from '@ai-gateway/ui';
 import { gatewayFetch, type ProviderRow, type RequestRow, type UsageReport } from '@/lib/gateway';
-import { Badge, EmptyState, Mono, Notice, PageHeader, Panel, Stat, Table, Td, Th } from '@/components/ui/primitives';
+import {
+  Badge,
+  EmptyState,
+  Mono,
+  Notice,
+  PageHeader,
+  Panel,
+  Stat,
+  Table,
+  Td,
+  Th,
+} from '@/components/ui/primitives';
 import { RangeTabs } from '@/components/ui/controls';
 import { RequestsChart, CostChart, DistributionChart } from '@/components/charts';
 import { GatewayError } from '../error-panel';
@@ -52,25 +70,37 @@ export default async function OverviewPage({
       {params.limitedScope === '1' && (
         <div className="mb-4">
           <Notice tone="warn" title="Read-only key">
-            This key does not have the <code className="font-mono">admin</code> scope. Usage and request pages work;
-            provider, key, policy and budget management will return 403.
+            This key does not have the <code className="font-mono">admin</code> scope. Usage and
+            request pages work; provider, key, policy and budget management will return 403.
           </Notice>
         </div>
       )}
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-6">
-        <Stat label="Requests" value={formatCompact(s.totalRequests)} sub={`${formatCompact(s.failedRequests)} failed`} />
+        <Stat
+          label="Requests"
+          value={formatCompact(s.totalRequests)}
+          sub={`${formatCompact(s.failedRequests)} failed`}
+        />
         <Stat
           label="Success rate"
           value={formatPercent(s.successRate, 2)}
           tone={s.totalRequests === 0 ? 'default' : s.successRate < 0.95 ? 'warn' : 'good'}
         />
-        <Stat label="Tokens" value={formatCompact(s.totalTokens)} sub={`in ${formatCompact(s.inputTokens)} / out ${formatCompact(s.outputTokens)}`} />
+        <Stat
+          label="Tokens"
+          value={formatCompact(s.totalTokens)}
+          sub={`in ${formatCompact(s.inputTokens)} / out ${formatCompact(s.outputTokens)}`}
+        />
         <Stat
           label="Estimated cost"
           value={formatCurrency(s.estimatedCost, s.currency)}
           hint={`Computed from price table "${usage.disclosure.pricingVersion}" (${usage.disclosure.pricingAgeDays} days old). Not a provider invoice.`}
-          sub={s.estimatedUsageShare > 0 ? `${formatPercent(s.estimatedUsageShare)} of rows used estimated tokens` : undefined}
+          sub={
+            s.estimatedUsageShare > 0
+              ? `${formatPercent(s.estimatedUsageShare)} of rows used estimated tokens`
+              : undefined
+          }
           tone={s.estimatedUsageShare > 0.25 ? 'warn' : 'default'}
         />
         <Stat
@@ -112,9 +142,15 @@ export default async function OverviewPage({
       </div>
 
       <div className="grid min-w-0 gap-3 lg:grid-cols-3">
-        <Panel title="Provider health" subtitle="Measured from this gateway's traffic, not vendor SLAs">
+        <Panel
+          title="Provider health"
+          subtitle="Measured from this gateway's traffic, not vendor SLAs"
+        >
           {providers.length === 0 ? (
-            <EmptyState title="No providers registered" body="Set a provider API key, or enable the synthetic mock provider for local development." />
+            <EmptyState
+              title="No providers registered"
+              body="Set a provider API key, or enable the synthetic mock provider for local development."
+            />
           ) : (
             <Table>
               <thead>
@@ -132,10 +168,16 @@ export default async function OverviewPage({
                       <Mono>{provider.id}</Mono>
                     </Td>
                     <Td>
-                      <Badge tone={HEALTH_TONES[provider.health.state] ?? 'neutral'}>{provider.health.state}</Badge>
+                      <Badge tone={HEALTH_TONES[provider.health.state] ?? 'neutral'}>
+                        {provider.health.state}
+                      </Badge>
                     </Td>
                     <Td align="right">{formatCompact(provider.health.total)}</Td>
-                    <Td align="right">{provider.health.total > 0 ? formatDuration(provider.health.p95LatencyMs) : '—'}</Td>
+                    <Td align="right">
+                      {provider.health.total > 0
+                        ? formatDuration(provider.health.p95LatencyMs)
+                        : '—'}
+                    </Td>
                   </tr>
                 ))}
               </tbody>
@@ -176,14 +218,27 @@ export default async function OverviewPage({
                 {recent.map((request) => (
                   <tr key={request.id}>
                     <Td>
-                      <Link href={`/requests/${request.id}`} className="font-mono text-xs text-accent hover:underline">
+                      <Link
+                        href={`/requests/${request.id}`}
+                        className="font-mono text-xs text-accent hover:underline"
+                      >
                         {request.id.slice(0, 16)}…
                       </Link>
                       <div className="mt-0.5 flex items-center gap-1">
-                        <Badge tone={request.status === 'success' ? 'success' : request.status === 'error' ? 'error' : 'cancelled'}>
+                        <Badge
+                          tone={
+                            request.status === 'success'
+                              ? 'success'
+                              : request.status === 'error'
+                                ? 'error'
+                                : 'cancelled'
+                          }
+                        >
                           {request.status}
                         </Badge>
-                        <span className="text-2xs text-zinc-600">{formatRelativeTime(request.createdAt)}</span>
+                        <span className="text-2xs text-zinc-600">
+                          {formatRelativeTime(request.createdAt)}
+                        </span>
                       </div>
                     </Td>
                     <Td>

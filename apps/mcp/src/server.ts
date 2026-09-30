@@ -28,7 +28,12 @@ export function createMcpServer(options: McpServerOptions): McpServer {
   });
 
   const text = (value: unknown) => ({
-    content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }],
+    content: [
+      {
+        type: 'text' as const,
+        text: typeof value === 'string' ? value : JSON.stringify(value, null, 2),
+      },
+    ],
   });
 
   const fail = (err: unknown) => ({
@@ -48,7 +53,10 @@ export function createMcpServer(options: McpServerOptions): McpServer {
     'List the models this gateway can route to, with capabilities, context windows and configured pricing.',
     {
       provider: z.string().optional().describe('Filter to one provider id.'),
-      capability: z.string().optional().describe('Filter to models with this capability, e.g. "tools" or "vision".'),
+      capability: z
+        .string()
+        .optional()
+        .describe('Filter to models with this capability, e.g. "tools" or "vision".'),
     },
     async ({ provider, capability }) => {
       try {
@@ -116,7 +124,10 @@ export function createMcpServer(options: McpServerOptions): McpServer {
         const response = await fetch(`${gateway.baseUrl}/health/providers`);
         const body = (await response.json()) as { data: Array<{ provider: string }>; note: string };
         const found = body.data.find((p) => p.provider === provider);
-        if (!found) return text(`No provider "${provider}" is registered. Known: ${body.data.map((p) => p.provider).join(', ')}`);
+        if (!found)
+          return text(
+            `No provider "${provider}" is registered. Known: ${body.data.map((p) => p.provider).join(', ')}`,
+          );
         return text({ ...found, note: body.note });
       } catch (err) {
         return fail(err);
@@ -211,7 +222,10 @@ export function createMcpServer(options: McpServerOptions): McpServer {
         const response = await fetch(`${gateway.baseUrl}/api/v1/routing-policies`, {
           headers: { authorization: `Bearer ${options.apiKey}` },
         });
-        if (!response.ok) return text(`Gateway returned HTTP ${response.status}. The API key may lack the admin scope.`);
+        if (!response.ok)
+          return text(
+            `Gateway returned HTTP ${response.status}. The API key may lack the admin scope.`,
+          );
         return text(await response.json());
       } catch (err) {
         return fail(err);
@@ -226,7 +240,16 @@ export function createMcpServer(options: McpServerOptions): McpServer {
       model: z.string().default('gateway/auto'),
       prompt: z.string().optional(),
       strategy: z
-        .enum(['explicit', 'lowest_cost', 'lowest_latency', 'highest_reliability', 'weighted', 'priority', 'round_robin', 'fallback_chain'])
+        .enum([
+          'explicit',
+          'lowest_cost',
+          'lowest_latency',
+          'highest_reliability',
+          'weighted',
+          'priority',
+          'round_robin',
+          'fallback_chain',
+        ])
         .optional(),
       candidates: z.array(z.string()).optional(),
       requireTools: z.boolean().default(false),
@@ -235,7 +258,14 @@ export function createMcpServer(options: McpServerOptions): McpServer {
     async ({ model, prompt, strategy, candidates, requireTools, requireVision }) => {
       try {
         return text(
-          await gateway.routing.test({ model, prompt, strategy, candidates, requireTools, requireVision }),
+          await gateway.routing.test({
+            model,
+            prompt,
+            strategy,
+            candidates,
+            requireTools,
+            requireVision,
+          }),
         );
       } catch (err) {
         return fail(err);

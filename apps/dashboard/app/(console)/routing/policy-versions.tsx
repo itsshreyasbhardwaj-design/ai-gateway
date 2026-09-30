@@ -76,7 +76,9 @@ export async function PolicyVersions({
                   <Mono className="text-zinc-500">{version.createdBy}</Mono>
                 </Td>
                 <Td title={version.createdAt}>
-                  <span className="text-2xs text-zinc-500">{formatRelativeTime(version.createdAt)}</span>
+                  <span className="text-2xs text-zinc-500">
+                    {formatRelativeTime(version.createdAt)}
+                  </span>
                 </Td>
                 <Td className="max-w-xs truncate">
                   <span className="text-2xs text-zinc-500">{version.note ?? '—'}</span>

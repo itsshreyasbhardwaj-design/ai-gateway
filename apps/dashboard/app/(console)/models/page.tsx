@@ -1,20 +1,51 @@
 import {
-  CIRCUIT_TONES, formatCompact, formatCurrency, formatDuration, formatNumber, formatPercent, HEALTH_TONES,
+  CIRCUIT_TONES,
+  formatCompact,
+  formatCurrency,
+  formatDuration,
+  formatNumber,
+  formatPercent,
+  HEALTH_TONES,
 } from '@ai-gateway/ui';
 import { gatewayFetch, type ModelRow } from '@/lib/gateway';
-import { Badge, EmptyState, Mono, Notice, PageHeader, Panel, Pill, Table, Td, Th } from '@/components/ui/primitives';
+import {
+  Badge,
+  EmptyState,
+  Mono,
+  Notice,
+  PageHeader,
+  Panel,
+  Pill,
+  Table,
+  Td,
+  Th,
+} from '@/components/ui/primitives';
 import { QueryFilter, SearchBox } from '@/components/ui/controls';
 import { GatewayError } from '../error-panel';
 
 export const metadata = { title: 'Models · AI Gateway' };
 export const dynamic = 'force-dynamic';
 
-const CAPABILITIES = ['chat', 'streaming', 'tools', 'vision', 'structured-output', 'json-mode', 'embeddings', 'reasoning'];
+const CAPABILITIES = [
+  'chat',
+  'streaming',
+  'tools',
+  'vision',
+  'structured-output',
+  'json-mode',
+  'embeddings',
+  'reasoning',
+];
 
 export default async function ModelsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ provider?: string; capability?: string; status?: string; search?: string }>;
+  searchParams: Promise<{
+    provider?: string;
+    capability?: string;
+    status?: string;
+    search?: string;
+  }>;
 }) {
   const params = await searchParams;
   const query = new URLSearchParams();
@@ -56,9 +87,10 @@ export default async function ModelsPage({
       {unverified && (
         <div className="mb-4">
           <Notice tone="warn" title="Pricing is not verified">
-            The active price table is <Mono>{pricingVersion}</Mono>, last set {pricingAgeDays} day(s) ago, and is the
-            placeholder set shipped with the project. Cost figures derived from it are illustrative. Publish a verified
-            snapshot with <Mono>POST /api/v1/pricing/versions</Mono> before treating any cost as real.
+            The active price table is <Mono>{pricingVersion}</Mono>, last set {pricingAgeDays}{' '}
+            day(s) ago, and is the placeholder set shipped with the project. Cost figures derived
+            from it are illustrative. Publish a verified snapshot with{' '}
+            <Mono>POST /api/v1/pricing/versions</Mono> before treating any cost as real.
           </Notice>
         </div>
       )}
@@ -66,8 +98,12 @@ export default async function ModelsPage({
       {unpriced.length > 0 && (
         <div className="mb-4">
           <Notice tone="info" title={`${unpriced.length} model(s) have no configured price`}>
-            The gateway records no cost for these rather than guessing one, and the lowest-cost routing strategy ranks
-            them last: {unpriced.slice(0, 6).map((m) => m.id).join(', ')}
+            The gateway records no cost for these rather than guessing one, and the lowest-cost
+            routing strategy ranks them last:{' '}
+            {unpriced
+              .slice(0, 6)
+              .map((m) => m.id)
+              .join(', ')}
             {unpriced.length > 6 && ` and ${unpriced.length - 6} more`}.
           </Notice>
         </div>
@@ -83,7 +119,10 @@ export default async function ModelsPage({
         <QueryFilter
           param="capability"
           label="Capability"
-          options={[{ value: '', label: 'Any' }, ...CAPABILITIES.map((c) => ({ value: c, label: c }))]}
+          options={[
+            { value: '', label: 'Any' },
+            ...CAPABILITIES.map((c) => ({ value: c, label: c })),
+          ]}
         />
         <QueryFilter
           param="status"
@@ -133,17 +172,33 @@ export default async function ModelsPage({
                     <Mono>{model.providerId}</Mono>
                   </Td>
                   <Td align="right">{formatNumber(model.contextWindow)}</Td>
-                  <Td align="right">{model.maxOutputTokens ? formatNumber(model.maxOutputTokens) : <span className="text-zinc-600">—</span>}</Td>
+                  <Td align="right">
+                    {model.maxOutputTokens ? (
+                      formatNumber(model.maxOutputTokens)
+                    ) : (
+                      <span className="text-zinc-600">—</span>
+                    )}
+                  </Td>
                   <Td align="right">
                     {model.pricing ? (
                       <span
                         className={model.pricing.verified ? undefined : 'text-amber-300/90'}
-                        title={model.pricing.verified ? model.pricing.source : `Unverified: ${model.pricing.source}`}
+                        title={
+                          model.pricing.verified
+                            ? model.pricing.source
+                            : `Unverified: ${model.pricing.source}`
+                        }
                       >
-                        {formatCurrency(model.pricing.inputPerMillionTokens, model.pricing.currency)}
+                        {formatCurrency(
+                          model.pricing.inputPerMillionTokens,
+                          model.pricing.currency,
+                        )}
                       </span>
                     ) : (
-                      <span className="text-zinc-600" title="No price configured; no cost is recorded for this model.">
+                      <span
+                        className="text-zinc-600"
+                        title="No price configured; no cost is recorded for this model."
+                      >
                         unpriced
                       </span>
                     )}
@@ -151,18 +206,30 @@ export default async function ModelsPage({
                   <Td align="right">
                     {model.pricing ? (
                       <span className={model.pricing.verified ? undefined : 'text-amber-300/90'}>
-                        {formatCurrency(model.pricing.outputPerMillionTokens, model.pricing.currency)}
+                        {formatCurrency(
+                          model.pricing.outputPerMillionTokens,
+                          model.pricing.currency,
+                        )}
                       </span>
                     ) : (
                       <span className="text-zinc-600">—</span>
                     )}
                   </Td>
-                  <Td align="right">{model.measured ? formatCompact(model.measured.requests) : <span className="text-zinc-600">0</span>}</Td>
+                  <Td align="right">
+                    {model.measured ? (
+                      formatCompact(model.measured.requests)
+                    ) : (
+                      <span className="text-zinc-600">0</span>
+                    )}
+                  </Td>
                   <Td align="right">
                     {model.measured && model.measured.requests > 0 ? (
                       formatDuration(model.measured.p95LatencyMs)
                     ) : (
-                      <span className="text-zinc-600" title="No measured traffic in the last 24 hours.">
+                      <span
+                        className="text-zinc-600"
+                        title="No measured traffic in the last 24 hours."
+                      >
                         —
                       </span>
                     )}
@@ -175,12 +242,23 @@ export default async function ModelsPage({
                     )}
                   </Td>
                   <Td>
-                    <Badge tone={model.status === 'available' ? 'success' : model.status === 'disabled' ? 'error' : 'cancelled'}>
+                    <Badge
+                      tone={
+                        model.status === 'available'
+                          ? 'success'
+                          : model.status === 'disabled'
+                            ? 'error'
+                            : 'cancelled'
+                      }
+                    >
                       {model.status}
                     </Badge>
                   </Td>
                   <Td>
-                    <Badge tone={CIRCUIT_TONES[model.circuit] ?? 'neutral'} title="Circuit breaker state for this provider and model.">
+                    <Badge
+                      tone={CIRCUIT_TONES[model.circuit] ?? 'neutral'}
+                      title="Circuit breaker state for this provider and model."
+                    >
                       {model.circuit.toLowerCase().replace('_', '-')}
                     </Badge>
                   </Td>
@@ -199,11 +277,11 @@ export default async function ModelsPage({
       </Panel>
 
       <p className="mt-3 text-2xs leading-relaxed text-zinc-600">
-        Health states: <Badge tone={HEALTH_TONES['healthy']!}>healthy</Badge> at or above the configured success-rate
-        floor, <Badge tone={HEALTH_TONES['degraded']!}>degraded</Badge> below it but still routable,{' '}
-        <Badge tone={HEALTH_TONES['unavailable']!}>unavailable</Badge> excluded from routing, and{' '}
-        <Badge tone={HEALTH_TONES['unknown']!}>unknown</Badge> when there are too few samples to judge. Too few samples
-        is treated as unproven, not unhealthy.
+        Health states: <Badge tone={HEALTH_TONES['healthy']!}>healthy</Badge> at or above the
+        configured success-rate floor, <Badge tone={HEALTH_TONES['degraded']!}>degraded</Badge>{' '}
+        below it but still routable, <Badge tone={HEALTH_TONES['unavailable']!}>unavailable</Badge>{' '}
+        excluded from routing, and <Badge tone={HEALTH_TONES['unknown']!}>unknown</Badge> when there
+        are too few samples to judge. Too few samples is treated as unproven, not unhealthy.
       </p>
     </>
   );

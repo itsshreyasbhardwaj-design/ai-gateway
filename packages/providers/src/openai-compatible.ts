@@ -188,7 +188,11 @@ export class OpenAICompatibleProvider implements AIProvider {
     }
   }
 
-  private toWire(request: ChatRequest, ctx: ProviderCallContext, stream: boolean): Record<string, unknown> {
+  private toWire(
+    request: ChatRequest,
+    ctx: ProviderCallContext,
+    stream: boolean,
+  ): Record<string, unknown> {
     const maxTokens = request.max_completion_tokens ?? request.max_tokens;
     const wire: Record<string, unknown> = {
       model: ctx.model.providerModelId,
@@ -202,7 +206,8 @@ export class OpenAICompatibleProvider implements AIProvider {
     if (request.stop !== undefined) wire['stop'] = request.stop;
     if (request.n !== undefined) wire['n'] = request.n;
     if (request.presence_penalty !== undefined) wire['presence_penalty'] = request.presence_penalty;
-    if (request.frequency_penalty !== undefined) wire['frequency_penalty'] = request.frequency_penalty;
+    if (request.frequency_penalty !== undefined)
+      wire['frequency_penalty'] = request.frequency_penalty;
     if (request.seed !== undefined) wire['seed'] = request.seed;
     if (request.tools) wire['tools'] = request.tools;
     if (request.tool_choice !== undefined) wire['tool_choice'] = request.tool_choice;
@@ -212,7 +217,9 @@ export class OpenAICompatibleProvider implements AIProvider {
   }
 
   private fromWire(body: Record<string, unknown>, ctx: ProviderCallContext): ChatResponse {
-    const choices = Array.isArray(body['choices']) ? (body['choices'] as Array<Record<string, unknown>>) : [];
+    const choices = Array.isArray(body['choices'])
+      ? (body['choices'] as Array<Record<string, unknown>>)
+      : [];
     if (choices.length === 0) {
       throw new GatewayError('provider_error', 'Provider returned no choices.', {
         provider: this.id,
@@ -222,12 +229,16 @@ export class OpenAICompatibleProvider implements AIProvider {
     return {
       id: typeof body['id'] === 'string' ? body['id'] : ctx.requestId,
       object: 'chat.completion',
-      created: typeof body['created'] === 'number' ? body['created'] : Math.floor(Date.now() / 1000),
+      created:
+        typeof body['created'] === 'number' ? body['created'] : Math.floor(Date.now() / 1000),
       // Always report the gateway-namespaced model id, not the upstream's.
       model: ctx.model.id,
       choices: choices.map((c, index) => ({
         index: typeof c['index'] === 'number' ? c['index'] : index,
-        message: (c['message'] ?? { role: 'assistant', content: '' }) as ChatResponse['choices'][number]['message'],
+        message: (c['message'] ?? {
+          role: 'assistant',
+          content: '',
+        }) as ChatResponse['choices'][number]['message'],
         finish_reason: normalizeFinishReason(c['finish_reason']),
       })),
       usage: body['usage'] ? toUsage(body['usage'] as OpenAIUsage) : undefined,
@@ -235,7 +246,9 @@ export class OpenAICompatibleProvider implements AIProvider {
   }
 
   private chunkFromWire(raw: Record<string, unknown>, ctx: ProviderCallContext): ChatChunk {
-    const choices = Array.isArray(raw['choices']) ? (raw['choices'] as Array<Record<string, unknown>>) : [];
+    const choices = Array.isArray(raw['choices'])
+      ? (raw['choices'] as Array<Record<string, unknown>>)
+      : [];
     return {
       id: typeof raw['id'] === 'string' ? raw['id'] : ctx.requestId,
       object: 'chat.completion.chunk',
@@ -290,11 +303,16 @@ function normalizeFinishReason(value: unknown): ChatResponse['choices'][number][
  * only burns latency.
  */
 export function classifyOpenAIError(status: number, body: unknown): GatewayErrorType | undefined {
-  const err = (body as { error?: { code?: string; type?: string; message?: string } } | undefined)?.error;
+  const err = (body as { error?: { code?: string; type?: string; message?: string } } | undefined)
+    ?.error;
   const code = (err?.code ?? err?.type ?? '').toLowerCase();
   const message = (err?.message ?? '').toLowerCase();
 
-  if (code.includes('context_length') || message.includes('context length') || message.includes('maximum context')) {
+  if (
+    code.includes('context_length') ||
+    message.includes('context length') ||
+    message.includes('maximum context')
+  ) {
     return 'context_length_exceeded';
   }
   if (code.includes('content_filter') || code.includes('content_policy')) return 'content_filter';
@@ -303,7 +321,7 @@ export function classifyOpenAIError(status: number, body: unknown): GatewayError
     return 'provider_unavailable';
   }
   if (code === 'model_not_found' || code === 'model_not_available') return 'model_not_found';
-  if (code === 'invalid_api_key' || code === 'invalid_request_error' && status === 401) {
+  if (code === 'invalid_api_key' || (code === 'invalid_request_error' && status === 401)) {
     return 'authentication_error';
   }
   if (status === 429 && code === 'rate_limit_exceeded') return 'provider_rate_limit';

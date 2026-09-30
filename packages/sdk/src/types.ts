@@ -108,7 +108,8 @@ export interface Usage {
   source: UsageSource;
 }
 
-export type FinishReason = 'stop' | 'length' | 'tool_calls' | 'content_filter' | 'error' | 'cancelled' | null;
+export type FinishReason =
+  'stop' | 'length' | 'tool_calls' | 'content_filter' | 'error' | 'cancelled' | null;
 
 /** The gateway's answer to "why did my request go where it went?". */
 export interface RoutingReceipt {

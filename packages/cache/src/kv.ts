@@ -155,7 +155,12 @@ export class MemoryKV implements KeyValueStore {
     return this.zsets.get(key)?.size ?? 0;
   }
 
-  async listPush(key: string, value: string, maxLength: number, _ttlSeconds?: number): Promise<void> {
+  async listPush(
+    key: string,
+    value: string,
+    maxLength: number,
+    _ttlSeconds?: number,
+  ): Promise<void> {
     const list = this.lists.get(key) ?? [];
     list.unshift(value);
     if (list.length > maxLength) list.length = maxLength;

@@ -1,10 +1,19 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import {
-  formatCompact, formatCurrency, formatDuration, formatTimestamp,
-} from '@ai-gateway/ui';
+import { formatCompact, formatCurrency, formatDuration, formatTimestamp } from '@ai-gateway/ui';
 import { gatewayFetch, GatewayRequestError, type RequestTraceResponse } from '@/lib/gateway';
-import { Badge, KeyValue, Mono, Notice, PageHeader, Panel, Pill, Table, Td, Th } from '@/components/ui/primitives';
+import {
+  Badge,
+  KeyValue,
+  Mono,
+  Notice,
+  PageHeader,
+  Panel,
+  Pill,
+  Table,
+  Td,
+  Th,
+} from '@/components/ui/primitives';
 import { ReplayButton } from './replay-button';
 import { GatewayError } from '../../error-panel';
 
@@ -71,7 +80,11 @@ export default async function RequestTracePage({ params }: { params: Promise<{ i
       <div className="mb-4 grid min-w-0 gap-3 lg:grid-cols-3">
         <Panel title="Outcome">
           <KeyValue label="Status">
-            <Badge tone={r.status === 'success' ? 'success' : r.status === 'error' ? 'error' : 'cancelled'}>
+            <Badge
+              tone={
+                r.status === 'success' ? 'success' : r.status === 'error' ? 'error' : 'cancelled'
+              }
+            >
               {r.status}
             </Badge>
             {r.errorType && <Mono className="ml-1.5 text-red-300">{r.errorType}</Mono>}
@@ -107,15 +120,27 @@ export default async function RequestTracePage({ params }: { params: Promise<{ i
             <Mono>{r.requestedModel}</Mono>
           </KeyValue>
           <KeyValue label="Served by">
-            {r.resolvedModelId ? <Mono>{r.resolvedModelId}</Mono> : <span className="text-zinc-600">not routed</span>}
+            {r.resolvedModelId ? (
+              <Mono>{r.resolvedModelId}</Mono>
+            ) : (
+              <span className="text-zinc-600">not routed</span>
+            )}
           </KeyValue>
           <KeyValue label="Provider">
-            {r.resolvedProviderId ? <Mono>{r.resolvedProviderId}</Mono> : <span className="text-zinc-600">—</span>}
+            {r.resolvedProviderId ? (
+              <Mono>{r.resolvedProviderId}</Mono>
+            ) : (
+              <span className="text-zinc-600">—</span>
+            )}
           </KeyValue>
           <KeyValue label="Strategy">{r.strategy ?? '—'}</KeyValue>
           <KeyValue label="Attempts">
             {r.attemptCount}
-            {r.fallbackUsed && <Badge tone="cancelled" className="ml-1.5">fallback used</Badge>}
+            {r.fallbackUsed && (
+              <Badge tone="cancelled" className="ml-1.5">
+                fallback used
+              </Badge>
+            )}
           </KeyValue>
           <KeyValue label="Cache">
             {r.cacheStatus}
@@ -129,7 +154,9 @@ export default async function RequestTracePage({ params }: { params: Promise<{ i
           <KeyValue label="Total latency">{formatDuration(r.latencyMs)}</KeyValue>
           <KeyValue label="Provider time">{formatDuration(totalProviderMs)}</KeyValue>
           <KeyValue label="Gateway overhead">
-            <span title="Total latency minus time spent inside provider calls.">{formatDuration(overheadMs)}</span>
+            <span title="Total latency minus time spent inside provider calls.">
+              {formatDuration(overheadMs)}
+            </span>
           </KeyValue>
           {r.timeToFirstTokenMs !== undefined && (
             <KeyValue label="Time to first token">{formatDuration(r.timeToFirstTokenMs)}</KeyValue>
@@ -157,14 +184,19 @@ export default async function RequestTracePage({ params }: { params: Promise<{ i
           </KeyValue>
           <KeyValue label="Estimated cost">
             {formatCurrency(r.estimatedCost, r.currency ?? 'USD')}
-            {r.pricingVersion && <span className="ml-1 text-2xs text-zinc-600">@ {r.pricingVersion}</span>}
+            {r.pricingVersion && (
+              <span className="ml-1 text-2xs text-zinc-600">@ {r.pricingVersion}</span>
+            )}
           </KeyValue>
         </Panel>
       </div>
 
       {r.routingReasons && r.routingReasons.length > 0 && (
         <div className="mb-4">
-          <Panel title="Why this route" subtitle="Recorded at decision time, not reconstructed afterwards">
+          <Panel
+            title="Why this route"
+            subtitle="Recorded at decision time, not reconstructed afterwards"
+          >
             <ul className="space-y-1 px-4 py-3">
               {r.routingReasons.map((reason, index) => (
                 <li key={index} className="flex gap-2 text-xs leading-relaxed text-zinc-300">
@@ -193,16 +225,35 @@ export default async function RequestTracePage({ params }: { params: Promise<{ i
                 <tr key={`${step.name}-${index}`}>
                   <Td>{STEP_LABELS[step.name] ?? step.name}</Td>
                   <Td>
-                    <Badge tone={step.status === 'ok' ? 'success' : step.status === 'skipped' ? 'neutral' : 'error'}>
+                    <Badge
+                      tone={
+                        step.status === 'ok'
+                          ? 'success'
+                          : step.status === 'skipped'
+                            ? 'neutral'
+                            : 'error'
+                      }
+                    >
                       {step.status}
                     </Badge>
-                    {step.errorType && <Mono className="ml-1.5 text-red-300/80">{step.errorType}</Mono>}
+                    {step.errorType && (
+                      <Mono className="ml-1.5 text-red-300/80">{step.errorType}</Mono>
+                    )}
                   </Td>
-                  <Td align="right">{step.durationMs === 0 ? <span className="text-zinc-600">&lt;1ms</span> : formatDuration(step.durationMs)}</Td>
+                  <Td align="right">
+                    {step.durationMs === 0 ? (
+                      <span className="text-zinc-600">&lt;1ms</span>
+                    ) : (
+                      formatDuration(step.durationMs)
+                    )}
+                  </Td>
                   <Td className="max-w-xl truncate">
                     {step.message && <span className="text-xs text-zinc-400">{step.message}</span>}
                     {step.detail && (
-                      <span className="font-mono text-2xs text-zinc-500" title={JSON.stringify(step.detail, null, 2)}>
+                      <span
+                        className="font-mono text-2xs text-zinc-500"
+                        title={JSON.stringify(step.detail, null, 2)}
+                      >
                         {summarizeDetail(step.detail)}
                       </span>
                     )}
@@ -221,7 +272,8 @@ export default async function RequestTracePage({ params }: { params: Promise<{ i
         >
           {trace.attempts.length === 0 ? (
             <p className="px-4 py-6 text-xs text-zinc-500">
-              No provider was contacted. The request was answered from cache or refused before dispatch.
+              No provider was contacted. The request was answered from cache or refused before
+              dispatch.
             </p>
           ) : (
             <Table>
@@ -252,7 +304,10 @@ export default async function RequestTracePage({ params }: { params: Promise<{ i
                       {attempt.status === 'success' ? (
                         <Badge tone="success">success</Badge>
                       ) : (
-                        <Badge tone={attempt.status === 'cancelled' ? 'cancelled' : 'error'} title={attempt.errorMessage}>
+                        <Badge
+                          tone={attempt.status === 'cancelled' ? 'cancelled' : 'error'}
+                          title={attempt.errorMessage}
+                        >
                           {attempt.errorType ?? attempt.status}
                         </Badge>
                       )}
@@ -266,11 +321,21 @@ export default async function RequestTracePage({ params }: { params: Promise<{ i
                       )}
                     </Td>
                     <Td align="right">
-                      {attempt.backoffMs ? formatDuration(attempt.backoffMs) : <span className="text-zinc-600">—</span>}
+                      {attempt.backoffMs ? (
+                        formatDuration(attempt.backoffMs)
+                      ) : (
+                        <span className="text-zinc-600">—</span>
+                      )}
                     </Td>
-                    <Td align="right">{attempt.providerStatus ?? <span className="text-zinc-600">—</span>}</Td>
                     <Td align="right">
-                      {attempt.usage ? formatCompact(attempt.usage.input + attempt.usage.output) : <span className="text-zinc-600">—</span>}
+                      {attempt.providerStatus ?? <span className="text-zinc-600">—</span>}
+                    </Td>
+                    <Td align="right">
+                      {attempt.usage ? (
+                        formatCompact(attempt.usage.input + attempt.usage.output)
+                      ) : (
+                        <span className="text-zinc-600">—</span>
+                      )}
                     </Td>
                   </tr>
                 ))}
@@ -297,9 +362,10 @@ export default async function RequestTracePage({ params }: { params: Promise<{ i
         ) : (
           <div className="p-4">
             <Notice tone="info" title="No body stored">
-              The organization&apos;s prompt retention mode is <Mono>{trace.privacy.mode ?? 'unknown'}</Mono>, so no
-              request or response body was persisted for this request. Metadata, routing decisions and token counts are
-              still recorded.
+              The organization&apos;s prompt retention mode is{' '}
+              <Mono>{trace.privacy.mode ?? 'unknown'}</Mono>, so no request or response body was
+              persisted for this request. Metadata, routing decisions and token counts are still
+              recorded.
             </Notice>
           </div>
         )}

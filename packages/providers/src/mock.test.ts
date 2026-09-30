@@ -55,7 +55,12 @@ describe('MockProvider', () => {
       const provider = new MockProvider({ behavior: { failureRate: 0.5, seed: 42, latencyMs: 0 } });
       const outcomes: boolean[] = [];
       for (let i = 0; i < 20; i++) {
-        outcomes.push(await provider.chat(request, ctx()).then(() => true, () => false));
+        outcomes.push(
+          await provider.chat(request, ctx()).then(
+            () => true,
+            () => false,
+          ),
+        );
       }
       return outcomes;
     };
@@ -63,7 +68,9 @@ describe('MockProvider', () => {
   });
 
   it('fails mid-stream when asked, after emitting some content', async () => {
-    const provider = new MockProvider({ behavior: { failureMode: 'mid_stream_error', chunkDelayMs: 0, latencyMs: 0 } });
+    const provider = new MockProvider({
+      behavior: { failureMode: 'mid_stream_error', chunkDelayMs: 0, latencyMs: 0 },
+    });
     const seen: string[] = [];
     await expect(
       (async () => {
@@ -107,10 +114,16 @@ describe('MockProvider', () => {
   });
 
   it('applies per-model behaviour overrides', async () => {
-    const provider = new MockProvider({ perModel: { 'mock-flaky': { failureMode: 'rate_limit' } }, behavior: { latencyMs: 0 } });
+    const provider = new MockProvider({
+      perModel: { 'mock-flaky': { failureMode: 'rate_limit' } },
+      behavior: { latencyMs: 0 },
+    });
     await expect(provider.chat(request, ctx())).resolves.toBeDefined();
     await expect(
-      provider.chat({ model: 'mock/mock-flaky', messages: request.messages }, testCallContext({ model: MOCK_MODELS[2]! })),
+      provider.chat(
+        { model: 'mock/mock-flaky', messages: request.messages },
+        testCallContext({ model: MOCK_MODELS[2]! }),
+      ),
     ).rejects.toMatchObject({ type: 'provider_rate_limit' });
   });
 });

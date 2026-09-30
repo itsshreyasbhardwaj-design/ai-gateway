@@ -8,10 +8,26 @@ import {
 } from '@ai-gateway/core';
 import type { AlertRule, WebhookEndpoint, WebhookEventType } from '@ai-gateway/database';
 import { parsePolicy, PolicyVersionStore, parsePolicyOrThrow } from '@ai-gateway/policies';
-import { compareProviders, groupBy, resolveRange, summarize, timeSeries, type TimeRange } from '@ai-gateway/usage';
-import { assertSafeProviderUrl, generateApiKey, generateWebhookSecret, hashApiKey, keyIndex } from '@ai-gateway/security';
+import {
+  compareProviders,
+  groupBy,
+  resolveRange,
+  summarize,
+  timeSeries,
+  type TimeRange,
+} from '@ai-gateway/usage';
+import {
+  assertSafeProviderUrl,
+  generateApiKey,
+  generateWebhookSecret,
+  keyIndex,
+} from '@ai-gateway/security';
 import { buildProvider } from '@ai-gateway/providers';
-import { ChainCredentialResolver, EnvCredentialResolver, MapCredentialResolver } from '@ai-gateway/provider-sdk';
+import {
+  ChainCredentialResolver,
+  EnvCredentialResolver,
+  MapCredentialResolver,
+} from '@ai-gateway/provider-sdk';
 import { z } from 'zod';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { authenticate, requireScopes, type AuthenticatedKey } from '../auth.js';
@@ -26,10 +42,16 @@ import { sendError } from '../errors.js';
  * that change routing or spend behaviour are recorded in the audit log, and
  * secrets are returned exactly once at creation.
  */
-export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayContext): Promise<void> {
+export async function registerAdminRoutes(
+  app: FastifyInstance,
+  ctx: GatewayContext,
+): Promise<void> {
   const policyStore = new PolicyVersionStore();
 
-  const auth = async (request: FastifyRequest, ...scopes: ApiKeyScope[]): Promise<AuthenticatedKey> => {
+  const auth = async (
+    request: FastifyRequest,
+    ...scopes: ApiKeyScope[]
+  ): Promise<AuthenticatedKey> => {
     const identity = await authenticate(
       { store: ctx.store, pepper: ctx.config.apiKeyPepper, cache: ctx.authCache },
       request.headers.authorization ?? (request.headers['x-api-key'] as string | undefined),
@@ -100,8 +122,20 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
   });
 
   const providerInput = z.object({
-    id: z.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9_-]*$/, 'must be lowercase alphanumeric with dashes'),
-    kind: z.enum(['openai', 'openai-compatible', 'anthropic', 'google', 'openrouter', 'local', 'mock']),
+    id: z
+      .string()
+      .min(1)
+      .max(64)
+      .regex(/^[a-z0-9][a-z0-9_-]*$/, 'must be lowercase alphanumeric with dashes'),
+    kind: z.enum([
+      'openai',
+      'openai-compatible',
+      'anthropic',
+      'google',
+      'openrouter',
+      'local',
+      'mock',
+    ]),
     displayName: z.string().min(1).max(128),
     baseUrl: z.string().url().optional(),
     /** Reference to an env var or stored secret. Never a secret value. */
@@ -126,7 +160,18 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
           contextWindow: z.number().int().min(1).default(8192),
           maxOutputTokens: z.number().int().min(1).optional(),
           capabilities: z
-            .array(z.enum(['chat', 'streaming', 'tools', 'vision', 'structured-output', 'json-mode', 'embeddings', 'reasoning']))
+            .array(
+              z.enum([
+                'chat',
+                'streaming',
+                'tools',
+                'vision',
+                'structured-output',
+                'json-mode',
+                'embeddings',
+                'reasoning',
+              ]),
+            )
             .min(1)
             .default(['chat', 'streaming']),
           family: z.string().max(64).optional(),
@@ -148,7 +193,9 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
       });
     }
 
-    const credentialRef = input.credentialRef ?? (input.credentialValue ? `PROVIDER_${input.id.toUpperCase()}_KEY` : undefined);
+    const credentialRef =
+      input.credentialRef ??
+      (input.credentialValue ? `PROVIDER_${input.id.toUpperCase()}_KEY` : undefined);
     if (input.credentialValue && credentialRef) {
       await ctx.store.putProviderCredential(
         identity.organizationId,
@@ -192,8 +239,12 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
     try {
       const stored = new MapCredentialResolver();
       if (credentialRef) {
-        const encrypted = await ctx.store.getProviderCredential(identity.organizationId, credentialRef);
-        if (encrypted) stored.set(credentialRef, ctx.secrets.decrypt(encrypted, `provider:${input.id}`));
+        const encrypted = await ctx.store.getProviderCredential(
+          identity.organizationId,
+          credentialRef,
+        );
+        if (encrypted)
+          stored.set(credentialRef, ctx.secrets.decrypt(encrypted, `provider:${input.id}`));
       }
       const built = await buildProvider({
         config,
@@ -210,7 +261,14 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
       registrationError = (err as Error).message;
     }
 
-    await audit(identity, 'provider.upsert', 'provider', config.id, { kind: config.kind, registered }, request.ip);
+    await audit(
+      identity,
+      'provider.upsert',
+      'provider',
+      config.id,
+      { kind: config.kind, registered },
+      request.ip,
+    );
 
     return {
       ...config,
@@ -239,13 +297,21 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
   // -------------------------------------------------------------- models
 
   handle('get', '/api/v1/models', ['models.read'], async (identity, request) => {
-    const query = request.query as { provider?: string; capability?: string; status?: string; search?: string };
+    const query = request.query as {
+      provider?: string;
+      capability?: string;
+      status?: string;
+      search?: string;
+    };
     let models = ctx.providers.listModels(query.provider);
-    if (query.capability) models = models.filter((m) => m.capabilities.includes(query.capability as never));
+    if (query.capability)
+      models = models.filter((m) => m.capabilities.includes(query.capability as never));
     if (query.status) models = models.filter((m) => m.status === query.status);
     if (query.search) {
       const needle = query.search.toLowerCase();
-      models = models.filter((m) => m.id.toLowerCase().includes(needle) || m.displayName.toLowerCase().includes(needle));
+      models = models.filter(
+        (m) => m.id.toLowerCase().includes(needle) || m.displayName.toLowerCase().includes(needle),
+      );
     }
 
     const range = resolveRange('24h');
@@ -292,7 +358,20 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
     displayName: z.string().min(1).max(128),
     contextWindow: z.number().int().min(1),
     maxOutputTokens: z.number().int().min(1).optional(),
-    capabilities: z.array(z.enum(['chat', 'streaming', 'tools', 'vision', 'structured-output', 'json-mode', 'embeddings', 'reasoning'])).min(1),
+    capabilities: z
+      .array(
+        z.enum([
+          'chat',
+          'streaming',
+          'tools',
+          'vision',
+          'structured-output',
+          'json-mode',
+          'embeddings',
+          'reasoning',
+        ]),
+      )
+      .min(1),
     status: z.enum(['available', 'degraded', 'deprecated', 'disabled']).default('available'),
     family: z.string().max(64).optional(),
     description: z.string().max(1024).optional(),
@@ -301,12 +380,22 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
   handle('post', '/api/v1/models', ['admin'], async (identity, request) => {
     const model = modelInput.parse(request.body);
     if (!ctx.providers.getProvider(model.providerId)) {
-      throw new GatewayError('invalid_request', `Provider "${model.providerId}" is not registered.`);
+      throw new GatewayError(
+        'invalid_request',
+        `Provider "${model.providerId}" is not registered.`,
+      );
     }
     const stored = await ctx.store.upsertModel(identity.organizationId, model);
     const existing = ctx.providers.listModels(model.providerId).filter((m) => m.id !== model.id);
     ctx.providers.setModels(model.providerId, [...existing, model]);
-    await audit(identity, 'model.upsert', 'model', model.id, { providerId: model.providerId }, request.ip);
+    await audit(
+      identity,
+      'model.upsert',
+      'model',
+      model.id,
+      { providerId: model.providerId },
+      request.ip,
+    );
     return stored;
   });
 
@@ -350,10 +439,17 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
     const snapshot = pricingInput.parse(request.body);
     ctx.pricing.publish(snapshot);
     await ctx.store.publishPricing(identity.organizationId, snapshot).catch(() => undefined);
-    await audit(identity, 'pricing.publish', 'pricing_version', snapshot.version, {
-      modelCount: Object.keys(snapshot.prices).length,
-      source: snapshot.source,
-    }, request.ip);
+    await audit(
+      identity,
+      'pricing.publish',
+      'pricing_version',
+      snapshot.version,
+      {
+        modelCount: Object.keys(snapshot.prices).length,
+        source: snapshot.source,
+      },
+      request.ip,
+    );
     return {
       published: snapshot.version,
       active: ctx.pricing.version,
@@ -370,7 +466,11 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
 
   const projectInput = z.object({
     name: z.string().min(1).max(128),
-    slug: z.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9-]*$/),
+    slug: z
+      .string()
+      .min(1)
+      .max(64)
+      .regex(/^[a-z0-9][a-z0-9-]*$/),
     allowedModels: z.array(z.string()).nullable().optional(),
     deniedModels: z.array(z.string()).optional(),
     routingPolicyId: z.string().nullable().optional(),
@@ -388,7 +488,14 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
       routingPolicyId: input.routingPolicyId ?? null,
       createdAt: new Date().toISOString(),
     });
-    await audit(identity, 'project.create', 'project', project.id, { slug: project.slug }, request.ip);
+    await audit(
+      identity,
+      'project.create',
+      'project',
+      project.id,
+      { slug: project.slug },
+      request.ip,
+    );
     return project;
   });
 
@@ -400,7 +507,14 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
     }
     const patch = projectInput.partial().parse(request.body);
     const updated = await ctx.store.updateProject(id, patch);
-    await audit(identity, 'project.update', 'project', id, { changed: Object.keys(patch) }, request.ip);
+    await audit(
+      identity,
+      'project.update',
+      'project',
+      id,
+      { changed: Object.keys(patch) },
+      request.ip,
+    );
     return updated;
   });
 
@@ -415,7 +529,11 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
         ...key,
         // The hash is never returned; the prefix is what a UI shows.
         secretPreview: maskSecret(key.prefix, key.prefix.length),
-        status: key.revokedAt ? 'revoked' : key.expiresAt && Date.parse(key.expiresAt) < Date.now() ? 'expired' : 'active',
+        status: key.revokedAt
+          ? 'revoked'
+          : key.expiresAt && Date.parse(key.expiresAt) < Date.now()
+            ? 'expired'
+            : 'active',
       })),
     };
   });
@@ -423,7 +541,9 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
   const apiKeyInput = z.object({
     name: z.string().min(1).max(128),
     projectId: z.string().min(1),
-    scopes: z.array(z.enum(['models.read', 'inference.create', 'usage.read', 'logs.read', 'admin'])).min(1),
+    scopes: z
+      .array(z.enum(['models.read', 'inference.create', 'usage.read', 'logs.read', 'admin']))
+      .min(1),
     expiresAt: z.string().datetime().optional(),
     environment: z.enum(['live', 'test']).default('live'),
   });
@@ -433,7 +553,10 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
     const input = apiKeyInput.parse(request.body);
     const project = await ctx.store.getProject(input.projectId);
     if (!project || project.organizationId !== identity.organizationId) {
-      throw new GatewayError('invalid_request', `Project "${input.projectId}" does not belong to this organization.`);
+      throw new GatewayError(
+        'invalid_request',
+        `Project "${input.projectId}" does not belong to this organization.`,
+      );
     }
 
     const generated = await generateApiKey(input.environment);
@@ -451,7 +574,14 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
       expiresAt: input.expiresAt ?? null,
     });
 
-    await audit(identity, 'api_key.create', 'api_key', record.id, { scopes: input.scopes, projectId: input.projectId }, request.ip);
+    await audit(
+      identity,
+      'api_key.create',
+      'api_key',
+      record.id,
+      { scopes: input.scopes, projectId: input.projectId },
+      request.ip,
+    );
 
     return {
       id: record.id,
@@ -462,7 +592,8 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
       createdAt: record.createdAt,
       expiresAt: record.expiresAt,
       secret: generated.plaintext,
-      warning: 'This is the only time the full key is shown. Store it now; it cannot be retrieved later.',
+      warning:
+        'This is the only time the full key is shown. Store it now; it cannot be retrieved later.',
     };
   });
 
@@ -491,7 +622,14 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
     // a second key, use it, then revoke the first.
     await ctx.store.revokeApiKey(existing.id, new Date().toISOString());
     ctx.authCache.invalidateByKeyId(existing.id);
-    await audit(identity, 'api_key.rotate', 'api_key', replacement.id, { rotatedFrom: existing.id }, request.ip);
+    await audit(
+      identity,
+      'api_key.rotate',
+      'api_key',
+      replacement.id,
+      { rotatedFrom: existing.id },
+      request.ip,
+    );
 
     return {
       id: replacement.id,
@@ -542,10 +680,17 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
 
   /** Validate a policy without saving it. Powers the CLI validator and the editor. */
   handle('post', '/api/v1/routing-policies/validate', ['admin'], async (_identity, request) => {
-    const { document } = z.object({ document: z.union([z.string(), z.record(z.unknown())]) }).parse(request.body);
+    const { document } = z
+      .object({ document: z.union([z.string(), z.record(z.unknown())]) })
+      .parse(request.body);
     const result = parsePolicy(document);
     if (!result.ok) return { valid: false, errors: result.issues, warnings: result.warnings };
-    return { valid: true, warnings: result.warnings, checksum: result.checksum, normalized: result.policy };
+    return {
+      valid: true,
+      warnings: result.warnings,
+      checksum: result.checksum,
+      normalized: result.policy,
+    };
   });
 
   handle('post', '/api/v1/routing-policies', ['admin'], async (identity, request) => {
@@ -565,7 +710,14 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
       { ...policy, projectId: policy.projectId ?? null },
       { ...version, document: version.document as unknown, note: version.note ?? null },
     );
-    await audit(identity, 'routing_policy.create', 'routing_policy', policy.id, { name: policy.name, version: 1 }, request.ip);
+    await audit(
+      identity,
+      'routing_policy.create',
+      'routing_policy',
+      policy.id,
+      { name: policy.name, version: 1 },
+      request.ip,
+    );
     return { policy, version };
   });
 
@@ -590,14 +742,23 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
       policyId: id,
       version: existingVersions.length + 1,
       document: document as unknown,
-      checksum: parsePolicy(document).ok ? (parsePolicy(document) as { checksum: string }).checksum : '',
+      checksum: parsePolicy(document).ok
+        ? (parsePolicy(document) as { checksum: string }).checksum
+        : '',
       createdBy: identity.apiKeyId,
       note: input.note ?? null,
       active: false,
       createdAt: new Date().toISOString(),
     };
     await ctx.store.addPolicyVersion(version);
-    await audit(identity, 'routing_policy.publish_version', 'routing_policy', id, { version: version.version }, request.ip);
+    await audit(
+      identity,
+      'routing_policy.publish_version',
+      'routing_policy',
+      id,
+      { version: version.version },
+      request.ip,
+    );
     return {
       version,
       note: 'Published but not active. POST /api/v1/routing-policies/:id/activate to roll it out.',
@@ -612,7 +773,14 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
     }
     const { version } = z.object({ version: z.number().int().min(1) }).parse(request.body);
     await ctx.store.activatePolicyVersion(id, version, new Date().toISOString());
-    await audit(identity, 'routing_policy.activate', 'routing_policy', id, { version, previousVersion: stored.activeVersion }, request.ip);
+    await audit(
+      identity,
+      'routing_policy.activate',
+      'routing_policy',
+      id,
+      { version, previousVersion: stored.activeVersion },
+      request.ip,
+    );
     return { activated: version, previousVersion: stored.activeVersion };
   });
 
@@ -634,7 +802,9 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
     return {
       object: 'list',
       data: await Promise.all(
-        budgets.map(async (budget) => buildState(budget, await ctx.spend.readForBudget(budget, now), now)),
+        budgets.map(async (budget) =>
+          buildState(budget, await ctx.spend.readForBudget(budget, now), now),
+        ),
       ),
     };
   });
@@ -660,7 +830,14 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
       organizationId: identity.organizationId,
       ...input,
     });
-    await audit(identity, 'budget.create', 'budget', budget.id, { scope: budget.scope, limit: budget.limit, action: budget.action }, request.ip);
+    await audit(
+      identity,
+      'budget.create',
+      'budget',
+      budget.id,
+      { scope: budget.scope, limit: budget.limit, action: budget.action },
+      request.ip,
+    );
     return budget;
   });
 
@@ -675,7 +852,12 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
 
   handle('get', '/api/v1/usage', ['usage.read'], async (identity, request) => {
     const query = request.query as {
-      range?: TimeRange; from?: string; to?: string; projectId?: string; includeTest?: string; groupBy?: string;
+      range?: TimeRange;
+      from?: string;
+      to?: string;
+      projectId?: string;
+      includeTest?: string;
+      groupBy?: string;
     };
     const range = resolveRange(
       query.range ?? '24h',
@@ -697,7 +879,11 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
     const summary = summarize(records, { includeTest, currency: organization?.currency });
 
     return {
-      range: { from: range.from.toISOString(), to: range.to.toISOString(), bucketMs: range.bucketMs },
+      range: {
+        from: range.from.toISOString(),
+        to: range.to.toISOString(),
+        bucketMs: range.bucketMs,
+      },
       includeTest,
       summary,
       series: timeSeries(records, range, { includeTest }),
@@ -706,7 +892,9 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
         model: groupBy(records, 'model', { includeTest }),
         status: groupBy(records, 'status', { includeTest }),
         errorType: groupBy(records, 'errorType', { includeTest }),
-        ...(query.groupBy === 'apiKey' ? { apiKey: groupBy(records, 'apiKey', { includeTest }) } : {}),
+        ...(query.groupBy === 'apiKey'
+          ? { apiKey: groupBy(records, 'apiKey', { includeTest }) }
+          : {}),
       },
       disclosure: {
         pricingVersion: ctx.pricing.version,
@@ -787,14 +975,27 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
     // The secret is never returned, not even masked past its prefix.
     return {
       object: 'list',
-      data: webhooks.map(({ secretEncrypted: _secret, ...webhook }) => ({ ...webhook, secretConfigured: true })),
+      data: webhooks.map(({ secretEncrypted: _secret, ...webhook }) => ({
+        ...webhook,
+        secretConfigured: true,
+      })),
     };
   });
 
   const webhookInput = z.object({
     url: z.string().url(),
     events: z
-      .array(z.enum(['budget.warning', 'budget.exceeded', 'provider.degraded', 'provider.recovered', 'high_error_rate', 'circuit.opened', 'circuit.closed']))
+      .array(
+        z.enum([
+          'budget.warning',
+          'budget.exceeded',
+          'provider.degraded',
+          'provider.recovered',
+          'high_error_rate',
+          'circuit.opened',
+          'circuit.closed',
+        ]),
+      )
       .min(1),
     enabled: z.boolean().default(true),
   });
@@ -817,13 +1018,21 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
       createdAt: new Date().toISOString(),
     };
     await ctx.store.upsertWebhook(webhook);
-    await audit(identity, 'webhook.create', 'webhook', webhook.id, { url: input.url, events: input.events }, request.ip);
+    await audit(
+      identity,
+      'webhook.create',
+      'webhook',
+      webhook.id,
+      { url: input.url, events: input.events },
+      request.ip,
+    );
 
     const { secretEncrypted: _omit, ...safe } = webhook;
     return {
       ...safe,
       secret,
-      warning: 'Store this signing secret now; it is shown only once. Verify the x-aigw-signature header with it.',
+      warning:
+        'Store this signing secret now; it is shown only once. Verify the x-aigw-signature header with it.',
     };
   });
 
@@ -842,7 +1051,13 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
 
   const alertInput = z.object({
     name: z.string().min(1).max(128),
-    metric: z.enum(['error_rate', 'p95_latency_ms', 'monthly_cost', 'provider_unavailable', 'fallback_rate']),
+    metric: z.enum([
+      'error_rate',
+      'p95_latency_ms',
+      'monthly_cost',
+      'provider_unavailable',
+      'fallback_rate',
+    ]),
     comparator: z.enum(['gt', 'lt']).default('gt'),
     threshold: z.number(),
     /** Minutes the condition must hold. Suppresses single-spike noise. */
@@ -860,7 +1075,14 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
       createdAt: new Date().toISOString(),
     };
     await ctx.store.upsertAlertRule(rule);
-    await audit(identity, 'alert.create', 'alert', rule.id, { metric: rule.metric, threshold: rule.threshold }, request.ip);
+    await audit(
+      identity,
+      'alert.create',
+      'alert',
+      rule.id,
+      { metric: rule.metric, threshold: rule.threshold },
+      request.ip,
+    );
     return rule;
   });
 
@@ -870,7 +1092,10 @@ export async function registerAdminRoutes(app: FastifyInstance, ctx: GatewayCont
     const query = request.query as { limit?: string };
     return {
       object: 'list',
-      data: await ctx.store.listAuditLog(identity.organizationId, query.limit ? Number(query.limit) : 100),
+      data: await ctx.store.listAuditLog(
+        identity.organizationId,
+        query.limit ? Number(query.limit) : 100,
+      ),
     };
   });
 }

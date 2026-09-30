@@ -1,4 +1,17 @@
-import { GatewayError, ulidTime, type ApiKeyRecord, type ApiKeyScope, type ModelDescriptor, type Organization, type OrganizationMember, type Project, type ProviderConfig, type RequestAttempt, type RequestRecord, type TraceStep } from '@ai-gateway/core';
+import {
+  GatewayError,
+  ulidTime,
+  type ApiKeyRecord,
+  type ApiKeyScope,
+  type ModelDescriptor,
+  type Organization,
+  type OrganizationMember,
+  type Project,
+  type ProviderConfig,
+  type RequestAttempt,
+  type RequestRecord,
+  type TraceStep,
+} from '@ai-gateway/core';
 import type { Budget } from '@ai-gateway/usage';
 import type { PricingSnapshot } from '@ai-gateway/pricing';
 import type {
@@ -102,7 +115,10 @@ export class MemoryStore implements Store {
     return this.members.filter((m) => m.organizationId === organizationId);
   }
 
-  async getMembership(organizationId: string, userId: string): Promise<OrganizationMember | undefined> {
+  async getMembership(
+    organizationId: string,
+    userId: string,
+  ): Promise<OrganizationMember | undefined> {
     return this.members.find((m) => m.organizationId === organizationId && m.userId === userId);
   }
 
@@ -146,7 +162,9 @@ export class MemoryStore implements Store {
 
   async listApiKeys(organizationId: string, projectId?: string): Promise<ApiKeyRecord[]> {
     return [...this.apiKeys.values()]
-      .filter((k) => k.organizationId === organizationId && (!projectId || k.projectId === projectId))
+      .filter(
+        (k) => k.organizationId === organizationId && (!projectId || k.projectId === projectId),
+      )
       .map(({ lookupIndex: _lookupIndex, ...rest }) => rest);
   }
 
@@ -185,7 +203,11 @@ export class MemoryStore implements Store {
     this.providers.delete(this.scoped(organizationId, id));
   }
 
-  async putProviderCredential(organizationId: string, ref: string, encrypted: string): Promise<void> {
+  async putProviderCredential(
+    organizationId: string,
+    ref: string,
+    encrypted: string,
+  ): Promise<void> {
     this.credentials.set(this.scoped(organizationId, ref), encrypted);
   }
 
@@ -195,7 +217,9 @@ export class MemoryStore implements Store {
 
   async listProviderCredentialRefs(organizationId: string): Promise<string[]> {
     const prefix = `${organizationId}::`;
-    return [...this.credentials.keys()].filter((k) => k.startsWith(prefix)).map((k) => k.slice(prefix.length));
+    return [...this.credentials.keys()]
+      .filter((k) => k.startsWith(prefix))
+      .map((k) => k.slice(prefix.length));
   }
 
   async upsertModel(organizationId: string, model: ModelDescriptor): Promise<ModelDescriptor> {
@@ -215,7 +239,10 @@ export class MemoryStore implements Store {
   async publishPricing(organizationId: string, snapshot: PricingSnapshot): Promise<void> {
     const list = this.pricing.get(organizationId) ?? [];
     if (list.some((s) => s.version === snapshot.version)) {
-      throw new GatewayError('invalid_request', `Pricing version "${snapshot.version}" already exists.`);
+      throw new GatewayError(
+        'invalid_request',
+        `Pricing version "${snapshot.version}" already exists.`,
+      );
     }
     list.push(snapshot);
     this.pricing.set(organizationId, list);
@@ -254,7 +281,9 @@ export class MemoryStore implements Store {
 
   async listPolicies(organizationId: string, projectId?: string): Promise<StoredPolicyRow[]> {
     return [...this.policies.values()].filter(
-      (p) => p.organizationId === organizationId && (projectId === undefined || p.projectId === projectId),
+      (p) =>
+        p.organizationId === organizationId &&
+        (projectId === undefined || p.projectId === projectId),
     );
   }
 
@@ -268,7 +297,11 @@ export class MemoryStore implements Store {
 
   // --- requests ------------------------------------------------------
 
-  async recordRequest(record: RequestRecord, steps: TraceStep[], attempts: RequestAttempt[]): Promise<void> {
+  async recordRequest(
+    record: RequestRecord,
+    steps: TraceStep[],
+    attempts: RequestAttempt[],
+  ): Promise<void> {
     this.requests.push({ ...record });
     this.traces.set(record.id, { steps: [...steps], attempts: [...attempts] });
     if (this.requests.length > this.maxRequests) {
@@ -288,7 +321,9 @@ export class MemoryStore implements Store {
     return { request, steps: trace.steps, attempts: trace.attempts };
   }
 
-  async queryRequests(query: RequestQuery): Promise<{ records: RequestRecord[]; nextCursor?: string }> {
+  async queryRequests(
+    query: RequestQuery,
+  ): Promise<{ records: RequestRecord[]; nextCursor?: string }> {
     const limit = Math.min(query.limit ?? DEFAULT_PAGE, MAX_PAGE);
     const fromMs = query.from?.getTime();
     const toMs = query.to?.getTime();
@@ -346,7 +381,10 @@ export class MemoryStore implements Store {
     this.promptBodies.set(this.scoped(body.organizationId, body.requestId), { ...body });
   }
 
-  async getPromptBody(organizationId: string, requestId: string): Promise<StoredPromptBody | undefined> {
+  async getPromptBody(
+    organizationId: string,
+    requestId: string,
+  ): Promise<StoredPromptBody | undefined> {
     return this.promptBodies.get(this.scoped(organizationId, requestId));
   }
 
@@ -423,7 +461,11 @@ export class MemoryStore implements Store {
 
   async claimPendingDeliveries(now: Date, limit: number): Promise<WebhookDelivery[]> {
     return [...this.deliveries.values()]
-      .filter((d) => d.status === 'pending' && (!d.nextAttemptAt || Date.parse(d.nextAttemptAt) <= now.getTime()))
+      .filter(
+        (d) =>
+          d.status === 'pending' &&
+          (!d.nextAttemptAt || Date.parse(d.nextAttemptAt) <= now.getTime()),
+      )
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
       .slice(0, limit);
   }

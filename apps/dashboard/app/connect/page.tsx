@@ -13,10 +13,11 @@ export default function ConnectPage() {
         </div>
         <h1 className="text-xl font-semibold tracking-tight text-zinc-100">Connect to a gateway</h1>
         <p className="mt-2 text-xs leading-relaxed text-zinc-500">
-          The dashboard is a client of the gateway&apos;s admin API rather than a second reader of its database, so it
-          can point at a local or a remote gateway. Paste an API key with the{' '}
-          <code className="rounded bg-zinc-800 px-1 py-0.5 font-mono text-2xs">admin</code> scope — the gateway prints
-          one on first boot. It is stored in an httpOnly cookie and never sent to the browser.
+          The dashboard is a client of the gateway&apos;s admin API rather than a second reader of
+          its database, so it can point at a local or a remote gateway. Paste an API key with the{' '}
+          <code className="rounded bg-zinc-800 px-1 py-0.5 font-mono text-2xs">admin</code> scope —
+          the gateway prints one on first boot. It is stored in an httpOnly cookie and never sent to
+          the browser.
         </p>
       </div>
       <ConnectForm defaultUrl={defaultGatewayUrl()} />

@@ -16,5 +16,8 @@
     "@ai-gateway/router": "workspace:*",
     "@ai-gateway/sdk": "workspace:*",
     "@ai-gateway/usage": "workspace:*"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8"
   }
 }

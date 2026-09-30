@@ -1,5 +1,15 @@
-import { DEFAULT_PRIVACY, GatewayError, type ModelDescriptor, type Organization, type Project } from '@ai-gateway/core';
-import { DEFAULT_POLICY, parsePolicyOrThrow, type RoutingPolicyDocument } from '@ai-gateway/policies';
+import {
+  DEFAULT_PRIVACY,
+  GatewayError,
+  type ModelDescriptor,
+  type Organization,
+  type Project,
+} from '@ai-gateway/core';
+import {
+  DEFAULT_POLICY,
+  parsePolicyOrThrow,
+  type RoutingPolicyDocument,
+} from '@ai-gateway/policies';
 import type { Budget } from '@ai-gateway/usage';
 import type { GatewayContext } from '../context.js';
 import type { AuthenticatedKey } from '../auth.js';
@@ -25,17 +35,26 @@ export interface TenantContext {
  * defaults - routing that quietly changes is the failure mode the gateway is
  * meant to prevent.
  */
-export async function loadTenant(ctx: GatewayContext, auth: AuthenticatedKey): Promise<TenantContext> {
+export async function loadTenant(
+  ctx: GatewayContext,
+  auth: AuthenticatedKey,
+): Promise<TenantContext> {
   const [organization, project] = await Promise.all([
     ctx.store.getOrganization(auth.organizationId),
     ctx.store.getProject(auth.projectId),
   ]);
 
   if (!organization) {
-    throw new GatewayError('authentication_error', 'The organization for this API key no longer exists.');
+    throw new GatewayError(
+      'authentication_error',
+      'The organization for this API key no longer exists.',
+    );
   }
   if (!project || project.organizationId !== organization.id) {
-    throw new GatewayError('authentication_error', 'The project for this API key no longer exists.');
+    throw new GatewayError(
+      'authentication_error',
+      'The project for this API key no longer exists.',
+    );
   }
   if (project.archived) {
     throw new GatewayError('permission_denied', `Project "${project.name}" is archived.`);
@@ -105,7 +124,8 @@ function fallbackPolicy(ctx: GatewayContext): RoutingPolicyDocument {
   return {
     ...DEFAULT_POLICY,
     name: 'implicit-default',
-    description: 'Generated because no routing policy is configured. Reliability-first across every registered model.',
+    description:
+      'Generated because no routing policy is configured. Reliability-first across every registered model.',
     routing: {
       strategy: 'highest_reliability',
       models: models.slice(0, 20).map((m) => m.id),

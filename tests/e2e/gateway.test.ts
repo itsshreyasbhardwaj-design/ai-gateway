@@ -29,7 +29,11 @@ describe('end-to-end gateway flow', () => {
       id: string;
       object: string;
       model: string;
-      choices: Array<{ index: number; message: { role: string; content: string }; finish_reason: string }>;
+      choices: Array<{
+        index: number;
+        message: { role: string; content: string };
+        finish_reason: string;
+      }>;
       usage: { input: number; output: number; total: number; source: string };
       gateway: Record<string, unknown>;
     }>();
@@ -52,7 +56,9 @@ describe('end-to-end gateway flow', () => {
       model: 'gateway/auto',
       messages: [{ role: 'user', content: 'hello' }],
     });
-    const receipt = response.json<{ gateway: { reasons: string[]; strategy: string; model: string } }>().gateway;
+    const receipt = response.json<{
+      gateway: { reasons: string[]; strategy: string; model: string };
+    }>().gateway;
 
     expect(receipt.reasons.length).toBeGreaterThan(1);
     expect(receipt.reasons.join(' ')).toContain(`strategy: ${receipt.strategy}`);
@@ -60,7 +66,10 @@ describe('end-to-end gateway flow', () => {
   });
 
   it('exposes routing metadata in response headers', async () => {
-    const response = await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'hi' }] });
+    const response = await h.chat({
+      model: 'mock/mock-fast',
+      messages: [{ role: 'user', content: 'hi' }],
+    });
     expect(response.headers['x-request-id']).toMatch(/^req_/);
     expect(response.headers['x-gateway-provider']).toBe('mock');
     expect(response.headers['x-gateway-model']).toBe('mock/mock-fast');
@@ -69,7 +78,10 @@ describe('end-to-end gateway flow', () => {
   });
 
   it('reports rate-limit state on every response', async () => {
-    const response = await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'hi' }] });
+    const response = await h.chat({
+      model: 'mock/mock-fast',
+      messages: [{ role: 'user', content: 'hi' }],
+    });
     expect(Number(response.headers['x-ratelimit-limit-requests'])).toBeGreaterThan(0);
     expect(Number(response.headers['x-ratelimit-remaining-requests'])).toBeLessThan(
       Number(response.headers['x-ratelimit-limit-requests']),
@@ -95,7 +107,10 @@ describe('end-to-end gateway flow', () => {
     const first = result.chunks[0] as { choices: Array<{ delta: { role?: string } }> };
     expect(first.choices[0]?.delta.role).toBe('assistant');
 
-    const final = result.chunks.at(-1) as { choices: Array<{ finish_reason: string }>; usage?: { total: number } };
+    const final = result.chunks.at(-1) as {
+      choices: Array<{ finish_reason: string }>;
+      usage?: { total: number };
+    };
     expect(final.choices[0]?.finish_reason).toBe('stop');
     expect(final.usage?.total).toBeGreaterThan(0);
 
@@ -104,7 +119,10 @@ describe('end-to-end gateway flow', () => {
   });
 
   it('records a full trace for every request', async () => {
-    const response = await h.chat({ model: 'gateway/auto', messages: [{ role: 'user', content: 'trace me' }] });
+    const response = await h.chat({
+      model: 'gateway/auto',
+      messages: [{ role: 'user', content: 'trace me' }],
+    });
     const requestId = response.json<{ gateway: { requestId: string } }>().gateway.requestId;
 
     const trace = await h.request('GET', `/api/v1/requests/${requestId}`);
@@ -136,7 +154,10 @@ describe('end-to-end gateway flow', () => {
   });
 
   it('records usage and cost with the pricing version used', async () => {
-    const response = await h.chat({ model: 'mock/mock-smart', messages: [{ role: 'user', content: 'price me' }] });
+    const response = await h.chat({
+      model: 'mock/mock-smart',
+      messages: [{ role: 'user', content: 'price me' }],
+    });
     const requestId = response.json<{ gateway: { requestId: string } }>().gateway.requestId;
 
     const stored = await h.store.getRequest(h.organization.id, requestId);
@@ -154,7 +175,12 @@ describe('end-to-end gateway flow', () => {
 
     const after = await h.request('GET', '/api/v1/usage?range=24h');
     const body = after.json<{
-      summary: { totalRequests: number; totalTokens: number; estimatedCost: number; successRate: number };
+      summary: {
+        totalRequests: number;
+        totalTokens: number;
+        estimatedCost: number;
+        successRate: number;
+      };
       series: Array<{ bucket: string; requests: number }>;
       breakdown: { provider: Array<{ key: string; requests: number }> };
       disclosure: { pricingVersion: string; note: string };
@@ -172,7 +198,10 @@ describe('end-to-end gateway flow', () => {
   it('lists only models the key may use, with capability and pricing metadata', async () => {
     const response = await h.request('GET', '/v1/models');
     const body = response.json<{
-      data: Array<{ id: string; gateway: { capabilities: string[]; pricing: { version: string } | null } }>;
+      data: Array<{
+        id: string;
+        gateway: { capabilities: string[]; pricing: { version: string } | null };
+      }>;
       gateway: { virtualModels: string[]; pricingVersion: string };
     }>();
 
@@ -203,7 +232,10 @@ describe('end-to-end gateway flow', () => {
   });
 
   it('refuses a chat request to an embeddings-only model', async () => {
-    const response = await h.chat({ model: 'mock/mock-embed', messages: [{ role: 'user', content: 'hi' }] });
+    const response = await h.chat({
+      model: 'mock/mock-embed',
+      messages: [{ role: 'user', content: 'hi' }],
+    });
     expect(response.status).toBeGreaterThanOrEqual(400);
     const error = response.json<{ error: { type: string } }>().error;
     expect(['no_route_available', 'capability_unsupported']).toContain(error.type);
@@ -245,19 +277,30 @@ describe('fallback under provider failure', () => {
     // Induce a failure on the primary only.
     h.mocks.get('mock')!.setBehavior('mock-flaky', { failureMode: 'server_error' });
 
-    const response = await h.chat({ model: 'gateway/auto', messages: [{ role: 'user', content: 'survive this' }] });
+    const response = await h.chat({
+      model: 'gateway/auto',
+      messages: [{ role: 'user', content: 'survive this' }],
+    });
     expect(response.status).toBe(200);
 
-    const receipt = response.json<{ gateway: { model: string; fallbackUsed: boolean; attempts: number; requestId: string } }>().gateway;
+    const receipt = response.json<{
+      gateway: { model: string; fallbackUsed: boolean; attempts: number; requestId: string };
+    }>().gateway;
     expect(receipt.model).toBe('mock/mock-fast');
     expect(receipt.fallbackUsed).toBe(true);
     expect(receipt.attempts).toBe(2);
 
     // The failure is visible in the trace, not silently swallowed.
     const trace = await h.request('GET', `/api/v1/requests/${receipt.requestId}`);
-    const attempts = trace.json<{ attempts: Array<{ modelId: string; status: string; errorType?: string }> }>().attempts;
+    const attempts = trace.json<{
+      attempts: Array<{ modelId: string; status: string; errorType?: string }>;
+    }>().attempts;
     expect(attempts).toHaveLength(2);
-    expect(attempts[0]).toMatchObject({ modelId: 'mock/mock-flaky', status: 'error', errorType: 'provider_error' });
+    expect(attempts[0]).toMatchObject({
+      modelId: 'mock/mock-flaky',
+      status: 'error',
+      errorType: 'provider_error',
+    });
     expect(attempts[1]).toMatchObject({ modelId: 'mock/mock-fast', status: 'success' });
   });
 
@@ -280,7 +323,9 @@ describe('fallback under provider failure', () => {
         messages: [{ role: 'user', content: 'retry me' }],
       });
       expect(response.status).toBe(200);
-      const receipt = response.json<{ gateway: { model: string; attempts: number; fallbackUsed: boolean } }>().gateway;
+      const receipt = response.json<{
+        gateway: { model: string; attempts: number; fallbackUsed: boolean };
+      }>().gateway;
       expect(receipt.model).toBe('mock/mock-flaky');
       expect(receipt.attempts).toBe(3);
       expect(receipt.fallbackUsed).toBe(false);
@@ -302,9 +347,14 @@ describe('fallback under provider failure', () => {
     h.mocks.get('mock')!.setBehavior('mock-flaky', { failureMode: 'server_error' });
     h.mocks.get('mock')!.setBehavior('mock-fast', { failureMode: 'server_error' });
 
-    const response = await h.chat({ model: 'gateway/auto', messages: [{ role: 'user', content: 'nothing works' }] });
+    const response = await h.chat({
+      model: 'gateway/auto',
+      messages: [{ role: 'user', content: 'nothing works' }],
+    });
     expect(response.status).toBe(502);
-    const error = response.json<{ error: { type: string; requestId: string; details: Record<string, unknown> } }>().error;
+    const error = response.json<{
+      error: { type: string; requestId: string; details: Record<string, unknown> };
+    }>().error;
     expect(error.type).toBe('fallback_exhausted');
     expect(error.requestId).toMatch(/^req_/);
     expect(error.details['chain']).toEqual(['mock/mock-flaky', 'mock/mock-fast']);

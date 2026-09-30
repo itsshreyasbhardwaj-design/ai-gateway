@@ -44,7 +44,10 @@ export function table<T>(rows: T[], columns: Column<T>[], maxWidth = 44): string
       })
       .join('  ')}`.trimEnd();
 
-  const header = renderRow(columns.map((c) => c.header), bold);
+  const header = renderRow(
+    columns.map((c) => c.header),
+    bold,
+  );
   const rule = `  ${widths.map((w) => '-'.repeat(w)).join('  ')}`;
   return [header, dim(rule), ...cells.map((r) => renderRow(r))].join('\n');
 }

@@ -63,7 +63,13 @@ export class MetricsRegistry {
     const key = labelKey(labels);
     let hist = series.get(key);
     if (!hist) {
-      hist = { labels, buckets, counts: new Array<number>(buckets.length).fill(0), sum: 0, count: 0 };
+      hist = {
+        labels,
+        buckets,
+        counts: new Array<number>(buckets.length).fill(0),
+        sum: 0,
+        count: 0,
+      };
       series.set(key, hist);
     }
     hist.sum += value;
@@ -117,7 +123,9 @@ export class MetricsRegistry {
       emitHelp(name, 'histogram');
       for (const h of series.values()) {
         for (let i = 0; i < h.buckets.length; i++) {
-          lines.push(`${name}_bucket${renderLabels({ ...h.labels, le: String(h.buckets[i]) })} ${h.counts[i] ?? 0}`);
+          lines.push(
+            `${name}_bucket${renderLabels({ ...h.labels, le: String(h.buckets[i]) })} ${h.counts[i] ?? 0}`,
+          );
         }
         lines.push(`${name}_bucket${renderLabels({ ...h.labels, le: '+Inf' })} ${h.count}`);
         lines.push(`${name}_sum${renderLabels(h.labels)} ${h.sum}`);
@@ -134,7 +142,10 @@ function renderLabels(labels: Labels): string {
   const entries = Object.entries(labels).sort(([a], [b]) => a.localeCompare(b));
   if (entries.length === 0) return '';
   const body = entries
-    .map(([k, v]) => `${k}="${String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`)
+    .map(
+      ([k, v]) =>
+        `${k}="${String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`,
+    )
     .join(',');
   return `{${body}}`;
 }
@@ -159,17 +170,35 @@ export const METRICS = {
 
 export function registerDefaultMetrics(registry: MetricsRegistry): void {
   registry.describe(METRICS.requests, 'Gateway requests by status, provider and model.');
-  registry.describe(METRICS.requestDuration, 'End-to-end gateway request duration in milliseconds.');
-  registry.describe(METRICS.providerAttempts, 'Upstream provider attempts, including retries and fallbacks.');
+  registry.describe(
+    METRICS.requestDuration,
+    'End-to-end gateway request duration in milliseconds.',
+  );
+  registry.describe(
+    METRICS.providerAttempts,
+    'Upstream provider attempts, including retries and fallbacks.',
+  );
   registry.describe(METRICS.providerDuration, 'Upstream provider call duration in milliseconds.');
-  registry.describe(METRICS.timeToFirstToken, 'Milliseconds from dispatch to the first streamed token.');
+  registry.describe(
+    METRICS.timeToFirstToken,
+    'Milliseconds from dispatch to the first streamed token.',
+  );
   registry.describe(METRICS.tokens, 'Tokens counted by direction and usage source.');
-  registry.describe(METRICS.estimatedCost, 'Estimated spend, in the org currency, from the configured price table.');
+  registry.describe(
+    METRICS.estimatedCost,
+    'Estimated spend, in the org currency, from the configured price table.',
+  );
   registry.describe(METRICS.cacheLookups, 'Cache lookups by result.');
   registry.describe(METRICS.fallbacks, 'Requests where a fallback target served the response.');
   registry.describe(METRICS.rateLimited, 'Requests rejected by a gateway rate limit.');
   registry.describe(METRICS.budgetBlocks, 'Requests blocked or downgraded by a budget rule.');
   registry.describe(METRICS.circuitState, 'Circuit breaker state: 0 closed, 1 half-open, 2 open.');
-  registry.describe(METRICS.providerHealth, 'Provider health: 1 healthy, 0.5 degraded, 0 unavailable.');
-  registry.describe(METRICS.gatewayOverhead, 'Gateway-added latency, excluding upstream provider time.');
+  registry.describe(
+    METRICS.providerHealth,
+    'Provider health: 1 healthy, 0.5 degraded, 0 unavailable.',
+  );
+  registry.describe(
+    METRICS.gatewayOverhead,
+    'Gateway-added latency, excluding upstream provider time.',
+  );
 }

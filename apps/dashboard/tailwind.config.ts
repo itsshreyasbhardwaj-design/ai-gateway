@@ -27,7 +27,15 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'sans-serif'],
+        sans: [
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica Neue',
+          'sans-serif',
+        ],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       fontSize: {

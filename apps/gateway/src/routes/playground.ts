@@ -1,7 +1,19 @@
-import { chatRequestSchema, GatewayError, newRequestId, parseOrThrow, type ChatRequest } from '@ai-gateway/core';
+import {
+  chatRequestSchema,
+  GatewayError,
+  newRequestId,
+  parseOrThrow,
+  type ChatRequest,
+} from '@ai-gateway/core';
 import { permittedModels } from '@ai-gateway/policies';
 import { projectCost } from '@ai-gateway/pricing';
-import { isRoutingStrategy, planRoute, requiredCapabilities, resolveCandidates, type RoutingStrategy } from '@ai-gateway/router';
+import {
+  isRoutingStrategy,
+  planRoute,
+  requiredCapabilities,
+  resolveCandidates,
+  type RoutingStrategy,
+} from '@ai-gateway/router';
 import { estimatePromptTokens } from '@ai-gateway/core';
 import { z } from 'zod';
 import type { FastifyInstance } from 'fastify';
@@ -21,13 +33,17 @@ import { abortSignalFor } from './v1.js';
  *  - anything that does send a real request is tagged as test traffic and
  *    excluded from production analytics
  */
-export async function registerPlaygroundRoutes(app: FastifyInstance, ctx: GatewayContext): Promise<void> {
+export async function registerPlaygroundRoutes(
+  app: FastifyInstance,
+  ctx: GatewayContext,
+): Promise<void> {
   const pipeline = new ChatPipeline(ctx);
 
   const identify = async (headers: Record<string, unknown>) =>
     authenticate(
       { store: ctx.store, pepper: ctx.config.apiKeyPepper, cache: ctx.authCache },
-      (headers['authorization'] as string | undefined) ?? (headers['x-api-key'] as string | undefined),
+      (headers['authorization'] as string | undefined) ??
+        (headers['x-api-key'] as string | undefined),
     );
 
   const routeTestInput = z.object({
@@ -60,7 +76,10 @@ export async function registerPlaygroundRoutes(app: FastifyInstance, ctx: Gatewa
       const tenant = await loadTenant(ctx, identity);
 
       const messages = input.messages?.length
-        ? input.messages.map((m: { role: string; content: string }) => ({ role: m.role as 'user', content: m.content }))
+        ? input.messages.map((m: { role: string; content: string }) => ({
+            role: m.role as 'user',
+            content: m.content,
+          }))
         : [{ role: 'user' as const, content: input.prompt ?? 'Explain this SQL query.' }];
 
       const probe: ChatRequest = {
@@ -68,7 +87,9 @@ export async function registerPlaygroundRoutes(app: FastifyInstance, ctx: Gatewa
         messages,
         max_tokens: input.maxTokens,
         stream: input.stream,
-        ...(input.requireTools ? { tools: [{ type: 'function' as const, function: { name: 'probe' } }] } : {}),
+        ...(input.requireTools
+          ? { tools: [{ type: 'function' as const, function: { name: 'probe' } }] }
+          : {}),
       };
 
       const registeredIds = tenant.registeredModels.map((m) => m.id);
@@ -91,19 +112,36 @@ export async function registerPlaygroundRoutes(app: FastifyInstance, ctx: Gatewa
         requestedModel: input.model,
         allowed: candidates,
         explicitModels: input.candidates,
-        policyModels: tenant.policy.routing.models.map((m) => (typeof m === 'string' ? m : m.model)),
+        policyModels: tenant.policy.routing.models.map((m) =>
+          typeof m === 'string' ? m : m.model,
+        ),
       });
 
       const strategy: RoutingStrategy = input.strategy
-        ? (isRoutingStrategy(input.strategy)
-            ? input.strategy
-            : (() => {
-                throw new GatewayError('invalid_request', `Unknown routing strategy "${input.strategy}".`);
-              })())
+        ? isRoutingStrategy(input.strategy)
+          ? input.strategy
+          : (() => {
+              throw new GatewayError(
+                'invalid_request',
+                `Unknown routing strategy "${input.strategy}".`,
+              );
+            })()
         : (resolved.impliedStrategy ?? (tenant.policy.routing.strategy as RoutingStrategy));
 
       const estimatedInput = estimatePromptTokens(messages);
-      const needed = requiredCapabilities({ ...probe, ...(input.requireVision ? { messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'https://example/x.png' } }] }] } : {}) });
+      const needed = requiredCapabilities({
+        ...probe,
+        ...(input.requireVision
+          ? {
+              messages: [
+                {
+                  role: 'user',
+                  content: [{ type: 'image_url', image_url: { url: 'https://example/x.png' } }],
+                },
+              ],
+            }
+          : {}),
+      });
 
       const plan = planRoute({
         request: probe,
@@ -118,7 +156,9 @@ export async function registerPlaygroundRoutes(app: FastifyInstance, ctx: Gatewa
             health: stats,
             healthState: stats.state,
             circuit: ctx.circuits.get(key).currentState,
-            projectedCost: pricing ? projectCost(estimatedInput, input.maxTokens, pricing.pricing) : undefined,
+            projectedCost: pricing
+              ? projectCost(estimatedInput, input.maxTokens, pricing.pricing)
+              : undefined,
             p95LatencyMs: stats.total > 0 ? stats.p95LatencyMs : undefined,
             successRate: stats.total > 0 ? stats.successRate : undefined,
           };
@@ -183,11 +223,22 @@ export async function registerPlaygroundRoutes(app: FastifyInstance, ctx: Gatewa
       const identity = await identify(request.headers as Record<string, unknown>);
       requireScopes(identity, 'inference.create');
 
-      const parsed = parseOrThrow(chatRequestSchema, request.body, 'playground request') as ChatRequest;
+      const parsed = parseOrThrow(
+        chatRequestSchema,
+        request.body,
+        'playground request',
+      ) as ChatRequest;
       const result = await pipeline.run({
         auth: identity,
         // Force the test flag; a playground call must never be counted as production.
-        request: { ...parsed, gateway: { ...parsed.gateway, test: true, tags: [...(parsed.gateway?.tags ?? []), 'playground'] } },
+        request: {
+          ...parsed,
+          gateway: {
+            ...parsed.gateway,
+            test: true,
+            tags: [...(parsed.gateway?.tags ?? []), 'playground'],
+          },
+        },
         requestId,
         signal: abortSignalFor(request),
         userAgent: request.headers['user-agent'],
@@ -195,7 +246,10 @@ export async function registerPlaygroundRoutes(app: FastifyInstance, ctx: Gatewa
 
       if (result.kind === 'json') {
         for (const [key, value] of Object.entries(result.headers)) reply.header(key, value);
-        return reply.send({ ...result.body, gatewayNote: 'Recorded as test traffic; excluded from production analytics.' });
+        return reply.send({
+          ...result.body,
+          gatewayNote: 'Recorded as test traffic; excluded from production analytics.',
+        });
       }
       for (const [key, value] of Object.entries(result.headers)) reply.header(key, value);
       const { toNodeStream } = await import('./v1.js');
@@ -207,7 +261,16 @@ export async function registerPlaygroundRoutes(app: FastifyInstance, ctx: Gatewa
 
   const simulateInput = z.object({
     model: z.string().min(1),
-    failureMode: z.enum(['none', 'rate_limit', 'server_error', 'timeout', 'overloaded', 'auth', 'invalid_request', 'mid_stream_error']),
+    failureMode: z.enum([
+      'none',
+      'rate_limit',
+      'server_error',
+      'timeout',
+      'overloaded',
+      'auth',
+      'invalid_request',
+      'mid_stream_error',
+    ]),
     failFirstN: z.number().int().min(0).max(100).optional(),
     latencyMs: z.number().int().min(0).max(60_000).optional(),
   });
@@ -234,7 +297,8 @@ export async function registerPlaygroundRoutes(app: FastifyInstance, ctx: Gatewa
 
       const input = simulateInput.parse(request.body);
       const model = ctx.providers.getModel(input.model);
-      if (!model) throw new GatewayError('model_not_found', `Model "${input.model}" is not registered.`);
+      if (!model)
+        throw new GatewayError('model_not_found', `Model "${input.model}" is not registered.`);
       if (model.providerId !== ctx.mockProvider.id) {
         throw new GatewayError(
           'invalid_request',
@@ -269,7 +333,10 @@ export async function registerPlaygroundRoutes(app: FastifyInstance, ctx: Gatewa
       requireScopes(identity, 'admin');
       const before = ctx.circuits.snapshots();
       ctx.circuits.resetAll();
-      return reply.send({ reset: before.length, states: before.map((s) => ({ target: s.key, wasState: s.state })) });
+      return reply.send({
+        reset: before.length,
+        states: before.map((s) => ({ target: s.key, wasState: s.state })),
+      });
     } catch (err) {
       return sendError(reply, err, requestId);
     }
@@ -313,7 +380,11 @@ export async function registerPlaygroundRoutes(app: FastifyInstance, ctx: Gatewa
         );
       }
 
-      const stored = parseOrThrow(chatRequestSchema, body.request, 'stored request body') as ChatRequest;
+      const stored = parseOrThrow(
+        chatRequestSchema,
+        body.request,
+        'stored request body',
+      ) as ChatRequest;
       const result = await pipeline.run({
         auth: identity,
         request: {

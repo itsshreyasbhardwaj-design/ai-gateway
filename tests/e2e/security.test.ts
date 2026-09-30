@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { generateApiKey, hashApiKey, keyIndex, signWebhook, verifyWebhook } from '@ai-gateway/security';
+import {
+  generateApiKey,
+  hashApiKey,
+  keyIndex,
+  signWebhook,
+  verifyWebhook,
+} from '@ai-gateway/security';
 import { newId } from '@ai-gateway/core';
 import { createHarness, type Harness } from './harness.js';
 
@@ -28,7 +34,12 @@ describe('security', () => {
       h = await createHarness();
       const bodies: string[] = [];
 
-      for (const header of [undefined, 'Bearer nonsense', 'Bearer aigw_live_totallyfake12345678', 'aigw_live_x']) {
+      for (const header of [
+        undefined,
+        'Bearer nonsense',
+        'Bearer aigw_live_totallyfake12345678',
+        'aigw_live_x',
+      ]) {
         const response = await h.app.inject({
           method: 'POST',
           url: '/v1/chat/completions',
@@ -36,7 +47,10 @@ describe('security', () => {
             'content-type': 'application/json',
             ...(header ? { authorization: header } : {}),
           },
-          payload: JSON.stringify({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'x' }] }),
+          payload: JSON.stringify({
+            model: 'mock/mock-fast',
+            messages: [{ role: 'user', content: 'x' }],
+          }),
         });
         expect(response.statusCode).toBe(401);
         const error = JSON.parse(response.body).error as { type: string; message: string };
@@ -76,7 +90,10 @@ describe('security', () => {
       const keys = await h.store.listApiKeys(h.organization.id);
       await h.store.revokeApiKey(keys[0]!.id, new Date().toISOString());
 
-      const response = await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'x' }] });
+      const response = await h.chat({
+        model: 'mock/mock-fast',
+        messages: [{ role: 'user', content: 'x' }],
+      });
       expect(response.status).toBe(401);
       expect(response.json<{ error: { message: string } }>().error.message).toContain('revoked');
     });
@@ -109,8 +126,14 @@ describe('security', () => {
       h = await createHarness();
 
       // Use the key first, so its verification is in the short-lived auth cache.
-      expect((await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'a' }] })).status).toBe(200);
-      expect((await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'b' }] })).status).toBe(200);
+      expect(
+        (await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'a' }] }))
+          .status,
+      ).toBe(200);
+      expect(
+        (await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'b' }] }))
+          .status,
+      ).toBe(200);
 
       // Mint and use a second key, then revoke it through the admin API.
       const created = await h.request('POST', '/api/v1/api-keys', {
@@ -214,16 +237,26 @@ describe('security', () => {
   describe('scope enforcement', () => {
     it('refuses inference without the inference.create scope', async () => {
       h = await createHarness({ scopes: ['models.read'] });
-      const response = await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'x' }] });
+      const response = await h.chat({
+        model: 'mock/mock-fast',
+        messages: [{ role: 'user', content: 'x' }],
+      });
       expect(response.status).toBe(403);
-      const error = response.json<{ error: { type: string; details: Record<string, unknown> } }>().error;
+      const error = response.json<{ error: { type: string; details: Record<string, unknown> } }>()
+        .error;
       expect(error.type).toBe('permission_denied');
       expect(error.details['requiredScopes']).toContain('inference.create');
     });
 
     it('refuses the admin API to a non-admin key', async () => {
       h = await createHarness({ scopes: ['inference.create', 'models.read'] });
-      for (const path of ['/api/v1/providers', '/api/v1/api-keys', '/api/v1/budgets', '/api/v1/webhooks', '/api/v1/audit-logs']) {
+      for (const path of [
+        '/api/v1/providers',
+        '/api/v1/api-keys',
+        '/api/v1/budgets',
+        '/api/v1/webhooks',
+        '/api/v1/audit-logs',
+      ]) {
         const response = await h.request('GET', path);
         expect(response.status).toBe(403);
       }
@@ -259,7 +292,10 @@ describe('security', () => {
       h = await createHarness();
       other = await createHarness();
 
-      const mine = await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'mine' }] });
+      const mine = await h.chat({
+        model: 'mock/mock-fast',
+        messages: [{ role: 'user', content: 'mine' }],
+      });
       const requestId = mine.json<{ gateway: { requestId: string } }>().gateway.requestId;
 
       // Own org can read it.
@@ -274,14 +310,21 @@ describe('security', () => {
       other = await createHarness();
 
       for (let i = 0; i < 3; i++) {
-        await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: `mine ${i}` }] });
+        await h.chat({
+          model: 'mock/mock-fast',
+          messages: [{ role: 'user', content: `mine ${i}` }],
+        });
       }
 
       const mineUsage = await h.request('GET', '/api/v1/usage?range=24h');
-      expect(mineUsage.json<{ summary: { totalRequests: number } }>().summary.totalRequests).toBe(3);
+      expect(mineUsage.json<{ summary: { totalRequests: number } }>().summary.totalRequests).toBe(
+        3,
+      );
 
       const theirUsage = await other.request('GET', '/api/v1/usage?range=24h');
-      expect(theirUsage.json<{ summary: { totalRequests: number } }>().summary.totalRequests).toBe(0);
+      expect(theirUsage.json<{ summary: { totalRequests: number } }>().summary.totalRequests).toBe(
+        0,
+      );
     });
 
     it("cannot delete another organization's resources", async () => {
@@ -298,7 +341,9 @@ describe('security', () => {
 
       await other.request('DELETE', `/api/v1/budgets/${budgetId}`);
       // Still present in the owning organization.
-      expect((await h.request('GET', '/api/v1/budgets')).json<{ data: unknown[] }>().data).toHaveLength(1);
+      expect(
+        (await h.request('GET', '/api/v1/budgets')).json<{ data: unknown[] }>().data,
+      ).toHaveLength(1);
     });
 
     it('never serves one organization a cache entry written by another', async () => {
@@ -313,7 +358,10 @@ describe('security', () => {
       h = await createHarness({ policy: cachePolicy });
       other = await createHarness({ policy: cachePolicy });
 
-      const prompt = { model: 'mock/mock-fast', messages: [{ role: 'user' as const, content: 'identical prompt' }] };
+      const prompt = {
+        model: 'mock/mock-fast',
+        messages: [{ role: 'user' as const, content: 'identical prompt' }],
+      };
 
       const first = await h.chat(prompt);
       expect(first.json<{ gateway: { cache: string } }>().gateway.cache).toBe('miss');
@@ -331,9 +379,13 @@ describe('security', () => {
   describe('model allowlist and policy', () => {
     it('returns 403 MODEL_NOT_ALLOWED for a denied model', async () => {
       h = await createHarness({ allowedModels: ['mock/mock-fast'] });
-      const response = await h.chat({ model: 'mock/mock-smart', messages: [{ role: 'user', content: 'x' }] });
+      const response = await h.chat({
+        model: 'mock/mock-smart',
+        messages: [{ role: 'user', content: 'x' }],
+      });
       expect(response.status).toBe(403);
-      const error = response.json<{ error: { type: string; details: Record<string, unknown> } }>().error;
+      const error = response.json<{ error: { type: string; details: Record<string, unknown> } }>()
+        .error;
       expect(error.type).toBe('model_not_allowed');
       expect(error.details['code']).toBe('MODEL_NOT_ALLOWED');
     });
@@ -352,16 +404,23 @@ describe('security', () => {
     it('cannot reach a denied model through a virtual model alias', async () => {
       h = await createHarness({ deniedModels: ['mock/mock-smart'] });
       for (let i = 0; i < 5; i++) {
-        const response = await h.chat({ model: 'gateway/auto', messages: [{ role: 'user', content: `x${i}` }] });
+        const response = await h.chat({
+          model: 'gateway/auto',
+          messages: [{ role: 'user', content: `x${i}` }],
+        });
         expect(response.status).toBe(200);
-        expect(response.json<{ gateway: { model: string } }>().gateway.model).not.toBe('mock/mock-smart');
+        expect(response.json<{ gateway: { model: string } }>().gateway.model).not.toBe(
+          'mock/mock-smart',
+        );
       }
     });
 
     it('hides denied models from the model list', async () => {
       h = await createHarness({ allowedModels: ['mock/mock-fast'] });
       const models = await h.request('GET', '/v1/models');
-      expect(models.json<{ data: Array<{ id: string }> }>().data.map((m) => m.id)).toEqual(['mock/mock-fast']);
+      expect(models.json<{ data: Array<{ id: string }> }>().data.map((m) => m.id)).toEqual([
+        'mock/mock-fast',
+      ]);
     });
 
     it('clamps max_tokens to the policy ceiling rather than honouring the request', async () => {
@@ -400,7 +459,11 @@ describe('security', () => {
           limits: { timeoutMs: 2_000, allowStreaming: false },
         },
       });
-      const response = await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'x' }], stream: true });
+      const response = await h.chat({
+        model: 'mock/mock-fast',
+        messages: [{ role: 'user', content: 'x' }],
+        stream: true,
+      });
       expect(response.status).toBe(403);
       expect(response.json<{ error: { type: string } }>().error.type).toBe('policy_violation');
     });
@@ -431,9 +494,13 @@ describe('security', () => {
         action: 'BLOCK',
       });
 
-      const response = await h.chat({ model: 'mock/mock-smart', messages: [{ role: 'user', content: 'x' }] });
+      const response = await h.chat({
+        model: 'mock/mock-smart',
+        messages: [{ role: 'user', content: 'x' }],
+      });
       expect(response.status).toBe(402);
-      const error = response.json<{ error: { type: string; details: Record<string, unknown> } }>().error;
+      const error = response.json<{ error: { type: string; details: Record<string, unknown> } }>()
+        .error;
       expect(error.type).toBe('budget_exceeded');
       expect(error.retryable).toBe(false);
       expect(error.details['scope']).toBe('organization');
@@ -495,7 +562,10 @@ describe('security', () => {
         limit: 0.0000001,
         action: 'WARN',
       });
-      const response = await h.chat({ model: 'mock/mock-smart', messages: [{ role: 'user', content: 'x' }] });
+      const response = await h.chat({
+        model: 'mock/mock-smart',
+        messages: [{ role: 'user', content: 'x' }],
+      });
       expect(response.status).toBe(200);
     });
   });
@@ -507,7 +577,15 @@ describe('security', () => {
       h = await createHarness();
       // Drive the api_key requests/minute rule (600) down with a tight limit by
       // exhausting it through the limiter directly, then confirm the HTTP path.
-      const rules = [{ id: 'key-rpm', subject: 'api_key' as const, unit: 'requests' as const, window: 'minute' as const, limit: 1 }];
+      const rules = [
+        {
+          id: 'key-rpm',
+          subject: 'api_key' as const,
+          unit: 'requests' as const,
+          window: 'minute' as const,
+          limit: 1,
+        },
+      ];
       const ctx = {
         organizationId: h.organization.id,
         projectId: h.project.id,
@@ -521,7 +599,10 @@ describe('security', () => {
 
     it('counts test traffic against rate limits', async () => {
       h = await createHarness();
-      const before = await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'a' }] });
+      const before = await h.chat({
+        model: 'mock/mock-fast',
+        messages: [{ role: 'user', content: 'a' }],
+      });
       const after = await h.chat({
         model: 'mock/mock-fast',
         messages: [{ role: 'user', content: 'b' }],
@@ -573,7 +654,9 @@ describe('security', () => {
         events: ['budget.exceeded'],
       });
       expect(response.status).toBeGreaterThanOrEqual(400);
-      expect((await h.request('GET', '/api/v1/webhooks')).json<{ data: unknown[] }>().data).toHaveLength(0);
+      expect(
+        (await h.request('GET', '/api/v1/webhooks')).json<{ data: unknown[] }>().data,
+      ).toHaveLength(0);
     });
 
     it('allows a public https provider endpoint', async () => {
@@ -584,10 +667,18 @@ describe('security', () => {
         displayName: 'Vendor',
         baseUrl: 'https://api.vendor.example/v1',
         credentialValue: 'sk-test-value-1234567890',
-        models: [{ providerModelId: 'vendor-small', contextWindow: 32000, capabilities: ['chat', 'streaming'] }],
+        models: [
+          {
+            providerModelId: 'vendor-small',
+            contextWindow: 32000,
+            capabilities: ['chat', 'streaming'],
+          },
+        ],
       });
       expect(response.status).toBe(200);
-      expect(response.json<{ registered: boolean; registrationError?: string }>().registrationError).toBeUndefined();
+      expect(
+        response.json<{ registered: boolean; registrationError?: string }>().registrationError,
+      ).toBeUndefined();
       expect(response.json<{ registered: boolean }>().registered).toBe(true);
     });
 
@@ -598,7 +689,13 @@ describe('security', () => {
         kind: 'openai-compatible',
         displayName: 'Self-hosted',
         baseUrl: 'http://ollama.internal:11434/v1',
-        models: [{ providerModelId: 'llama-3.1-8b', contextWindow: 131072, capabilities: ['chat', 'streaming'] }],
+        models: [
+          {
+            providerModelId: 'llama-3.1-8b',
+            contextWindow: 131072,
+            capabilities: ['chat', 'streaming'],
+          },
+        ],
       });
       expect(response.status).toBe(200);
     });
@@ -643,13 +740,18 @@ describe('security', () => {
 
       const list = await h.request('GET', '/api/v1/webhooks');
       expect(list.raw).not.toContain(secret);
-      expect(list.json<{ data: Array<{ secretConfigured: boolean }> }>().data[0]?.secretConfigured).toBe(true);
+      expect(
+        list.json<{ data: Array<{ secretConfigured: boolean }> }>().data[0]?.secretConfigured,
+      ).toBe(true);
     });
 
     it('does not store prompt bodies under the default privacy mode', async () => {
       h = await createHarness();
       const sentinel = 'CONFIDENTIAL-PROMPT-abc123-DO-NOT-STORE';
-      const response = await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: sentinel }] });
+      const response = await h.chat({
+        model: 'mock/mock-fast',
+        messages: [{ role: 'user', content: sentinel }],
+      });
       const requestId = response.json<{ gateway: { requestId: string } }>().gateway.requestId;
 
       expect(await h.store.getPromptBody(h.organization.id, requestId)).toBeUndefined();
@@ -664,7 +766,9 @@ describe('security', () => {
       h = await createHarness({ privacy: { mode: 'redacted', retentionDays: 1 } });
       const response = await h.chat({
         model: 'mock/mock-fast',
-        messages: [{ role: 'user', content: 'my key is sk-abcdefghijklmnopqrstuvwxyz please use it' }],
+        messages: [
+          { role: 'user', content: 'my key is sk-abcdefghijklmnopqrstuvwxyz please use it' },
+        ],
       });
       const requestId = response.json<{ gateway: { requestId: string } }>().gateway.requestId;
 
@@ -694,23 +798,35 @@ describe('security', () => {
   describe('replay and audit', () => {
     it('refuses to replay a request whose body was never stored', async () => {
       h = await createHarness();
-      const response = await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'x' }] });
+      const response = await h.chat({
+        model: 'mock/mock-fast',
+        messages: [{ role: 'user', content: 'x' }],
+      });
       const requestId = response.json<{ gateway: { requestId: string } }>().gateway.requestId;
 
-      const replay = await h.request('POST', `/api/v1/requests/${requestId}/replay`, { confirm: true });
+      const replay = await h.request('POST', `/api/v1/requests/${requestId}/replay`, {
+        confirm: true,
+      });
       expect(replay.status).toBe(400);
       expect(replay.json<{ error: { message: string } }>().error.message).toContain('retention');
     });
 
     it('requires explicit confirmation to replay', async () => {
       h = await createHarness({ privacy: { mode: 'full', retentionDays: 7 } });
-      const response = await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'replay me' }] });
+      const response = await h.chat({
+        model: 'mock/mock-fast',
+        messages: [{ role: 'user', content: 'replay me' }],
+      });
       const requestId = response.json<{ gateway: { requestId: string } }>().gateway.requestId;
 
       // No confirmation: refused.
-      expect((await h.request('POST', `/api/v1/requests/${requestId}/replay`, {})).status).toBe(400);
+      expect((await h.request('POST', `/api/v1/requests/${requestId}/replay`, {})).status).toBe(
+        400,
+      );
 
-      const confirmed = await h.request('POST', `/api/v1/requests/${requestId}/replay`, { confirm: true });
+      const confirmed = await h.request('POST', `/api/v1/requests/${requestId}/replay`, {
+        confirm: true,
+      });
       expect(confirmed.status).toBe(200);
       const body = confirmed.json<{ replayOf: string; note: string }>();
       expect(body.replayOf).toBe(requestId);
@@ -719,7 +835,10 @@ describe('security', () => {
 
     it('records a replay as test traffic so analytics stay clean', async () => {
       h = await createHarness({ privacy: { mode: 'full', retentionDays: 7 } });
-      const original = await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'replay me' }] });
+      const original = await h.chat({
+        model: 'mock/mock-fast',
+        messages: [{ role: 'user', content: 'replay me' }],
+      });
       const requestId = original.json<{ gateway: { requestId: string } }>().gateway.requestId;
 
       const productionBefore = (await h.request('GET', '/api/v1/usage?range=24h')).json<{
@@ -750,7 +869,9 @@ describe('security', () => {
 
       const audit = await h.request('GET', '/api/v1/audit-logs');
       const entries = audit.json<{ data: Array<{ action: string; resourceType: string }> }>().data;
-      expect(entries.some((e) => e.action === 'budget.create' && e.resourceType === 'budget')).toBe(true);
+      expect(entries.some((e) => e.action === 'budget.create' && e.resourceType === 'budget')).toBe(
+        true,
+      );
     });
 
     it('only lets the mock provider be made to fail', async () => {
@@ -769,7 +890,9 @@ describe('security', () => {
         failureMode: 'server_error',
       });
       expect(response.status).toBeGreaterThanOrEqual(400);
-      expect(response.json<{ error: { message: string } }>().error.message).toMatch(/mock provider|not registered/i);
+      expect(response.json<{ error: { message: string } }>().error.message).toMatch(
+        /mock provider|not registered/i,
+      );
     });
   });
 
@@ -791,7 +914,10 @@ describe('security', () => {
         action: 'WARN',
         warnThreshold: 0.5,
       });
-      await h.chat({ model: 'mock/mock-smart', messages: [{ role: 'user', content: 'trigger warning' }] });
+      await h.chat({
+        model: 'mock/mock-smart',
+        messages: [{ role: 'user', content: 'trigger warning' }],
+      });
       await h.ctx.webhooks.drain(10);
 
       expect(h.webhookCalls.length).toBeGreaterThan(0);

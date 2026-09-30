@@ -36,15 +36,22 @@ export interface EmbeddingsPipelineInput {
 export class EmbeddingsPipeline {
   constructor(private readonly ctx: GatewayContext) {}
 
-  async run(input: EmbeddingsPipelineInput): Promise<{ requestId: string; body: EmbeddingsResponse; headers: Record<string, string> }> {
+  async run(
+    input: EmbeddingsPipelineInput,
+  ): Promise<{ requestId: string; body: EmbeddingsResponse; headers: Record<string, string> }> {
     const requestId = input.requestId ?? newRequestId();
     const trace = new TraceBuilder(requestId, this.ctx.clock);
-    trace.mark('request_received', 'ok', { endpoint: '/v1/embeddings', requestedModel: input.request.model });
+    trace.mark('request_received', 'ok', {
+      endpoint: '/v1/embeddings',
+      requestedModel: input.request.model,
+    });
     trace.mark('authentication', 'ok', { apiKeyPrefix: input.auth.prefix });
 
     try {
       const tenant = await loadTenant(this.ctx, input.auth);
-      const inputs = Array.isArray(input.request.input) ? input.request.input : [input.request.input];
+      const inputs = Array.isArray(input.request.input)
+        ? input.request.input
+        : [input.request.input];
       const estimatedTokens = inputs.reduce((sum, text) => sum + estimateCompletionTokens(text), 0);
 
       const rateStep = trace.step('rate_limit');
@@ -102,10 +109,14 @@ export class EmbeddingsPipeline {
 
       const budgetStep = trace.step('budget_check');
       const pricing = this.ctx.pricing.lookup(model.id);
-      const projected = pricing ? (estimatedTokens * pricing.pricing.inputPerMillionTokens) / 1_000_000 : 0;
+      const projected = pricing
+        ? (estimatedTokens * pricing.pricing.inputPerMillionTokens) / 1_000_000
+        : 0;
       const now = new Date(this.ctx.clock.now());
       const states = await Promise.all(
-        tenant.budgets.map(async (b) => buildState(b, await this.ctx.spend.readForBudget(b, now), now)),
+        tenant.budgets.map(async (b) =>
+          buildState(b, await this.ctx.spend.readForBudget(b, now), now),
+        ),
       );
       const outcome = evaluateBudgets({ states, projectedCost: projected });
       if (outcome.decision === 'block') {
@@ -114,7 +125,9 @@ export class EmbeddingsPipeline {
       }
       budgetStep.end({ projectedCost: projected });
 
-      trace.mark('cache_lookup', 'skipped', { reason: 'embeddings responses are not cached by the gateway' });
+      trace.mark('cache_lookup', 'skipped', {
+        reason: 'embeddings responses are not cached by the gateway',
+      });
       trace.mark('routing', 'ok', {
         strategy: 'explicit',
         reason: 'embedding vectors are model-specific, so no fallback chain is built',
@@ -131,7 +144,9 @@ export class EmbeddingsPipeline {
 
       const breaker = this.ctx.circuits.get(targetKey(model.providerId, model.id));
       if (!breaker.allow()) {
-        throw new GatewayError('circuit_open', `Circuit is open for ${model.id}.`, { provider: model.providerId });
+        throw new GatewayError('circuit_open', `Circuit is open for ${model.id}.`, {
+          provider: model.providerId,
+        });
       }
 
       const recorder = trace.startAttempt(model.providerId, model.id, 1);
@@ -173,7 +188,11 @@ export class EmbeddingsPipeline {
       const isTest = input.request.gateway?.test === true;
       if (cost && !isTest) {
         await this.ctx.spend.record(
-          { organizationId: tenant.organization.id, projectId: tenant.project.id, apiKeyId: input.auth.apiKeyId },
+          {
+            organizationId: tenant.organization.id,
+            projectId: tenant.project.id,
+            apiKeyId: input.auth.apiKeyId,
+          },
           cost.totalCost,
         );
       }
@@ -207,10 +226,20 @@ export class EmbeddingsPipeline {
         userAgent: input.userAgent,
       };
 
-      this.ctx.metrics.increment(METRICS.requests, { status: 'success', endpoint: 'embeddings', provider: model.providerId });
-      this.ctx.metrics.observe(METRICS.requestDuration, trace.elapsedMs, { endpoint: 'embeddings' });
+      this.ctx.metrics.increment(METRICS.requests, {
+        status: 'success',
+        endpoint: 'embeddings',
+        provider: model.providerId,
+      });
+      this.ctx.metrics.observe(METRICS.requestDuration, trace.elapsedMs, {
+        endpoint: 'embeddings',
+      });
       if (cost) {
-        this.ctx.metrics.increment(METRICS.estimatedCost, { currency: cost.currency }, cost.totalCost);
+        this.ctx.metrics.increment(
+          METRICS.estimatedCost,
+          { currency: cost.currency },
+          cost.totalCost,
+        );
       }
 
       trace.mark('response_sent', 'ok', { httpStatus: 200 });
@@ -229,7 +258,12 @@ export class EmbeddingsPipeline {
         body: {
           ...response,
           usage,
-          gateway: { requestId, provider: model.providerId, model: model.id, latencyMs: trace.elapsedMs },
+          gateway: {
+            requestId,
+            provider: model.providerId,
+            model: model.id,
+            latencyMs: trace.elapsedMs,
+          },
         },
       };
     } catch (err) {

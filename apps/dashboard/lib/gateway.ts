@@ -79,7 +79,8 @@ export async function gatewayFetch<T>(path: string, options: GatewayFetchOptions
 /** Unauthenticated gateway endpoints, used by the connect page and the header. */
 export async function gatewayPublicFetch<T>(gatewayUrl: string, path: string): Promise<T> {
   const response = await fetch(`${gatewayUrl.replace(/\/+$/, '')}${path}`, { cache: 'no-store' });
-  if (!response.ok) throw new GatewayRequestError(response.status, 'unavailable', `HTTP ${response.status}`);
+  if (!response.ok)
+    throw new GatewayRequestError(response.status, 'unavailable', `HTTP ${response.status}`);
   return (await response.json()) as T;
 }
 
@@ -190,7 +191,12 @@ export interface UsageReport {
     errorType: GroupRow[];
     apiKey?: GroupRow[];
   };
-  disclosure: { pricingVersion: string; pricingAgeDays: number; estimatedUsageShare: number; note: string };
+  disclosure: {
+    pricingVersion: string;
+    pricingAgeDays: number;
+    estimatedUsageShare: number;
+    note: string;
+  };
 }
 
 export interface GroupRow {

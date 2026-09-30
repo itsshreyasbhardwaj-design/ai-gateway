@@ -1,6 +1,17 @@
 import { formatRelativeTime, formatTimestamp } from '@ai-gateway/ui';
 import { gatewayFetch, type PolicyRow, type ProjectRow } from '@/lib/gateway';
-import { Badge, EmptyState, Mono, Notice, PageHeader, Panel, Pill, Table, Td, Th } from '@/components/ui/primitives';
+import {
+  Badge,
+  EmptyState,
+  Mono,
+  Notice,
+  PageHeader,
+  Panel,
+  Pill,
+  Table,
+  Td,
+  Th,
+} from '@/components/ui/primitives';
 import { PolicyEditor } from './policy-editor';
 import { PolicyVersions } from './policy-versions';
 import { GatewayError } from '../error-panel';
@@ -47,7 +58,9 @@ export default async function RoutingPage() {
   try {
     const [policyResult, projectResult] = await Promise.all([
       gatewayFetch<{ data: PolicyRow[] }>('/api/v1/routing-policies'),
-      gatewayFetch<{ data: ProjectRow[] }>('/api/v1/projects').catch(() => ({ data: [] as ProjectRow[] })),
+      gatewayFetch<{ data: ProjectRow[] }>('/api/v1/projects').catch(() => ({
+        data: [] as ProjectRow[],
+      })),
     ]);
     policies = policyResult.data;
     projects = projectResult.data;
@@ -69,9 +82,9 @@ export default async function RoutingPage() {
 
       <div className="mb-4">
         <Notice tone="info" title="How a policy is chosen for a request">
-          The project&apos;s assigned policy wins; otherwise the organization default; otherwise a generated policy that
-          routes across every registered model. A project pointing at a policy with no active version is an error rather
-          than a silent fall-through to defaults.
+          The project&apos;s assigned policy wins; otherwise the organization default; otherwise a
+          generated policy that routes across every registered model. A project pointing at a policy
+          with no active version is an error rather than a silent fall-through to defaults.
         </Notice>
       </div>
 
@@ -98,7 +111,13 @@ export default async function RoutingPage() {
                 <tbody>
                   {policies.map((policy) => {
                     const doc = policy.activeVersionDetail?.document as
-                      | { routing?: { strategy?: string; models?: Array<string | { model: string }> }; cache?: { mode?: string } }
+                      | {
+                          routing?: {
+                            strategy?: string;
+                            models?: Array<string | { model: string }>;
+                          };
+                          cache?: { mode?: string };
+                        }
                       | undefined;
                     const models = (doc?.routing?.models ?? []).map((entry) =>
                       typeof entry === 'string' ? entry : entry.model,
@@ -129,7 +148,9 @@ export default async function RoutingPage() {
                         </Td>
                         <Td align="right">v{policy.activeVersion}</Td>
                         <Td title={formatTimestamp(policy.updatedAt)}>
-                          <span className="text-2xs text-zinc-500">{formatRelativeTime(policy.updatedAt)}</span>
+                          <span className="text-2xs text-zinc-500">
+                            {formatRelativeTime(policy.updatedAt)}
+                          </span>
                         </Td>
                       </tr>
                     );
@@ -140,7 +161,12 @@ export default async function RoutingPage() {
           </Panel>
 
           {policies.map((policy) => (
-            <PolicyVersions key={policy.id} policyId={policy.id} policyName={policy.name} activeVersion={policy.activeVersion} />
+            <PolicyVersions
+              key={policy.id}
+              policyId={policy.id}
+              policyName={policy.name}
+              activeVersion={policy.activeVersion}
+            />
           ))}
         </div>
 

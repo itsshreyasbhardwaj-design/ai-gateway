@@ -18,8 +18,20 @@ function setup(clockStart = 0) {
   return { clock, limiter: new RateLimiter({ kv, clock }), kv };
 }
 
-const rpm = (limit: number): RateLimitRule => ({ id: 'rpm', subject: 'api_key', unit: 'requests', window: 'minute', limit });
-const tpm = (limit: number): RateLimitRule => ({ id: 'tpm', subject: 'api_key', unit: 'tokens', window: 'minute', limit });
+const rpm = (limit: number): RateLimitRule => ({
+  id: 'rpm',
+  subject: 'api_key',
+  unit: 'requests',
+  window: 'minute',
+  limit,
+});
+const tpm = (limit: number): RateLimitRule => ({
+  id: 'tpm',
+  subject: 'api_key',
+  unit: 'tokens',
+  window: 'minute',
+  limit,
+});
 
 describe('RateLimiter - request limits', () => {
   it('allows up to the limit and rejects the next request', async () => {
@@ -58,7 +70,16 @@ describe('RateLimiter - request limits', () => {
 
   it('scopes model limits per organization so tenants cannot starve each other', async () => {
     const { limiter } = setup();
-    const rules: RateLimitRule[] = [{ id: 'm', subject: 'model', unit: 'requests', window: 'minute', limit: 1, target: 'mock/mock-fast' }];
+    const rules: RateLimitRule[] = [
+      {
+        id: 'm',
+        subject: 'model',
+        unit: 'requests',
+        window: 'minute',
+        limit: 1,
+        target: 'mock/mock-fast',
+      },
+    ];
     expect((await limiter.check(rules, ctx)).allowed).toBe(true);
     expect((await limiter.check(rules, ctx)).allowed).toBe(false);
     expect((await limiter.check(rules, { ...ctx, organizationId: 'org_2' })).allowed).toBe(true);
@@ -66,7 +87,16 @@ describe('RateLimiter - request limits', () => {
 
   it('applies a targeted model rule only to that model', async () => {
     const { limiter } = setup();
-    const rules: RateLimitRule[] = [{ id: 'm', subject: 'model', unit: 'requests', window: 'minute', limit: 1, target: 'mock/mock-smart' }];
+    const rules: RateLimitRule[] = [
+      {
+        id: 'm',
+        subject: 'model',
+        unit: 'requests',
+        window: 'minute',
+        limit: 1,
+        target: 'mock/mock-smart',
+      },
+    ];
     expect((await limiter.check(rules, ctx)).allowed).toBe(true);
     expect((await limiter.check(rules, ctx)).allowed).toBe(true);
     const smart = { ...ctx, modelId: 'mock/mock-smart' };
@@ -90,7 +120,9 @@ describe('RateLimiter - request limits', () => {
 
   it('skips user-subject rules when no end user is attributed', async () => {
     const { limiter } = setup();
-    const rules: RateLimitRule[] = [{ id: 'u', subject: 'user', unit: 'requests', window: 'minute', limit: 1 }];
+    const rules: RateLimitRule[] = [
+      { id: 'u', subject: 'user', unit: 'requests', window: 'minute', limit: 1 },
+    ];
     const check = await limiter.check(rules, ctx);
     expect(check.results).toHaveLength(0);
     expect(check.allowed).toBe(true);
@@ -185,7 +217,10 @@ describe('defaults and reset', () => {
   });
 
   it('builds rules from a policy', () => {
-    const rules = rulesFromPolicy({ requestsPerMinutePerKey: 100, tokensPerDayPerOrganization: 5_000 });
+    const rules = rulesFromPolicy({
+      requestsPerMinutePerKey: 100,
+      tokensPerDayPerOrganization: 5_000,
+    });
     expect(rules).toEqual([
       { id: 'key-rpm', subject: 'api_key', unit: 'requests', window: 'minute', limit: 100 },
       { id: 'org-tpd', subject: 'organization', unit: 'tokens', window: 'day', limit: 5_000 },

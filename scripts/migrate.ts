@@ -26,7 +26,9 @@ async function main(): Promise<void> {
   try {
     await store.migrate();
     const healthy = await store.healthCheck();
-    process.stdout.write(healthy ? 'Schema applied.\n' : 'Schema applied but the health check failed.\n');
+    process.stdout.write(
+      healthy ? 'Schema applied.\n' : 'Schema applied but the health check failed.\n',
+    );
     process.exit(healthy ? 0 : 1);
   } catch (err) {
     process.stderr.write(`Migration failed: ${(err as Error).message}\n`);

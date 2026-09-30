@@ -28,7 +28,10 @@ export interface AuthDeps {
  * Every failure returns the same message and the same 401. Distinguishing
  * "no such key" from "wrong key" tells an attacker which prefixes exist.
  */
-export async function authenticate(deps: AuthDeps, header: string | undefined): Promise<AuthenticatedKey> {
+export async function authenticate(
+  deps: AuthDeps,
+  header: string | undefined,
+): Promise<AuthenticatedKey> {
   const presented = extractBearer(header);
   if (!presented) throw unauthorized();
 

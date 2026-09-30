@@ -1,6 +1,23 @@
-import { CIRCUIT_TONES, formatDuration, formatNumber, formatPercent, HEALTH_TONES } from '@ai-gateway/ui';
+import {
+  CIRCUIT_TONES,
+  formatDuration,
+  formatNumber,
+  formatPercent,
+  HEALTH_TONES,
+} from '@ai-gateway/ui';
 import { gatewayFetch, type ProviderRow } from '@/lib/gateway';
-import { Badge, EmptyState, KeyValue, Mono, Notice, PageHeader, Panel, Table, Td, Th } from '@/components/ui/primitives';
+import {
+  Badge,
+  EmptyState,
+  KeyValue,
+  Mono,
+  Notice,
+  PageHeader,
+  Panel,
+  Table,
+  Td,
+  Th,
+} from '@/components/ui/primitives';
 import { ActionForm, RowAction } from '@/components/action-form';
 import { Field, Input, Select } from '@/components/ui/controls';
 import { createProvider, deleteProvider, probeProvider, resetCircuits } from '@/app/actions';
@@ -30,14 +47,24 @@ export default async function ProvidersPage() {
       <PageHeader
         title="Providers"
         description="Health figures are measurements of this gateway's own traffic over its health window, not vendor-published availability."
-        actions={<RowAction action={resetCircuits} label="Reset circuit breakers" title="Close every open circuit. Use after fixing a credential or an upstream outage." />}
+        actions={
+          <RowAction
+            action={resetCircuits}
+            label="Reset circuit breakers"
+            title="Close every open circuit. Use after fixing a credential or an upstream outage."
+          />
+        }
       />
 
       {unregistered.length > 0 && (
         <div className="mb-4">
-          <Notice tone="warn" title={`${unregistered.length} provider(s) configured but not registered`}>
-            These are stored but could not be constructed at boot — usually a missing credential or no configured
-            models. They cannot serve traffic until that is fixed: {unregistered.map((p) => p.id).join(', ')}.
+          <Notice
+            tone="warn"
+            title={`${unregistered.length} provider(s) configured but not registered`}
+          >
+            These are stored but could not be constructed at boot — usually a missing credential or
+            no configured models. They cannot serve traffic until that is fixed:{' '}
+            {unregistered.map((p) => p.id).join(', ')}.
           </Notice>
         </div>
       )}
@@ -75,7 +102,10 @@ export default async function ProvidersPage() {
                         <Mono className="text-zinc-200">{provider.id}</Mono>
                         <div className="text-2xs text-zinc-600">{provider.displayName}</div>
                         {provider.baseUrl && (
-                          <div className="mt-0.5 max-w-xs truncate font-mono text-2xs text-zinc-600" title={provider.baseUrl}>
+                          <div
+                            className="mt-0.5 max-w-xs truncate font-mono text-2xs text-zinc-600"
+                            title={provider.baseUrl}
+                          >
                             {provider.baseUrl}
                           </div>
                         )}
@@ -84,26 +114,52 @@ export default async function ProvidersPage() {
                         <span className="text-xs text-zinc-400">{provider.kind}</span>
                       </Td>
                       <Td>
-                        <Badge tone={provider.registered ? (HEALTH_TONES[provider.health.state] ?? 'neutral') : 'error'}>
+                        <Badge
+                          tone={
+                            provider.registered
+                              ? (HEALTH_TONES[provider.health.state] ?? 'neutral')
+                              : 'error'
+                          }
+                        >
                           {provider.registered ? provider.health.state : 'not registered'}
                         </Badge>
                       </Td>
                       <Td align="right">{provider.models}</Td>
                       <Td align="right">{formatNumber(provider.health.total)}</Td>
                       <Td align="right">
-                        {provider.health.total > 0 ? formatPercent(provider.health.successRate, 2) : <span className="text-zinc-600">—</span>}
+                        {provider.health.total > 0 ? (
+                          formatPercent(provider.health.successRate, 2)
+                        ) : (
+                          <span className="text-zinc-600">—</span>
+                        )}
                       </Td>
                       <Td align="right">
-                        {provider.health.total > 0 ? formatDuration(provider.health.p50LatencyMs) : <span className="text-zinc-600">—</span>}
+                        {provider.health.total > 0 ? (
+                          formatDuration(provider.health.p50LatencyMs)
+                        ) : (
+                          <span className="text-zinc-600">—</span>
+                        )}
                       </Td>
                       <Td align="right">
-                        {provider.health.total > 0 ? formatDuration(provider.health.p95LatencyMs) : <span className="text-zinc-600">—</span>}
+                        {provider.health.total > 0 ? (
+                          formatDuration(provider.health.p95LatencyMs)
+                        ) : (
+                          <span className="text-zinc-600">—</span>
+                        )}
                       </Td>
                       <Td align="right">
-                        {provider.health.total > 0 ? formatPercent(provider.health.timeoutRate, 1) : <span className="text-zinc-600">—</span>}
+                        {provider.health.total > 0 ? (
+                          formatPercent(provider.health.timeoutRate, 1)
+                        ) : (
+                          <span className="text-zinc-600">—</span>
+                        )}
                       </Td>
                       <Td align="right">
-                        {provider.health.total > 0 ? formatPercent(provider.health.rateLimitRate, 1) : <span className="text-zinc-600">—</span>}
+                        {provider.health.total > 0 ? (
+                          formatPercent(provider.health.rateLimitRate, 1)
+                        ) : (
+                          <span className="text-zinc-600">—</span>
+                        )}
                       </Td>
                       <Td>
                         {provider.credential ? (
@@ -116,9 +172,15 @@ export default async function ProvidersPage() {
                       </Td>
                       <Td>
                         <span className="flex items-center gap-1">
-                          <RowAction action={probeProvider} arg={provider.id} label="Probe" title="Send a health probe to this provider now." />
                           <RowAction
-                            action={deleteProvider} arg={provider.id}
+                            action={probeProvider}
+                            arg={provider.id}
+                            label="Probe"
+                            title="Send a health probe to this provider now."
+                          />
+                          <RowAction
+                            action={deleteProvider}
+                            arg={provider.id}
                             label="Remove"
                             confirmLabel="Confirm remove"
                             variant="ghost"
@@ -147,15 +209,22 @@ export default async function ProvidersPage() {
           )}
         </div>
 
-        <Panel title="Add a custom provider" subtitle="Any endpoint speaking the OpenAI chat-completions wire format">
+        <Panel
+          title="Add a custom provider"
+          subtitle="Any endpoint speaking the OpenAI chat-completions wire format"
+        >
           <div className="p-4">
             <Notice tone="warn" title="Base URLs are SSRF-checked">
-              A private or link-local address is refused unless the operator has allowlisted that host via{' '}
-              <Mono>PROVIDER_ALLOWED_HOSTS</Mono>. Cloud metadata endpoints are always refused.
+              A private or link-local address is refused unless the operator has allowlisted that
+              host via <Mono>PROVIDER_ALLOWED_HOSTS</Mono>. Cloud metadata endpoints are always
+              refused.
             </Notice>
 
             <ActionForm action={createProvider} submitLabel="Register provider" className="mt-4">
-              <Field label="Provider id" hint="Lowercase, used as the prefix in model ids: myvendor/model-name.">
+              <Field
+                label="Provider id"
+                hint="Lowercase, used as the prefix in model ids: myvendor/model-name."
+              >
                 <Input name="id" placeholder="myvendor" mono required />
               </Field>
               <Field label="Display name">
@@ -176,13 +245,22 @@ export default async function ProvidersPage() {
                   ]}
                 />
               </Field>
-              <Field label="Base URL" hint="Leave empty to use the built-in default for a known vendor.">
+              <Field
+                label="Base URL"
+                hint="Leave empty to use the built-in default for a known vendor."
+              >
                 <Input name="baseUrl" placeholder="https://api.myvendor.example/v1" mono />
               </Field>
-              <Field label="API key" hint="Encrypted with AES-256-GCM before storage and never returned by the API.">
+              <Field
+                label="API key"
+                hint="Encrypted with AES-256-GCM before storage and never returned by the API."
+              >
                 <Input name="credentialValue" type="password" mono placeholder="sk-…" />
               </Field>
-              <Field label="Models" hint="Space or comma separated upstream model ids. Required for an endpoint the gateway has no catalog for.">
+              <Field
+                label="Models"
+                hint="Space or comma separated upstream model ids. Required for an endpoint the gateway has no catalog for."
+              >
                 <Input name="models" placeholder="model-small model-large" mono />
               </Field>
               <Field label="Context window" hint="Applied to each model listed above.">
@@ -196,9 +274,9 @@ export default async function ProvidersPage() {
       <p className="mt-3 text-2xs leading-relaxed text-zinc-600">
         Circuit states: <Badge tone={CIRCUIT_TONES['CLOSED']!}>closed</Badge> routing normally,{' '}
         <Badge tone={CIRCUIT_TONES['HALF_OPEN']!}>half-open</Badge> probing after a back-off, and{' '}
-        <Badge tone={CIRCUIT_TONES['OPEN']!}>open</Badge> excluded until the next probe window. Tripping requires either
-        a run of consecutive failures or a sustained failure rate over a minimum call volume, so one bad request never
-        removes a provider.
+        <Badge tone={CIRCUIT_TONES['OPEN']!}>open</Badge> excluded until the next probe window.
+        Tripping requires either a run of consecutive failures or a sustained failure rate over a
+        minimum call volume, so one bad request never removes a provider.
       </p>
     </>
   );

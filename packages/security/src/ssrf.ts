@@ -22,11 +22,7 @@ export interface UrlGuardOptions {
   allowInsecureHttp?: boolean;
 }
 
-const BLOCKED_HOSTNAMES = new Set([
-  'metadata.google.internal',
-  'metadata.goog',
-  'instance-data',
-]);
+const BLOCKED_HOSTNAMES = new Set(['metadata.google.internal', 'metadata.goog', 'instance-data']);
 
 export interface UrlGuardResult {
   ok: boolean;
@@ -74,9 +70,13 @@ export function inspectProviderUrl(raw: string, opts: UrlGuardOptions = {}): Url
 export function assertSafeProviderUrl(raw: string, opts: UrlGuardOptions = {}): URL {
   const result = inspectProviderUrl(raw, opts);
   if (!result.ok || !result.url) {
-    throw new GatewayError('invalid_request', `Rejected provider base URL. ${result.reason ?? ''}`.trim(), {
-      details: { reason: result.reason },
-    });
+    throw new GatewayError(
+      'invalid_request',
+      `Rejected provider base URL. ${result.reason ?? ''}`.trim(),
+      {
+        details: { reason: result.reason },
+      },
+    );
   }
   return result.url;
 }
@@ -132,7 +132,8 @@ function intToIpv4(value: number): string {
 
 function isPrivateIpv4(ip: string): boolean {
   const parts = ip.split('.').map(Number);
-  if (parts.length !== 4 || parts.some((p) => !Number.isInteger(p) || p < 0 || p > 255)) return true;
+  if (parts.length !== 4 || parts.some((p) => !Number.isInteger(p) || p < 0 || p > 255))
+    return true;
   const [a = 0, b = 0] = parts;
   if (a === 0) return true; // "this network"
   if (a === 10) return true;

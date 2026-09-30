@@ -78,7 +78,12 @@ export class PolicyVersionStore {
    * and a gateway that activates on save makes an editor typo a production
    * incident.
    */
-  publish(policyId: string, document: RoutingPolicyDocument, createdBy: string, note?: string): PolicyVersion {
+  publish(
+    policyId: string,
+    document: RoutingPolicyDocument,
+    createdBy: string,
+    note?: string,
+  ): PolicyVersion {
     const history = this.versions.get(policyId);
     const policy = this.policies.get(policyId);
     if (!history || !policy) throw new Error(`unknown policy: ${policyId}`);
@@ -136,7 +141,9 @@ export class PolicyVersionStore {
 
   list(organizationId: string, projectId?: string): StoredPolicy[] {
     return [...this.policies.values()].filter(
-      (p) => p.organizationId === organizationId && (projectId === undefined || p.projectId === projectId),
+      (p) =>
+        p.organizationId === organizationId &&
+        (projectId === undefined || p.projectId === projectId),
     );
   }
 
@@ -146,11 +153,19 @@ export class PolicyVersionStore {
     const from = history.find((v) => v.version === fromVersion);
     const to = history.find((v) => v.version === toVersion);
     if (!from || !to) throw new Error('unknown version');
-    return diffObjects(from.document as unknown as Record<string, unknown>, to.document as unknown as Record<string, unknown>, '');
+    return diffObjects(
+      from.document as unknown as Record<string, unknown>,
+      to.document as unknown as Record<string, unknown>,
+      '',
+    );
   }
 }
 
-function diffObjects(a: Record<string, unknown>, b: Record<string, unknown>, prefix: string): string[] {
+function diffObjects(
+  a: Record<string, unknown>,
+  b: Record<string, unknown>,
+  prefix: string,
+): string[] {
   const out: string[] = [];
   const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
   for (const key of [...keys].sort()) {

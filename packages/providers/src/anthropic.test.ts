@@ -11,7 +11,11 @@ const model = testModel({
 });
 
 function provider(stub: ReturnType<typeof stubFetch>) {
-  return new AnthropicProvider({ apiKey: 'sk-ant-test-key-value', models: [model], fetchImpl: stub.fetch });
+  return new AnthropicProvider({
+    apiKey: 'sk-ant-test-key-value',
+    models: [model],
+    fetchImpl: stub.fetch,
+  });
 }
 
 const ok = {
@@ -52,7 +56,10 @@ describe('AnthropicProvider - request translation', () => {
 
   it('sends the api key in x-api-key with a pinned api version', async () => {
     const stub = stubFetch(ok);
-    await provider(stub).chat({ model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }] }, testCallContext({ model }));
+    await provider(stub).chat(
+      { model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }] },
+      testCallContext({ model }),
+    );
     expect(stub.calls[0]?.headers['x-api-key']).toBe('sk-ant-test-key-value');
     expect(stub.calls[0]?.headers['anthropic-version']).toBe('2023-06-01');
     expect(stub.calls[0]?.headers['authorization']).toBeUndefined();
@@ -65,7 +72,17 @@ describe('AnthropicProvider - request translation', () => {
         model: 'anthropic/claude-x',
         messages: [
           { role: 'user', content: 'weather?' },
-          { role: 'assistant', content: null, tool_calls: [{ id: 'toolu_1', type: 'function', function: { name: 'get_weather', arguments: '{"city":"Pune"}' } }] },
+          {
+            role: 'assistant',
+            content: null,
+            tool_calls: [
+              {
+                id: 'toolu_1',
+                type: 'function',
+                function: { name: 'get_weather', arguments: '{"city":"Pune"}' },
+              },
+            ],
+          },
           { role: 'tool', tool_call_id: 'toolu_1', content: '31C' },
         ],
       },
@@ -89,13 +106,24 @@ describe('AnthropicProvider - request translation', () => {
       {
         model: 'anthropic/claude-x',
         messages: [{ role: 'user', content: 'hi' }],
-        tools: [{ type: 'function', function: { name: 'f', description: 'd', parameters: { type: 'object', properties: {} } } }],
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'f',
+              description: 'd',
+              parameters: { type: 'object', properties: {} },
+            },
+          },
+        ],
         tool_choice: 'required',
       },
       testCallContext({ model }),
     );
     const body = stub.calls[0]?.body as Record<string, unknown>;
-    expect(body['tools']).toEqual([{ name: 'f', description: 'd', input_schema: { type: 'object', properties: {} } }]);
+    expect(body['tools']).toEqual([
+      { name: 'f', description: 'd', input_schema: { type: 'object', properties: {} } },
+    ]);
     expect(body['tool_choice']).toEqual({ type: 'any' });
   });
 
@@ -104,7 +132,12 @@ describe('AnthropicProvider - request translation', () => {
     await provider(stub).chat(
       {
         model: 'anthropic/claude-x',
-        messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'data:image/png;base64,AAAA' } }] }],
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'image_url', image_url: { url: 'data:image/png;base64,AAAA' } }],
+          },
+        ],
       },
       testCallContext({ model }),
     );
@@ -134,7 +167,12 @@ describe('AnthropicProvider - response translation', () => {
     expect(res.model).toBe('anthropic/claude-x');
     expect(res.choices[0]?.message.content).toBe('Hello there');
     expect(res.choices[0]?.finish_reason).toBe('stop');
-    expect(res.usage).toMatchObject({ input: 12, output: 3, total: 15, source: 'provider_reported' });
+    expect(res.usage).toMatchObject({
+      input: 12,
+      output: 3,
+      total: 15,
+      source: 'provider_reported',
+    });
   });
 
   it('lifts tool_use blocks into tool_calls', async () => {
@@ -146,7 +184,10 @@ describe('AnthropicProvider - response translation', () => {
         usage: { input_tokens: 5, output_tokens: 8 },
       },
     });
-    const res = await provider(stub).chat({ model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }] }, testCallContext({ model }));
+    const res = await provider(stub).chat(
+      { model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }] },
+      testCallContext({ model }),
+    );
     expect(res.choices[0]?.finish_reason).toBe('tool_calls');
     expect(res.choices[0]?.message.tool_calls).toEqual([
       { id: 'toolu_9', type: 'function', function: { name: 'lookup', arguments: '{"q":"x"}' } },
@@ -155,8 +196,13 @@ describe('AnthropicProvider - response translation', () => {
   });
 
   it('maps max_tokens to a length finish reason', async () => {
-    const stub = stubFetch({ json: { content: [{ type: 'text', text: 'x' }], stop_reason: 'max_tokens' } });
-    const res = await provider(stub).chat({ model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }] }, testCallContext({ model }));
+    const stub = stubFetch({
+      json: { content: [{ type: 'text', text: 'x' }], stop_reason: 'max_tokens' },
+    });
+    const res = await provider(stub).chat(
+      { model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }] },
+      testCallContext({ model }),
+    );
     expect(res.choices[0]?.finish_reason).toBe('length');
   });
 
@@ -168,7 +214,10 @@ describe('AnthropicProvider - response translation', () => {
         usage: { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 90 },
       },
     });
-    const res = await provider(stub).chat({ model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }] }, testCallContext({ model }));
+    const res = await provider(stub).chat(
+      { model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }] },
+      testCallContext({ model }),
+    );
     expect(res.usage).toMatchObject({ input: 100, cachedInput: 90, output: 5 });
   });
 });
@@ -188,7 +237,10 @@ describe('AnthropicProvider - streaming', () => {
     });
 
     const chunks = await collect(
-      provider(stub).stream({ model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }], stream: true }, testCallContext({ model })),
+      provider(stub).stream(
+        { model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }], stream: true },
+        testCallContext({ model }),
+      ),
     );
 
     expect(chunks[0]?.choices[0]?.delta.role).toBe('assistant');
@@ -202,21 +254,42 @@ describe('AnthropicProvider - streaming', () => {
     const stub = stubFetch({
       sse: [
         { type: 'message_start', message: { usage: { input_tokens: 4 } } },
-        { type: 'content_block_start', index: 0, content_block: { type: 'tool_use', id: 'toolu_a', name: 'f' } },
-        { type: 'content_block_delta', index: 0, delta: { type: 'input_json_delta', partial_json: '{"a":' } },
-        { type: 'content_block_delta', index: 0, delta: { type: 'input_json_delta', partial_json: '1}' } },
+        {
+          type: 'content_block_start',
+          index: 0,
+          content_block: { type: 'tool_use', id: 'toolu_a', name: 'f' },
+        },
+        {
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'input_json_delta', partial_json: '{"a":' },
+        },
+        {
+          type: 'content_block_delta',
+          index: 0,
+          delta: { type: 'input_json_delta', partial_json: '1}' },
+        },
         { type: 'message_delta', delta: { stop_reason: 'tool_use' }, usage: { output_tokens: 6 } },
         { type: 'message_stop' },
       ],
     });
 
     const chunks = await collect(
-      provider(stub).stream({ model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }], stream: true }, testCallContext({ model })),
+      provider(stub).stream(
+        { model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }], stream: true },
+        testCallContext({ model }),
+      ),
     );
 
     const toolChunks = chunks.filter((c) => c.choices[0]?.delta.tool_calls);
-    expect(toolChunks[0]?.choices[0]?.delta.tool_calls?.[0]).toMatchObject({ index: 0, id: 'toolu_a', function: { name: 'f' } });
-    const args = toolChunks.map((c) => c.choices[0]?.delta.tool_calls?.[0]?.function?.arguments ?? '').join('');
+    expect(toolChunks[0]?.choices[0]?.delta.tool_calls?.[0]).toMatchObject({
+      index: 0,
+      id: 'toolu_a',
+      function: { name: 'f' },
+    });
+    const args = toolChunks
+      .map((c) => c.choices[0]?.delta.tool_calls?.[0]?.function?.arguments ?? '')
+      .join('');
     expect(args).toBe('{"a":1}');
     expect(chunks[chunks.length - 1]?.choices[0]?.finish_reason).toBe('tool_calls');
   });
@@ -229,7 +302,16 @@ describe('AnthropicProvider - streaming', () => {
       ],
     });
     await expect(
-      collect(provider(stub).stream({ model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }], stream: true }, testCallContext({ model }))),
+      collect(
+        provider(stub).stream(
+          {
+            model: 'anthropic/claude-x',
+            messages: [{ role: 'user', content: 'Hi' }],
+            stream: true,
+          },
+          testCallContext({ model }),
+        ),
+      ),
     ).rejects.toMatchObject({ type: 'provider_overloaded', retryable: true });
   });
 });
@@ -249,7 +331,10 @@ describe('AnthropicProvider - error normalization', () => {
     it(`maps ${type} to ${expected}`, async () => {
       const stub = stubFetch({ status, json: { type: 'error', error: { type, message: 'x' } } });
       await expect(
-        provider(stub).chat({ model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }] }, testCallContext({ model })),
+        provider(stub).chat(
+          { model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }] },
+          testCallContext({ model }),
+        ),
       ).rejects.toMatchObject({ type: expected });
     });
   }
@@ -257,10 +342,16 @@ describe('AnthropicProvider - error normalization', () => {
   it('detects a context-window overflow from the message text', async () => {
     const stub = stubFetch({
       status: 400,
-      json: { type: 'error', error: { type: 'invalid_request_error', message: 'prompt is too long: 250000 tokens' } },
+      json: {
+        type: 'error',
+        error: { type: 'invalid_request_error', message: 'prompt is too long: 250000 tokens' },
+      },
     });
     await expect(
-      provider(stub).chat({ model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }] }, testCallContext({ model })),
+      provider(stub).chat(
+        { model: 'anthropic/claude-x', messages: [{ role: 'user', content: 'Hi' }] },
+        testCallContext({ model }),
+      ),
     ).rejects.toMatchObject({ type: 'context_length_exceeded', retryable: false });
   });
 });

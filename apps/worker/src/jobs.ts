@@ -153,7 +153,8 @@ export async function evaluateAlerts(deps: JobDeps): Promise<JobResult> {
       const observed = observedValue(rule, summary, deps, organization.id);
       if (observed === null) continue;
 
-      const breached = rule.comparator === 'gt' ? observed > rule.threshold : observed < rule.threshold;
+      const breached =
+        rule.comparator === 'gt' ? observed > rule.threshold : observed < rule.threshold;
       if (!breached) continue;
 
       const last = await deps.store.lastAlertEvent(rule.id);
@@ -177,11 +178,24 @@ export async function evaluateAlerts(deps: JobDeps): Promise<JobResult> {
           event: rule.metric === 'error_rate' ? 'high_error_rate' : 'provider.degraded',
           organizationId: organization.id,
           occurredAt: new Date().toISOString(),
-          data: { alertId: rule.id, name: rule.name, metric: rule.metric, observed, threshold: rule.threshold, message, window: range },
+          data: {
+            alertId: rule.id,
+            name: rule.name,
+            metric: rule.metric,
+            observed,
+            threshold: rule.threshold,
+            message,
+            window: range,
+          },
         })
         .catch(() => undefined);
 
-      deps.logger.warn('alert fired', { alertId: rule.id, metric: rule.metric, observed, threshold: rule.threshold });
+      deps.logger.warn('alert fired', {
+        alertId: rule.id,
+        metric: rule.metric,
+        observed,
+        threshold: rule.threshold,
+      });
       fired++;
     }
   }

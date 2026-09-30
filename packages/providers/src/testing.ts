@@ -63,11 +63,16 @@ export function stubFetch(responses: StubResponse | StubResponse[]): StubFetch {
 
     if (spec.sse || spec.sseRaw !== undefined) {
       headers.set('content-type', 'text/event-stream');
-      const text = spec.sseRaw ?? `${(spec.sse ?? []).map((e) => `data: ${JSON.stringify(e)}\n\n`).join('')}data: [DONE]\n\n`;
+      const text =
+        spec.sseRaw ??
+        `${(spec.sse ?? []).map((e) => `data: ${JSON.stringify(e)}\n\n`).join('')}data: [DONE]\n\n`;
       return new Response(streamOf(text), { status, headers });
     }
 
-    return new Response(spec.json === undefined ? '' : JSON.stringify(spec.json), { status, headers });
+    return new Response(spec.json === undefined ? '' : JSON.stringify(spec.json), {
+      status,
+      headers,
+    });
   }) as typeof fetch;
 
   return { fetch: impl, calls };

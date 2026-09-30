@@ -7,8 +7,13 @@ import { createSeedPricingBook } from '@ai-gateway/pricing';
 import { ProviderRegistry } from '@ai-gateway/provider-sdk';
 import { MockProvider, MOCK_MODELS } from '@ai-gateway/providers';
 import { parsePolicyOrThrow, type RoutingPolicyDocument } from '@ai-gateway/policies';
-import { generateApiKey, hashApiKey, keyIndex } from '@ai-gateway/security';
-import { buildApp, buildContext, WebhookDispatcher, type GatewayContext } from '@ai-gateway/gateway';
+import { generateApiKey, keyIndex } from '@ai-gateway/security';
+import {
+  buildApp,
+  buildContext,
+  WebhookDispatcher,
+  type GatewayContext,
+} from '@ai-gateway/gateway';
 import { SecretBox } from '@ai-gateway/security';
 import type { FastifyInstance } from 'fastify';
 
@@ -39,7 +44,12 @@ export interface Harness {
   /** Mock providers by id, for injecting failures. */
   mocks: Map<string, MockProvider>;
   webhookCalls: Array<{ url: string; body: unknown; headers: Record<string, string> }>;
-  request(method: string, url: string, body?: unknown, headers?: Record<string, string>): Promise<HarnessResponse>;
+  request(
+    method: string,
+    url: string,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ): Promise<HarnessResponse>;
   chat(body: Record<string, unknown>, headers?: Record<string, string>): Promise<HarnessResponse>;
   stream(body: Record<string, unknown>): Promise<StreamResult>;
   close(): Promise<void>;
@@ -109,7 +119,7 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
 
   const webhookCalls: Array<{ url: string; body: unknown; headers: Record<string, string> }> = [];
   const fetchImpl = options.captureWebhooks
-    ? (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+    ? ((async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
         const headers: Record<string, string> = {};
         new Headers(init?.headers).forEach((value, key) => {
           headers[key] = value;
@@ -120,7 +130,7 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
           headers,
         });
         return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
-      }) as typeof fetch
+      }) as typeof fetch)
     : undefined;
 
   const webhooks = new WebhookDispatcher({
@@ -131,7 +141,9 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
   });
 
   const semanticCache = options.semanticCache
-    ? new SemanticCache(new MemoryKV(), async (text) => toyEmbedding(text), { similarityThreshold: 0.85 })
+    ? new SemanticCache(new MemoryKV(), async (text) => toyEmbedding(text), {
+        similarityThreshold: 0.85,
+      })
     : undefined;
 
   const ctx = buildContext({
@@ -202,7 +214,13 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
     prefix: generated.prefix,
     hash: generated.hash,
     lookupIndex: keyIndex(generated.plaintext, config.apiKeyPepper),
-    scopes: options.scopes ?? ['models.read', 'inference.create', 'usage.read', 'logs.read', 'admin'],
+    scopes: options.scopes ?? [
+      'models.read',
+      'inference.create',
+      'usage.read',
+      'logs.read',
+      'admin',
+    ],
     createdAt: new Date().toISOString(),
   });
 
@@ -265,7 +283,10 @@ export async function createHarness(options: HarnessOptions = {}): Promise<Harne
 
 /** Split an SSE body into frames and classify them. */
 export function parseStream(response: HarnessResponse): StreamResult {
-  const frames = response.raw.split('\n\n').map((f) => f.trim()).filter(Boolean);
+  const frames = response.raw
+    .split('\n\n')
+    .map((f) => f.trim())
+    .filter(Boolean);
   const chunks: Array<Record<string, unknown>> = [];
   let receipt: Record<string, unknown> | undefined;
   let errorFrame: Record<string, unknown> | undefined;
@@ -303,12 +324,32 @@ export function parseStream(response: HarnessResponse): StreamResult {
     if (delta) text += delta;
   }
 
-  return { status: response.status, headers: response.headers, frames, chunks, receipt, text, errorFrame, done };
+  return {
+    status: response.status,
+    headers: response.headers,
+    frames,
+    chunks,
+    receipt,
+    text,
+    errorFrame,
+    done,
+  };
 }
 
 /** Deterministic toy embedding over a small vocabulary, for semantic-cache tests. */
 export function toyEmbedding(text: string): number[] {
-  const vocab = ['capital', 'france', 'paris', 'weather', 'pune', 'python', 'recursion', 'explain', 'sql', 'query'];
+  const vocab = [
+    'capital',
+    'france',
+    'paris',
+    'weather',
+    'pune',
+    'python',
+    'recursion',
+    'explain',
+    'sql',
+    'query',
+  ];
   const lowered = text.toLowerCase();
   const vector = vocab.map((word) => (lowered.includes(word) ? 1 : 0));
   const norm = Math.hypot(...vector) || 1;

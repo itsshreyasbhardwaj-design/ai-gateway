@@ -93,7 +93,12 @@ export class RateLimiter {
       if (rule.unit !== 'requests') continue;
       const key = this.keyFor(rule, ctx);
       const ttl = WINDOW_SECONDS[rule.window] * 2;
-      await this.kv.zadd(key, this.clock.now(), `${this.clock.now()}-${Math.random().toString(36).slice(2, 10)}`, ttl);
+      await this.kv.zadd(
+        key,
+        this.clock.now(),
+        `${this.clock.now()}-${Math.random().toString(36).slice(2, 10)}`,
+        ttl,
+      );
     }
 
     return { allowed: true, results };
@@ -145,8 +150,10 @@ export class RateLimiter {
 
   private applies(rule: RateLimitRule, ctx: RateLimitContext): boolean {
     if (rule.subject === 'user' && !ctx.userId) return false;
-    if (rule.subject === 'model') return !!ctx.modelId && (!rule.target || rule.target === ctx.modelId);
-    if (rule.subject === 'provider') return !!ctx.providerId && (!rule.target || rule.target === ctx.providerId);
+    if (rule.subject === 'model')
+      return !!ctx.modelId && (!rule.target || rule.target === ctx.modelId);
+    if (rule.subject === 'provider')
+      return !!ctx.providerId && (!rule.target || rule.target === ctx.providerId);
     if (rule.target) {
       // A targeted rule on a non-model/provider subject still has to match the
       // model or provider in play, otherwise it silently applies everywhere.
@@ -218,16 +225,40 @@ export function rulesFromPolicy(policy: RateLimitPolicy | undefined): RateLimitR
 
   const rules: RateLimitRule[] = [];
   if (policy.requestsPerMinutePerKey !== undefined) {
-    rules.push({ id: 'key-rpm', subject: 'api_key', unit: 'requests', window: 'minute', limit: policy.requestsPerMinutePerKey });
+    rules.push({
+      id: 'key-rpm',
+      subject: 'api_key',
+      unit: 'requests',
+      window: 'minute',
+      limit: policy.requestsPerMinutePerKey,
+    });
   }
   if (policy.tokensPerMinutePerKey !== undefined) {
-    rules.push({ id: 'key-tpm', subject: 'api_key', unit: 'tokens', window: 'minute', limit: policy.tokensPerMinutePerKey });
+    rules.push({
+      id: 'key-tpm',
+      subject: 'api_key',
+      unit: 'tokens',
+      window: 'minute',
+      limit: policy.tokensPerMinutePerKey,
+    });
   }
   if (policy.requestsPerHourPerOrganization !== undefined) {
-    rules.push({ id: 'org-rph', subject: 'organization', unit: 'requests', window: 'hour', limit: policy.requestsPerHourPerOrganization });
+    rules.push({
+      id: 'org-rph',
+      subject: 'organization',
+      unit: 'requests',
+      window: 'hour',
+      limit: policy.requestsPerHourPerOrganization,
+    });
   }
   if (policy.tokensPerDayPerOrganization !== undefined) {
-    rules.push({ id: 'org-tpd', subject: 'organization', unit: 'tokens', window: 'day', limit: policy.tokensPerDayPerOrganization });
+    rules.push({
+      id: 'org-tpd',
+      subject: 'organization',
+      unit: 'tokens',
+      window: 'day',
+      limit: policy.tokensPerDayPerOrganization,
+    });
   }
 
   return rules.length > 0 ? rules : defaultRules();

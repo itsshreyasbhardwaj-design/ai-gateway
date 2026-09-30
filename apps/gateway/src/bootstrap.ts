@@ -1,11 +1,33 @@
-import { DEFAULT_PRIVACY, newId, type Organization, type Project, type ProviderConfig } from '@ai-gateway/core';
-import { MemoryKV, RedisKV, ResilientKV, SemanticCache, type KeyValueStore } from '@ai-gateway/cache';
+import {
+  DEFAULT_PRIVACY,
+  newId,
+  type Organization,
+  type Project,
+  type ProviderConfig,
+} from '@ai-gateway/core';
+import {
+  MemoryKV,
+  RedisKV,
+  ResilientKV,
+  SemanticCache,
+  type KeyValueStore,
+} from '@ai-gateway/cache';
 import { describeConfig, loadGatewayConfig, type GatewayConfig } from '@ai-gateway/config';
 import { createStore, type Store } from '@ai-gateway/database';
-import { createLogger, registerDefaultMetrics, MetricsRegistry, type Logger } from '@ai-gateway/observability';
+import {
+  createLogger,
+  registerDefaultMetrics,
+  MetricsRegistry,
+  type Logger,
+} from '@ai-gateway/observability';
 import { createSeedPricingBook, isUnverified, type PricingBook } from '@ai-gateway/pricing';
-import { ProviderRegistry, ChainCredentialResolver, EnvCredentialResolver, MapCredentialResolver } from '@ai-gateway/provider-sdk';
-import { buildProvider, MockProvider, type ProviderKind } from '@ai-gateway/providers';
+import {
+  ProviderRegistry,
+  ChainCredentialResolver,
+  EnvCredentialResolver,
+  MapCredentialResolver,
+} from '@ai-gateway/provider-sdk';
+import { buildProvider, type MockProvider, type ProviderKind } from '@ai-gateway/providers';
 import { generateApiKey, keyIndex, hashApiKey, SecretBox } from '@ai-gateway/security';
 import { buildContext, type GatewayContext } from './context.js';
 import { WebhookDispatcher } from './webhooks.js';
@@ -44,7 +66,8 @@ export interface DemoSeed {
  */
 export async function bootstrap(overrides: BootstrapOverrides = {}): Promise<BootstrapResult> {
   const config = overrides.config ?? loadGatewayConfig();
-  const logger = overrides.logger ?? createLogger({ level: config.logLevel, pretty: config.logPretty });
+  const logger =
+    overrides.logger ?? createLogger({ level: config.logLevel, pretty: config.logPretty });
 
   const store = overrides.store ?? (await createStore(config.databaseUrl));
   await store.migrate();
@@ -56,7 +79,12 @@ export async function bootstrap(overrides: BootstrapOverrides = {}): Promise<Boo
   const metrics = new MetricsRegistry();
   registerDefaultMetrics(metrics);
 
-  const webhooks = new WebhookDispatcher({ store, secrets, logger, fetchImpl: overrides.fetchImpl });
+  const webhooks = new WebhookDispatcher({
+    store,
+    secrets,
+    logger,
+    fetchImpl: overrides.fetchImpl,
+  });
 
   const { registry, mockProvider, notes } = overrides.providers
     ? { registry: overrides.providers, mockProvider: undefined, notes: [] as string[] }
@@ -98,7 +126,10 @@ async function createKv(config: GatewayConfig, logger: Logger): Promise<KeyValue
     // Caching and counters degrade rather than break when Redis blips; budget
     // enforcement reads through `raw` so it never fails open.
     return new ResilientKV(redis, (op, err) =>
-      logger.warn('redis operation failed; degrading', { operation: op, error: (err as Error)?.message }),
+      logger.warn('redis operation failed; degrading', {
+        operation: op,
+        error: (err as Error)?.message,
+      }),
     );
   } catch (err) {
     logger.error('could not connect to Redis; falling back to in-process counters', {
@@ -127,10 +158,18 @@ async function buildProviderRegistry(
 
   for (const providerConfig of config.providers) {
     try {
-      const built = await buildProvider({ config: providerConfig, credentials, urlGuard, fetchImpl });
+      const built = await buildProvider({
+        config: providerConfig,
+        credentials,
+        urlGuard,
+        fetchImpl,
+      });
       registry.register(built.provider, built.models);
       if (providerConfig.kind === 'mock') mockProvider = built.provider as MockProvider;
-      logger.info('provider registered', { provider: providerConfig.id, models: built.models.length });
+      logger.info('provider registered', {
+        provider: providerConfig.id,
+        models: built.models.length,
+      });
     } catch (err) {
       // One misconfigured provider must not stop the gateway: the rest still
       // serve, and the failure is reported rather than swallowed.
@@ -174,7 +213,10 @@ function createSemanticCache(
 
   const provider = registry.getProvider(model.providerId);
   if (!provider?.embed) {
-    logger.warn('semantic cache disabled', { model: requested, reason: 'provider has no embeddings endpoint' });
+    logger.warn('semantic cache disabled', {
+      model: requested,
+      reason: 'provider has no embeddings endpoint',
+    });
     return undefined;
   }
 
@@ -244,7 +286,13 @@ async function seedDemoData(ctx: GatewayContext): Promise<DemoSeed | undefined> 
 
 async function createTenant(
   ctx: GatewayContext,
-  opts: { orgName: string; orgSlug: string; projectName: string; projectSlug: string; note: string },
+  opts: {
+    orgName: string;
+    orgSlug: string;
+    projectName: string;
+    projectSlug: string;
+    note: string;
+  },
 ): Promise<DemoSeed> {
   const now = new Date().toISOString();
 
@@ -273,7 +321,9 @@ async function createTenant(
   // can quote one without ever creating a predictable production credential.
   const fixed = ctx.config.demoApiKey;
   const useFixed = fixed && ctx.config.nodeEnv !== 'production';
-  const plaintext = useFixed ? fixed : (await generateApiKey(ctx.config.nodeEnv === 'production' ? 'live' : 'test')).plaintext;
+  const plaintext = useFixed
+    ? fixed
+    : (await generateApiKey(ctx.config.nodeEnv === 'production' ? 'live' : 'test')).plaintext;
   const hash = await hashApiKey(plaintext);
 
   await ctx.store.createApiKey({
@@ -293,10 +343,17 @@ async function createTenant(
     await ctx.store.upsertModel(organization.id, model).catch(() => undefined);
   }
   for (const providerConfig of ctx.config.providers) {
-    await ctx.store.upsertProvider(organization.id, sanitizeProvider(providerConfig)).catch(() => undefined);
+    await ctx.store
+      .upsertProvider(organization.id, sanitizeProvider(providerConfig))
+      .catch(() => undefined);
   }
 
-  return { organizationId: organization.id, projectId: project.id, apiKey: plaintext, note: opts.note };
+  return {
+    organizationId: organization.id,
+    projectId: project.id,
+    apiKey: plaintext,
+    note: opts.note,
+  };
 }
 
 /** Provider rows hold a credential *reference*, never a value. */

@@ -90,7 +90,15 @@ export const MOCK_MODELS: ModelDescriptor[] = [
     displayName: 'Mock Smart (synthetic)',
     contextWindow: 200_000,
     maxOutputTokens: 16_384,
-    capabilities: ['chat', 'streaming', 'tools', 'vision', 'structured-output', 'json-mode', 'reasoning'],
+    capabilities: [
+      'chat',
+      'streaming',
+      'tools',
+      'vision',
+      'structured-output',
+      'json-mode',
+      'reasoning',
+    ],
     status: 'available',
     family: 'mock',
     description: 'Higher-cost synthetic model for local development. Not a real model.',
@@ -105,7 +113,8 @@ export const MOCK_MODELS: ModelDescriptor[] = [
     capabilities: ['chat', 'streaming'],
     status: 'available',
     family: 'mock',
-    description: 'Fails a configurable share of requests so fallback and circuit breaking can be exercised.',
+    description:
+      'Fails a configurable share of requests so fallback and circuit breaking can be exercised.',
   },
   {
     id: 'mock/mock-embed',
@@ -116,7 +125,8 @@ export const MOCK_MODELS: ModelDescriptor[] = [
     capabilities: ['embeddings'],
     status: 'available',
     family: 'mock',
-    description: 'Deterministic hashed embeddings for local development. Not a real embedding model.',
+    description:
+      'Deterministic hashed embeddings for local development. Not a real embedding model.',
   },
 ];
 
@@ -132,7 +142,9 @@ export class MockProvider implements AIProvider {
   constructor(opts: MockProviderOptions = {}) {
     this.id = opts.id ?? 'mock';
     this.models = (opts.models ?? MOCK_MODELS).map((m) =>
-      m.providerId === this.id ? m : { ...m, providerId: this.id, id: `${this.id}/${m.providerModelId}` },
+      m.providerId === this.id
+        ? m
+        : { ...m, providerId: this.id, id: `${this.id}/${m.providerModelId}` },
     );
     this.behavior = { latencyMs: 5, chunkDelayMs: 1, reportUsage: true, ...opts.behavior };
     this.perModel = opts.perModel ?? {};
@@ -285,11 +297,20 @@ export class MockProvider implements AIProvider {
     });
   }
 
-  private maybeFail(behavior: MockBehavior, callNumber: number, ctx: ProviderCallContext, streaming: boolean): void {
+  private maybeFail(
+    behavior: MockBehavior,
+    callNumber: number,
+    ctx: ProviderCallContext,
+    streaming: boolean,
+  ): void {
     const opts = { provider: this.id, model: ctx.model.id };
 
     if (behavior.failFirstN !== undefined && callNumber <= behavior.failFirstN) {
-      throw new GatewayError('provider_unavailable', `Mock provider failing call ${callNumber} of first ${behavior.failFirstN}.`, opts);
+      throw new GatewayError(
+        'provider_unavailable',
+        `Mock provider failing call ${callNumber} of first ${behavior.failFirstN}.`,
+        opts,
+      );
     }
 
     if (behavior.failureRate && behavior.failureRate > 0) {
@@ -316,11 +337,23 @@ export class MockProvider implements AIProvider {
       case 'overloaded':
         throw new GatewayError('provider_overloaded', 'Mock provider is overloaded.', opts);
       case 'auth':
-        throw new GatewayError('authentication_error', "Mock provider rejected the gateway's credential.", opts);
+        throw new GatewayError(
+          'authentication_error',
+          "Mock provider rejected the gateway's credential.",
+          opts,
+        );
       case 'invalid_request':
-        throw new GatewayError('invalid_request', 'Mock provider rejected the request as malformed.', opts);
+        throw new GatewayError(
+          'invalid_request',
+          'Mock provider rejected the request as malformed.',
+          opts,
+        );
       case 'mid_stream_error':
-        throw new GatewayError('provider_error', 'Mock provider failed before streaming started.', opts);
+        throw new GatewayError(
+          'provider_error',
+          'Mock provider failed before streaming started.',
+          opts,
+        );
     }
   }
 

@@ -13,7 +13,11 @@ import { generateApiKey, keyIndex, SecretBox } from '@ai-gateway/security';
 import { newId, DEFAULT_PRIVACY } from '@ai-gateway/core';
 import { buildApp, buildContext, WebhookDispatcher } from '@ai-gateway/gateway';
 import {
-  captureEnvironment, describeEnvironment, formatTable, run, type BenchmarkResult,
+  captureEnvironment,
+  describeEnvironment,
+  formatTable,
+  run,
+  type BenchmarkResult,
 } from './harness.js';
 
 /**
@@ -59,7 +63,11 @@ async function buildHarness(behaviour: { latencyMs: number } = { latencyMs: 0 })
     kv,
     providers,
     pricing: createSeedPricingBook(),
-    webhooks: new WebhookDispatcher({ store, secrets: new SecretBox(config.encryptionKey), logger }),
+    webhooks: new WebhookDispatcher({
+      store,
+      secrets: new SecretBox(config.encryptionKey),
+      logger,
+    }),
     mockProvider: mock,
   });
 
@@ -93,11 +101,35 @@ async function buildHarness(behaviour: { latencyMs: number } = { latencyMs: 0 })
     },
   });
   await store.createPolicy(
-    { id: policyId, organizationId, projectId: null, name: 'benchmark', activeVersion: 1, createdAt: now, updatedAt: now },
-    { id: newId('ver'), policyId, version: 1, document: policy, checksum: 'bench', createdBy: 'bench', active: true, createdAt: now },
+    {
+      id: policyId,
+      organizationId,
+      projectId: null,
+      name: 'benchmark',
+      activeVersion: 1,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: newId('ver'),
+      policyId,
+      version: 1,
+      document: policy,
+      checksum: 'bench',
+      createdBy: 'bench',
+      active: true,
+      createdAt: now,
+    },
   );
 
-  await store.createProject({ id: projectId, organizationId, name: 'Benchmark', slug: 'benchmark', createdAt: now, routingPolicyId: policyId });
+  await store.createProject({
+    id: projectId,
+    organizationId,
+    name: 'Benchmark',
+    slug: 'benchmark',
+    createdAt: now,
+    routingPolicyId: policyId,
+  });
 
   const key = await generateApiKey('test');
   await store.createApiKey({
@@ -134,14 +166,18 @@ async function main(): Promise<void> {
 
   const headers = { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' };
   const body = (n: number) =>
-    JSON.stringify({ model: 'mock/mock-fast', messages: [{ role: 'user', content: `benchmark request ${n}` }] });
+    JSON.stringify({
+      model: 'mock/mock-fast',
+      messages: [{ role: 'user', content: `benchmark request ${n}` }],
+    });
 
   // --- 1. End-to-end, serial -------------------------------------------
   results.push(
     await run(
       {
         name: 'chat (serial)',
-        description: 'Full pipeline against a zero-latency synthetic provider, one request at a time.',
+        description:
+          'Full pipeline against a zero-latency synthetic provider, one request at a time.',
         warmup: 50,
         iterations: 500,
         concurrency: 1,
@@ -149,9 +185,17 @@ async function main(): Promise<void> {
       },
       async (i) => {
         const startedAt = performance.now();
-        const response = await app.inject({ method: 'POST', url: '/v1/chat/completions', headers, payload: body(i) });
+        const response = await app.inject({
+          method: 'POST',
+          url: '/v1/chat/completions',
+          headers,
+          payload: body(i),
+        });
         const latencyMs = performance.now() - startedAt;
-        const parsed = response.statusCode === 200 ? (JSON.parse(response.body) as { gateway?: { latencyMs: number } }) : undefined;
+        const parsed =
+          response.statusCode === 200
+            ? (JSON.parse(response.body) as { gateway?: { latencyMs: number } })
+            : undefined;
         return {
           latencyMs,
           // The gateway's own measurement of the work it did, from the receipt.
@@ -175,7 +219,12 @@ async function main(): Promise<void> {
         },
         async (i) => {
           const startedAt = performance.now();
-          const response = await app.inject({ method: 'POST', url: '/v1/chat/completions', headers, payload: body(i) });
+          const response = await app.inject({
+            method: 'POST',
+            url: '/v1/chat/completions',
+            headers,
+            payload: body(i),
+          });
           return { latencyMs: performance.now() - startedAt, ok: response.statusCode === 200 };
         },
       ),
@@ -214,7 +263,8 @@ async function main(): Promise<void> {
     await run(
       {
         name: 'route plan (dry-run)',
-        description: 'Router planning only: capability filter, scoring, chain construction. No provider contacted.',
+        description:
+          'Router planning only: capability filter, scoring, chain construction. No provider contacted.',
         warmup: 50,
         iterations: 1000,
         concurrency: 1,
@@ -236,7 +286,10 @@ async function main(): Promise<void> {
   // --- 5. Cache hit path ------------------------------------------------
   const cached = await buildHarness();
   {
-    const cachedHeaders = { authorization: `Bearer ${cached.apiKey}`, 'content-type': 'application/json' };
+    const cachedHeaders = {
+      authorization: `Bearer ${cached.apiKey}`,
+      'content-type': 'application/json',
+    };
     const cachedPolicy = parsePolicyOrThrow({
       name: 'cached',
       routing: { strategy: 'explicit', models: ['mock/mock-fast'] },
@@ -272,23 +325,39 @@ async function main(): Promise<void> {
       messages: [{ role: 'user', content: 'a repeated question' }],
     });
     // Populate the cache before measuring hits.
-    await cached.app.inject({ method: 'POST', url: '/v1/chat/completions', headers: cachedHeaders, payload });
+    await cached.app.inject({
+      method: 'POST',
+      url: '/v1/chat/completions',
+      headers: cachedHeaders,
+      payload,
+    });
 
     results.push(
       await run(
         {
           name: 'chat (cache hit)',
-          description: 'Exact-cache hit: authentication, policy and budget still run; no provider is contacted.',
+          description:
+            'Exact-cache hit: authentication, policy and budget still run; no provider is contacted.',
           warmup: 20,
           iterations: 500,
           concurrency: 1,
-          notes: ['Shows the floor the gateway can serve at when a request is answered from cache.'],
+          notes: [
+            'Shows the floor the gateway can serve at when a request is answered from cache.',
+          ],
         },
         async () => {
           const startedAt = performance.now();
-          const response = await cached.app.inject({ method: 'POST', url: '/v1/chat/completions', headers: cachedHeaders, payload });
+          const response = await cached.app.inject({
+            method: 'POST',
+            url: '/v1/chat/completions',
+            headers: cachedHeaders,
+            payload,
+          });
           const parsed = JSON.parse(response.body) as { gateway?: { cache: string } };
-          return { latencyMs: performance.now() - startedAt, ok: parsed.gateway?.cache === 'exact_hit' };
+          return {
+            latencyMs: performance.now() - startedAt,
+            ok: parsed.gateway?.cache === 'exact_hit',
+          };
         },
       ),
     );
@@ -297,12 +366,16 @@ async function main(): Promise<void> {
   // --- 6. Realistic provider latency ------------------------------------
   const slow = await buildHarness({ latencyMs: 200 });
   {
-    const slowHeaders = { authorization: `Bearer ${slow.apiKey}`, 'content-type': 'application/json' };
+    const slowHeaders = {
+      authorization: `Bearer ${slow.apiKey}`,
+      'content-type': 'application/json',
+    };
     results.push(
       await run(
         {
           name: 'chat (200ms provider)',
-          description: 'Synthetic provider delayed by 200ms, which is the regime real traffic lives in.',
+          description:
+            'Synthetic provider delayed by 200ms, which is the regime real traffic lives in.',
           warmup: 10,
           iterations: 200,
           concurrency: 16,
@@ -310,8 +383,17 @@ async function main(): Promise<void> {
         },
         async (i) => {
           const startedAt = performance.now();
-          const response = await slow.app.inject({ method: 'POST', url: '/v1/chat/completions', headers: slowHeaders, payload: body(i) });
-          return { latencyMs: performance.now() - startedAt, providerMs: 200, ok: response.statusCode === 200 };
+          const response = await slow.app.inject({
+            method: 'POST',
+            url: '/v1/chat/completions',
+            headers: slowHeaders,
+            payload: body(i),
+          });
+          return {
+            latencyMs: performance.now() - startedAt,
+            providerMs: 200,
+            ok: response.statusCode === 200,
+          };
         },
       ),
     );
@@ -338,7 +420,10 @@ async function main(): Promise<void> {
   );
 
   await mkdir(RESULTS_DIR, { recursive: true });
-  const outputPath = join(RESULTS_DIR, `benchmark-${environment.timestamp.replace(/[:.]/g, '-')}.json`);
+  const outputPath = join(
+    RESULTS_DIR,
+    `benchmark-${environment.timestamp.replace(/[:.]/g, '-')}.json`,
+  );
   await writeFile(outputPath, `${JSON.stringify({ environment, results }, null, 2)}\n`);
   process.stdout.write(`Saved ${outputPath}\n`);
 

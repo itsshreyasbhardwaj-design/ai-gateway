@@ -32,7 +32,13 @@ export const DEFAULT_CACHE_POLICY: CachePolicy = {
 
 export type CacheDecision =
   | { read: false; write: false; reason: string; status: 'disabled' | 'bypass' }
-  | { read: true; write: true; mode: Exclude<CacheMode, 'off'>; threshold: number; ttlSeconds: number };
+  | {
+      read: true;
+      write: true;
+      mode: Exclude<CacheMode, 'off'>;
+      threshold: number;
+      ttlSeconds: number;
+    };
 
 /** Narrowing helper, so callers do not have to re-derive the union arm. */
 export type EnabledCacheDecision = Extract<CacheDecision, { read: true }>;
@@ -47,13 +53,23 @@ export function decideCache(policy: CachePolicy, request: ChatRequest): CacheDec
   const directive = request.gateway?.cache;
 
   if (directive === 'no-store') {
-    return { read: false, write: false, reason: 'Request set gateway.cache=no-store.', status: 'bypass' };
+    return {
+      read: false,
+      write: false,
+      reason: 'Request set gateway.cache=no-store.',
+      status: 'bypass',
+    };
   }
 
   const tags = request.gateway?.tags ?? [];
   const excluded = policy.excludeTags?.find((t) => tags.includes(t));
   if (excluded) {
-    return { read: false, write: false, reason: `Request tagged "${excluded}", which the cache policy excludes.`, status: 'bypass' };
+    return {
+      read: false,
+      write: false,
+      reason: `Request tagged "${excluded}", which the cache policy excludes.`,
+      status: 'bypass',
+    };
   }
 
   // Streaming responses are cached: the gateway buffers a copy as it forwards
@@ -63,7 +79,12 @@ export function decideCache(policy: CachePolicy, request: ChatRequest): CacheDec
   if (directive === 'semantic') mode = policy.mode === 'off' ? 'off' : 'semantic';
 
   if (mode === 'off') {
-    return { read: false, write: false, reason: 'Caching is disabled by policy.', status: 'disabled' };
+    return {
+      read: false,
+      write: false,
+      reason: 'Caching is disabled by policy.',
+      status: 'disabled',
+    };
   }
 
   const threshold = request.gateway?.cacheSimilarityThreshold ?? policy.similarityThreshold;

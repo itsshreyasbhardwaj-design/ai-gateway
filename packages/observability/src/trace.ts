@@ -38,7 +38,11 @@ export class TraceBuilder {
   }
 
   /** Record a step that took no measurable time. */
-  mark(name: TraceStepName, status: TraceStepStatus = 'ok', detail?: Record<string, unknown>): void {
+  mark(
+    name: TraceStepName,
+    status: TraceStepStatus = 'ok',
+    detail?: Record<string, unknown>,
+  ): void {
     this.steps.push({
       name,
       status,
@@ -63,12 +67,18 @@ export class TraceBuilder {
 
     return {
       end: (detail) => finish('ok', detail ? { detail } : {}),
-      fail: (errorType, message, detail) => finish('error', { errorType, message, ...(detail ? { detail } : {}) }),
+      fail: (errorType, message, detail) =>
+        finish('error', { errorType, message, ...(detail ? { detail } : {}) }),
       skip: (reason) => finish('skipped', { message: reason }),
     };
   }
 
-  startAttempt(providerId: string, modelId: string, attemptNumber: number, backoffMs?: number): AttemptRecorder {
+  startAttempt(
+    providerId: string,
+    modelId: string,
+    attemptNumber: number,
+    backoffMs?: number,
+  ): AttemptRecorder {
     const startedAt = this.clock.now();
     const attempt: RequestAttempt = {
       id: newAttemptId(),
@@ -94,7 +104,12 @@ export class TraceBuilder {
         attempt.durationMs = this.clock.now() - startedAt;
         if (usage) attempt.usage = usage;
       },
-      fail: (errorType: GatewayErrorType, message: string, providerStatus?: number, retryAfterSeconds?: number) => {
+      fail: (
+        errorType: GatewayErrorType,
+        message: string,
+        providerStatus?: number,
+        retryAfterSeconds?: number,
+      ) => {
         attempt.status = errorType === 'client_disconnected' ? 'cancelled' : 'error';
         attempt.durationMs = this.clock.now() - startedAt;
         attempt.errorType = errorType;
@@ -152,7 +167,12 @@ export class TraceBuilder {
 export interface AttemptRecorder {
   firstToken(): void;
   succeed(usage?: MeasuredUsage): void;
-  fail(errorType: GatewayErrorType, message: string, providerStatus?: number, retryAfterSeconds?: number): void;
+  fail(
+    errorType: GatewayErrorType,
+    message: string,
+    providerStatus?: number,
+    retryAfterSeconds?: number,
+  ): void;
   updateUsage(usage: MeasuredUsage): void;
   readonly record: RequestAttempt;
 }

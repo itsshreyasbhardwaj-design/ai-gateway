@@ -1,7 +1,17 @@
 import { formatRelativeTime, formatTimestamp } from '@ai-gateway/ui';
 import { gatewayFetch, gatewayPublicFetch, type GatewayInfo } from '@/lib/gateway';
 import { getSession } from '@/lib/session';
-import { Badge, KeyValue, Mono, Notice, PageHeader, Panel, Table, Td, Th } from '@/components/ui/primitives';
+import {
+  Badge,
+  KeyValue,
+  Mono,
+  Notice,
+  PageHeader,
+  Panel,
+  Table,
+  Td,
+  Th,
+} from '@/components/ui/primitives';
 import { GatewayError } from '../error-panel';
 
 export const metadata = { title: 'Settings · AI Gateway' };
@@ -36,7 +46,9 @@ export default async function SettingsPage() {
     info = await gatewayPublicFetch<GatewayInfo>(session!.gatewayUrl, '/');
     const [auditResult, pricingResult] = await Promise.allSettled([
       gatewayFetch<{ data: AuditEntry[] }>('/api/v1/audit-logs?limit=50'),
-      gatewayFetch<{ active: string; ageDays: number; data: PricingVersion[] }>('/api/v1/pricing/versions'),
+      gatewayFetch<{ active: string; ageDays: number; data: PricingVersion[] }>(
+        '/api/v1/pricing/versions',
+      ),
     ]);
     if (auditResult.status === 'fulfilled') audit = auditResult.value.data;
     if (pricingResult.status === 'fulfilled') pricing = pricingResult.value;
@@ -63,7 +75,9 @@ export default async function SettingsPage() {
           </KeyValue>
           <KeyValue label="Version">{info?.version ?? '—'}</KeyValue>
           <KeyValue label="Store">
-            <Badge tone={info?.store === 'postgres' ? 'success' : 'cancelled'}>{info?.store ?? '—'}</Badge>
+            <Badge tone={info?.store === 'postgres' ? 'success' : 'cancelled'}>
+              {info?.store ?? '—'}
+            </Badge>
             {info?.store !== 'postgres' && (
               <span className="ml-1.5 text-2xs text-zinc-500">not durable across restarts</span>
             )}
@@ -73,7 +87,9 @@ export default async function SettingsPage() {
               {info?.countersDurable ? 'redis' : 'in-process'}
             </Badge>
             {!info?.countersDurable && (
-              <span className="ml-1.5 text-2xs text-zinc-500">correct for a single replica only</span>
+              <span className="ml-1.5 text-2xs text-zinc-500">
+                correct for a single replica only
+              </span>
             )}
           </KeyValue>
           <KeyValue label="Providers">{info?.providers.join(', ') || 'none registered'}</KeyValue>
@@ -82,7 +98,9 @@ export default async function SettingsPage() {
             {info?.capabilities['semanticCache'] ? 'enabled' : 'disabled'}
           </KeyValue>
           <KeyValue label="Credential source">
-            {session!.source === 'cookie' ? 'browser session (httpOnly cookie)' : 'dashboard environment'}
+            {session!.source === 'cookie'
+              ? 'browser session (httpOnly cookie)'
+              : 'dashboard environment'}
           </KeyValue>
         </Panel>
 
@@ -98,8 +116,9 @@ export default async function SettingsPage() {
                   <Notice tone="warn" title="The active price table is unverified">
                     {info?.pricing.note ??
                       'These numbers are the placeholder set shipped with the project and have not been checked against provider price lists.'}{' '}
-                    Publish a verified snapshot with <Mono>POST /api/v1/pricing/versions</Mono>; existing cost rows keep
-                    the version they were computed with, so history does not change retroactively.
+                    Publish a verified snapshot with <Mono>POST /api/v1/pricing/versions</Mono>;
+                    existing cost rows keep the version they were computed with, so history does not
+                    change retroactively.
                   </Notice>
                 </div>
               )}
@@ -135,7 +154,12 @@ export default async function SettingsPage() {
           )}
         </Panel>
 
-        <Panel title="Audit log" subtitle="Administrative writes, newest first" className="lg:col-span-2" scroll>
+        <Panel
+          title="Audit log"
+          subtitle="Administrative writes, newest first"
+          className="lg:col-span-2"
+          scroll
+        >
           {audit.length === 0 ? (
             <div className="p-4">
               <Notice tone="info">
@@ -157,7 +181,9 @@ export default async function SettingsPage() {
                 {audit.map((entry) => (
                   <tr key={entry.id}>
                     <Td title={formatTimestamp(entry.createdAt)}>
-                      <span className="text-2xs text-zinc-500">{formatRelativeTime(entry.createdAt)}</span>
+                      <span className="text-2xs text-zinc-500">
+                        {formatRelativeTime(entry.createdAt)}
+                      </span>
                     </Td>
                     <Td>
                       <Mono>{entry.action}</Mono>
@@ -173,7 +199,10 @@ export default async function SettingsPage() {
                     </Td>
                     <Td className="max-w-md truncate">
                       {entry.metadata && (
-                        <span className="font-mono text-2xs text-zinc-600" title={JSON.stringify(entry.metadata, null, 2)}>
+                        <span
+                          className="font-mono text-2xs text-zinc-600"
+                          title={JSON.stringify(entry.metadata, null, 2)}
+                        >
                           {JSON.stringify(entry.metadata)}
                         </span>
                       )}

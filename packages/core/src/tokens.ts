@@ -20,7 +20,9 @@ function estimateText(text: string): number {
 
 function estimatePart(part: ContentPart): number {
   if (part.type === 'text') return estimateText(part.text);
-  return part.image_url.detail === 'low' ? Math.round(IMAGE_TOKEN_ESTIMATE / 4) : IMAGE_TOKEN_ESTIMATE;
+  return part.image_url.detail === 'low'
+    ? Math.round(IMAGE_TOKEN_ESTIMATE / 4)
+    : IMAGE_TOKEN_ESTIMATE;
 }
 
 export function estimateMessageTokens(message: ChatMessage): number {
@@ -50,10 +52,17 @@ export function estimatedUsage(input: number, output: number): MeasuredUsage {
 }
 
 export function reportedUsage(usage: TokenUsage): MeasuredUsage {
-  return { ...usage, total: usage.total || usage.input + usage.output, source: 'provider_reported' };
+  return {
+    ...usage,
+    total: usage.total || usage.input + usage.output,
+    source: 'provider_reported',
+  };
 }
 
-export function addUsage(a: MeasuredUsage | undefined, b: MeasuredUsage | undefined): MeasuredUsage | undefined {
+export function addUsage(
+  a: MeasuredUsage | undefined,
+  b: MeasuredUsage | undefined,
+): MeasuredUsage | undefined {
   if (!a) return b;
   if (!b) return a;
   return {
@@ -62,8 +71,9 @@ export function addUsage(a: MeasuredUsage | undefined, b: MeasuredUsage | undefi
     total: a.total + b.total,
     cachedInput: (a.cachedInput ?? 0) + (b.cachedInput ?? 0) || undefined,
     // A sum is only as trustworthy as its least trustworthy term.
-    source: a.source === 'provider_reported' && b.source === 'provider_reported'
-      ? 'provider_reported'
-      : 'estimated',
+    source:
+      a.source === 'provider_reported' && b.source === 'provider_reported'
+        ? 'provider_reported'
+        : 'estimated',
   };
 }

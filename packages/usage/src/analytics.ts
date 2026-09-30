@@ -17,7 +17,12 @@ const RANGE_MS: Record<Exclude<TimeRange, 'custom'>, number> = {
   '90d': 7_776_000_000,
 };
 
-export function resolveRange(range: TimeRange, from?: Date, to?: Date, now = new Date()): RangeBounds {
+export function resolveRange(
+  range: TimeRange,
+  from?: Date,
+  to?: Date,
+  now = new Date(),
+): RangeBounds {
   if (range === 'custom') {
     const end = to ?? now;
     const start = from ?? new Date(end.getTime() - RANGE_MS['24h']);
@@ -85,7 +90,10 @@ export interface GroupedUsage {
  * mixing it into production analytics is exactly the kind of quiet data
  * corruption the spec prohibits.
  */
-export function summarize(records: RequestRecord[], opts: { includeTest?: boolean; currency?: string } = {}): UsageSummary {
+export function summarize(
+  records: RequestRecord[],
+  opts: { includeTest?: boolean; currency?: string } = {},
+): UsageSummary {
   const rows = opts.includeTest ? records : records.filter((r) => !r.isTest);
   const total = rows.length;
   const successes = rows.filter((r) => r.status === 'success');
@@ -93,8 +101,12 @@ export function summarize(records: RequestRecord[], opts: { includeTest?: boolea
   const cancelled = rows.filter((r) => r.status === 'cancelled');
 
   const latencies = rows.map((r) => r.latencyMs).sort((a, b) => a - b);
-  const ttfts = rows.map((r) => r.timeToFirstTokenMs).filter((v): v is number => typeof v === 'number');
-  const cacheHits = rows.filter((r) => r.cacheStatus === 'exact_hit' || r.cacheStatus === 'semantic_hit');
+  const ttfts = rows
+    .map((r) => r.timeToFirstTokenMs)
+    .filter((v): v is number => typeof v === 'number');
+  const cacheHits = rows.filter(
+    (r) => r.cacheStatus === 'exact_hit' || r.cacheStatus === 'semantic_hit',
+  );
   const estimated = rows.filter((r) => r.usage?.source === 'estimated');
 
   const inputTokens = sum(rows.map((r) => r.usage?.input ?? 0));
@@ -117,7 +129,9 @@ export function summarize(records: RequestRecord[], opts: { includeTest?: boolea
     cacheHitRate: total ? cacheHits.length / total : 0,
     fallbackRate: total ? rows.filter((r) => r.fallbackUsed).length / total : 0,
     estimatedUsageShare: total ? estimated.length / total : 0,
-    pricingVersions: [...new Set(rows.map((r) => r.pricingVersion).filter((v): v is string => !!v))].sort(),
+    pricingVersions: [
+      ...new Set(rows.map((r) => r.pricingVersion).filter((v): v is string => !!v)),
+    ].sort(),
   };
 }
 
@@ -150,7 +164,9 @@ export function timeSeries(
       tokens: sum(rows.map((r) => r.usage?.total ?? 0)),
       cost: round(sum(rows.map((r) => r.estimatedCost ?? 0))),
       avgLatencyMs: avg(rows.map((r) => r.latencyMs)),
-      cacheHits: rows.filter((r) => r.cacheStatus === 'exact_hit' || r.cacheStatus === 'semantic_hit').length,
+      cacheHits: rows.filter(
+        (r) => r.cacheStatus === 'exact_hit' || r.cacheStatus === 'semantic_hit',
+      ).length,
     }));
 }
 
@@ -183,7 +199,9 @@ export function groupBy(
         cost: round(sum(rows.map((r) => r.estimatedCost ?? 0))),
         avgLatencyMs: avg(latencies),
         p95LatencyMs: percentile(latencies, 0.95),
-        successRate: rows.length ? rows.filter((r) => r.status === 'success').length / rows.length : 0,
+        successRate: rows.length
+          ? rows.filter((r) => r.status === 'success').length / rows.length
+          : 0,
       };
     })
     .sort((a, b) => b.requests - a.requests);

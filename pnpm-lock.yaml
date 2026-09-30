@@ -222,15 +222,45 @@ importers:
 
   benchmarks:
     dependencies:
+      '@ai-gateway/cache':
+        specifier: workspace:*
+        version: link:../packages/cache
+      '@ai-gateway/config':
+        specifier: workspace:*
+        version: link:../packages/config
       '@ai-gateway/core':
         specifier: workspace:*
         version: link:../packages/core
+      '@ai-gateway/database':
+        specifier: workspace:*
+        version: link:../packages/database
       '@ai-gateway/gateway':
         specifier: workspace:*
         version: link:../apps/gateway
+      '@ai-gateway/observability':
+        specifier: workspace:*
+        version: link:../packages/observability
+      '@ai-gateway/policies':
+        specifier: workspace:*
+        version: link:../packages/policies
+      '@ai-gateway/pricing':
+        specifier: workspace:*
+        version: link:../packages/pricing
+      '@ai-gateway/provider-sdk':
+        specifier: workspace:*
+        version: link:../packages/provider-sdk
       '@ai-gateway/providers':
         specifier: workspace:*
         version: link:../packages/providers
+      '@ai-gateway/security':
+        specifier: workspace:*
+        version: link:../packages/security
+
+  examples:
+    dependencies:
+      '@ai-gateway/sdk':
+        specifier: workspace:*
+        version: link:../packages/sdk
 
   packages/cache:
     dependencies:
@@ -417,6 +447,10 @@ importers:
       '@ai-gateway/usage':
         specifier: workspace:*
         version: link:../packages/usage
+    devDependencies:
+      '@electric-sql/pglite':
+        specifier: ^0.5.8
+        version: 0.5.8
 
 packages:
 
@@ -451,6 +485,9 @@ packages:
 
   '@bcoe/v8-coverage@0.2.3':
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
+
+  '@electric-sql/pglite@0.5.8':
+    resolution: {integrity: sha512-n9tsbUOhwx2epK1V0ZG9Ar4SHWUju04dhmzZXiSBXwBoleOvIfals33NAaWgagQVAL4Rbvx/Ptsu3P+pA09f6Q==}
 
   '@emnapi/runtime@1.11.3':
     resolution: {integrity: sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA==}
@@ -3068,6 +3105,8 @@ snapshots:
       '@babel/helper-validator-identifier': 7.29.7
 
   '@bcoe/v8-coverage@0.2.3': {}
+
+  '@electric-sql/pglite@0.5.8': {}
 
   '@emnapi/runtime@1.11.3':
     dependencies:

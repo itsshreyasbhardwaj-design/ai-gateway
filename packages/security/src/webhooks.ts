@@ -33,7 +33,10 @@ export function verifyWebhook(
     header
       .split(',')
       .map((p) => p.trim().split('='))
-      .filter((kv): kv is [string, string] => kv.length === 2 && kv[0] !== undefined && kv[1] !== undefined),
+      .filter(
+        (kv): kv is [string, string] =>
+          kv.length === 2 && kv[0] !== undefined && kv[1] !== undefined,
+      ),
   );
   const ts = Number(parts['t']);
   const provided = parts[SCHEME];

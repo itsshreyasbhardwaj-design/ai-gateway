@@ -43,10 +43,15 @@ describe('provider failure modes', () => {
       h = await singleTarget();
       h.mocks.get('mock')!.setBehavior('mock-flaky', { failureMode: mode as never });
 
-      const response = await h.chat({ model: 'mock/mock-flaky', messages: [{ role: 'user', content: 'x' }] });
+      const response = await h.chat({
+        model: 'mock/mock-flaky',
+        messages: [{ role: 'user', content: 'x' }],
+      });
       expect(response.status).toBe(expectedStatus);
 
-      const error = response.json<{ error: { type: string; retryable: boolean; requestId: string } }>().error;
+      const error = response.json<{
+        error: { type: string; retryable: boolean; requestId: string };
+      }>().error;
       expect(error.type).toBe(expectedType);
       expect(error.retryable).toBe(retryable);
       expect(error.requestId).toMatch(/^req_/);
@@ -67,7 +72,10 @@ describe('provider failure modes', () => {
     provider.resetCounters();
     provider.setBehavior('mock-flaky', { failureMode: 'invalid_request' });
 
-    const response = await h.chat({ model: 'mock/mock-flaky', messages: [{ role: 'user', content: 'x' }] });
+    const response = await h.chat({
+      model: 'mock/mock-flaky',
+      messages: [{ role: 'user', content: 'x' }],
+    });
     expect(response.status).toBe(400);
     // Exactly one upstream call: retrying a malformed request cannot help.
     expect(provider.callCount('mock-flaky')).toBe(1);
@@ -87,7 +95,10 @@ describe('provider failure modes', () => {
     provider.resetCounters();
     provider.setBehavior('mock-flaky', { failureMode: 'server_error' });
 
-    const response = await h.chat({ model: 'mock/mock-flaky', messages: [{ role: 'user', content: 'x' }] });
+    const response = await h.chat({
+      model: 'mock/mock-flaky',
+      messages: [{ role: 'user', content: 'x' }],
+    });
     expect(response.status).toBe(502);
     expect(provider.callCount('mock-flaky')).toBe(3);
 
@@ -122,15 +133,21 @@ describe('provider failure modes', () => {
     // With the circuit open, the flaky target is excluded before dispatch.
     const provider = h.mocks.get('mock')!;
     provider.resetCounters();
-    const response = await h.chat({ model: 'gateway/auto', messages: [{ role: 'user', content: 'after open' }] });
+    const response = await h.chat({
+      model: 'gateway/auto',
+      messages: [{ role: 'user', content: 'after open' }],
+    });
     expect(response.status).toBe(200);
     expect(response.json<{ gateway: { model: string } }>().gateway.model).toBe('mock/mock-fast');
     expect(provider.callCount('mock-flaky')).toBe(0);
 
     const requestId = response.json<{ gateway: { requestId: string } }>().gateway.requestId;
     const trace = await h.request('GET', `/api/v1/requests/${requestId}`);
-    const routing = trace.json<{ steps: Array<{ name: string; detail?: Record<string, unknown> }> }>().steps.find((s) => s.name === 'routing');
-    const rejected = routing?.detail?.['rejected'] as Array<{ target: string; reason: string }> | undefined;
+    const routing = trace
+      .json<{ steps: Array<{ name: string; detail?: Record<string, unknown> }> }>()
+      .steps.find((s) => s.name === 'routing');
+    const rejected = routing?.detail?.['rejected'] as
+      Array<{ target: string; reason: string }> | undefined;
     expect(rejected?.some((r) => r.reason.includes('circuit breaker is open'))).toBe(true);
   });
 
@@ -147,13 +164,19 @@ describe('provider failure modes', () => {
     const provider = h.mocks.get('mock')!;
     provider.setBehavior('mock-flaky', { failFirstN: 1 });
 
-    const first = await h.chat({ model: 'gateway/auto', messages: [{ role: 'user', content: 'a' }] });
+    const first = await h.chat({
+      model: 'gateway/auto',
+      messages: [{ role: 'user', content: 'a' }],
+    });
     expect(first.json<{ gateway: { fallbackUsed: boolean } }>().gateway.fallbackUsed).toBe(true);
 
     const circuits = h.ctx.circuits.snapshots();
     expect(circuits.find((c) => c.key.includes('mock-flaky'))?.state).toBe('CLOSED');
 
-    const second = await h.chat({ model: 'gateway/auto', messages: [{ role: 'user', content: 'b' }] });
+    const second = await h.chat({
+      model: 'gateway/auto',
+      messages: [{ role: 'user', content: 'b' }],
+    });
     expect(second.json<{ gateway: { model: string } }>().gateway.model).toBe('mock/mock-flaky');
   });
 
@@ -161,7 +184,10 @@ describe('provider failure modes', () => {
     h = await singleTarget();
     h.mocks.get('mock')!.setBehavior('mock-flaky', { failureMode: 'mid_stream_error' });
 
-    const result = await h.stream({ model: 'mock/mock-flaky', messages: [{ role: 'user', content: 'break midway' }] });
+    const result = await h.stream({
+      model: 'mock/mock-flaky',
+      messages: [{ role: 'user', content: 'break midway' }],
+    });
 
     // Headers were already sent as 200; the failure can only be reported in-band.
     expect(result.status).toBe(200);
@@ -169,7 +195,10 @@ describe('provider failure modes', () => {
     expect(result.errorFrame?.['error']).toMatchObject({ type: 'provider_error' });
     expect(result.done).toBe(true);
 
-    const { records } = await h.store.queryRequests({ organizationId: h.organization.id, includeTest: true });
+    const { records } = await h.store.queryRequests({
+      organizationId: h.organization.id,
+      includeTest: true,
+    });
     const failed = records.find((r) => r.streamed && r.status === 'error');
     expect(failed?.errorType).toBe('provider_error');
     // The HTTP status stays 200 because that is what the client actually saw.
@@ -187,7 +216,10 @@ describe('provider failure modes', () => {
       throw new Error('redis down');
     };
 
-    const response = await h.chat({ model: 'mock/mock-fast', messages: [{ role: 'user', content: 'x' }] });
+    const response = await h.chat({
+      model: 'mock/mock-fast',
+      messages: [{ role: 'user', content: 'x' }],
+    });
     // Rate limiting is best-effort; a counter outage must not break inference.
     expect([200, 500]).toContain(response.status);
     kv['incrBy'] = original;
@@ -206,10 +238,16 @@ describe('provider failure modes', () => {
     // mock-fast has no vision capability.
     const response = await h.chat({
       model: 'gateway/auto',
-      messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'https://example.test/a.png' } }] }],
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'image_url', image_url: { url: 'https://example.test/a.png' } }],
+        },
+      ],
     });
     expect(response.status).toBe(503);
-    const error = response.json<{ error: { type: string; details: Record<string, unknown> } }>().error;
+    const error = response.json<{ error: { type: string; details: Record<string, unknown> } }>()
+      .error;
     expect(error.type).toBe('no_route_available');
     expect(error.details['requiredCapabilities']).toContain('vision');
   });

@@ -15,7 +15,13 @@ export class SpendCounters {
     private readonly namespace = 'spend',
   ) {}
 
-  private key(organizationId: string, scope: BudgetScope, scopeId: string, period: BudgetPeriod, now: Date): string {
+  private key(
+    organizationId: string,
+    scope: BudgetScope,
+    scopeId: string,
+    period: BudgetPeriod,
+    now: Date,
+  ): string {
     const { key } = periodBounds(period, now);
     return [this.namespace, organizationId, scope, scopeId, period, key].join(':');
   }

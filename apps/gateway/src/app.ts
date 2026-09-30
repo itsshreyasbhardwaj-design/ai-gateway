@@ -20,7 +20,10 @@ export interface BuildAppOptions {
  * the Authorization header carries a live API key. Everything that reaches a log
  * here goes through the gateway's redacting logger instead.
  */
-export async function buildApp(ctx: GatewayContext, options: BuildAppOptions = {}): Promise<FastifyInstance> {
+export async function buildApp(
+  ctx: GatewayContext,
+  options: BuildAppOptions = {},
+): Promise<FastifyInstance> {
   const app = Fastify({
     logger: options.fastifyLogger ?? false,
     trustProxy: ctx.config.trustProxy,
@@ -91,7 +94,10 @@ export async function buildApp(ctx: GatewayContext, options: BuildAppOptions = {
   app.setNotFoundHandler(async (request, reply) => {
     await sendError(
       reply,
-      new GatewayError('invalid_request', `No route for ${request.method} ${request.url.split('?')[0]}.`),
+      new GatewayError(
+        'invalid_request',
+        `No route for ${request.method} ${request.url.split('?')[0]}.`,
+      ),
       newRequestId(),
     );
   });
@@ -104,10 +110,18 @@ export async function buildApp(ctx: GatewayContext, options: BuildAppOptions = {
     // into the normalized taxonomy rather than leaking Fastify's shape.
     const status = error.statusCode;
     if (status === 413) {
-      return sendError(reply, new GatewayError('payload_too_large', 'Request body is too large.'), requestId);
+      return sendError(
+        reply,
+        new GatewayError('payload_too_large', 'Request body is too large.'),
+        requestId,
+      );
     }
     if (status === 400 && error.code === 'FST_ERR_CTP_EMPTY_JSON_BODY') {
-      return sendError(reply, new GatewayError('invalid_request', 'Request body is required.'), requestId);
+      return sendError(
+        reply,
+        new GatewayError('invalid_request', 'Request body is required.'),
+        requestId,
+      );
     }
     if (status === 400) {
       return sendError(reply, new GatewayError('invalid_request', error.message), requestId);

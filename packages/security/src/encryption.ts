@@ -48,7 +48,12 @@ export class SecretBox {
     if (aad) cipher.setAAD(Buffer.from(aad, 'utf8'));
     const ct = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
     const tag = cipher.getAuthTag();
-    return [VERSION, iv.toString('base64url'), ct.toString('base64url'), tag.toString('base64url')].join('.');
+    return [
+      VERSION,
+      iv.toString('base64url'),
+      ct.toString('base64url'),
+      tag.toString('base64url'),
+    ].join('.');
   }
 
   decrypt(blob: string, aad?: string): string {

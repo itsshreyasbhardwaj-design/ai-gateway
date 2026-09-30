@@ -75,7 +75,11 @@ export class SemanticCache {
     signal?: AbortSignal,
   ): Promise<SemanticHit | null> {
     const threshold = clamp01(thresholdOverride ?? this.config.similarityThreshold);
-    const raw = await this.kv.listRange(this.indexKey(scope), 0, this.config.maxEntriesPerScope - 1);
+    const raw = await this.kv.listRange(
+      this.indexKey(scope),
+      0,
+      this.config.maxEntriesPerScope - 1,
+    );
     if (raw.length === 0) return null;
 
     const queryVector = await this.embed(semanticText(request), signal);
@@ -99,7 +103,12 @@ export class SemanticCache {
     return best;
   }
 
-  async store(scope: CacheScope, request: ChatRequest, entry: CachedCompletion, signal?: AbortSignal): Promise<string> {
+  async store(
+    scope: CacheScope,
+    request: ChatRequest,
+    entry: CachedCompletion,
+    signal?: AbortSignal,
+  ): Promise<string> {
     const text = semanticText(request);
     const vector = await this.embed(text, signal);
     const id = sha256(`${scopeKey(scope)}:${text}`);

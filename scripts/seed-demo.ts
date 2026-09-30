@@ -48,15 +48,20 @@ async function main(): Promise<void> {
   };
 
   const info = await getJson<{ providers: string[]; models: number }>('/');
-  process.stdout.write(`Gateway at ${BASE_URL}: ${info.providers.join(', ') || 'no providers'}, ${info.models} model(s)\n`);
-
-  const models = await getJson<{ data: Array<{ id: string; gateway: { capabilities: string[] } }> }>(
-    '/v1/models',
-    API_KEY,
+  process.stdout.write(
+    `Gateway at ${BASE_URL}: ${info.providers.join(', ') || 'no providers'}, ${info.models} model(s)\n`,
   );
-  const chatModels = models.data.filter((m) => m.gateway.capabilities.includes('chat')).map((m) => m.id);
+
+  const models = await getJson<{
+    data: Array<{ id: string; gateway: { capabilities: string[] } }>;
+  }>('/v1/models', API_KEY);
+  const chatModels = models.data
+    .filter((m) => m.gateway.capabilities.includes('chat'))
+    .map((m) => m.id);
   if (chatModels.length === 0) {
-    process.stderr.write('No chat-capable models are registered. Set a provider key or ENABLE_MOCK_PROVIDER=true.\n');
+    process.stderr.write(
+      'No chat-capable models are registered. Set a provider key or ENABLE_MOCK_PROVIDER=true.\n',
+    );
     process.exit(1);
   }
 
@@ -127,7 +132,9 @@ async function getJson<T>(path: string, key?: string): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {
     headers: key ? { authorization: `Bearer ${key}` } : {},
   }).catch((err: Error) => {
-    process.stderr.write(`Could not reach the gateway at ${BASE_URL}: ${err.message}\nIs it running? Try: pnpm dev\n`);
+    process.stderr.write(
+      `Could not reach the gateway at ${BASE_URL}: ${err.message}\nIs it running? Try: pnpm dev\n`,
+    );
     process.exit(1);
   });
   if (!response.ok) {

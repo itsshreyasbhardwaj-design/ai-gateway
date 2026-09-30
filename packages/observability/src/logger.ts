@@ -99,7 +99,9 @@ export class Logger {
   }
 }
 
-export function createLogger(opts: { level?: LogLevel; pretty?: boolean; sink?: LogSink } = {}): Logger {
+export function createLogger(
+  opts: { level?: LogLevel; pretty?: boolean; sink?: LogSink } = {},
+): Logger {
   return new Logger(opts.sink ?? new ConsoleSink(opts.pretty), opts.level ?? 'info');
 }
 

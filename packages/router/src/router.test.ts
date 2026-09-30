@@ -18,7 +18,11 @@ function model(id: string, over: Partial<ModelDescriptor> = {}): ModelDescriptor
   };
 }
 
-function target(id: string, over: Partial<RouteTarget> = {}, modelOver: Partial<ModelDescriptor> = {}): RouteTarget {
+function target(
+  id: string,
+  over: Partial<RouteTarget> = {},
+  modelOver: Partial<ModelDescriptor> = {},
+): RouteTarget {
   const m = model(id, modelOver);
   return { providerId: m.providerId, modelId: m.id, model: m, ...over };
 }
@@ -60,11 +64,25 @@ describe('requiredCapabilities', () => {
   it('derives capabilities from the request shape', () => {
     expect(requiredCapabilities(chat)).toEqual(['chat']);
     expect(requiredCapabilities({ ...chat, stream: true })).toContain('streaming');
-    expect(requiredCapabilities({ ...chat, tools: [{ type: 'function', function: { name: 'f' } }] })).toContain('tools');
-    expect(requiredCapabilities({ ...chat, response_format: { type: 'json_schema', json_schema: { name: 'x', schema: {} } } })).toContain('structured-output');
-    expect(requiredCapabilities({ ...chat, response_format: { type: 'json_object' } })).toContain('json-mode');
     expect(
-      requiredCapabilities({ ...chat, messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: 'https://x' } }] }] }),
+      requiredCapabilities({ ...chat, tools: [{ type: 'function', function: { name: 'f' } }] }),
+    ).toContain('tools');
+    expect(
+      requiredCapabilities({
+        ...chat,
+        response_format: { type: 'json_schema', json_schema: { name: 'x', schema: {} } },
+      }),
+    ).toContain('structured-output');
+    expect(requiredCapabilities({ ...chat, response_format: { type: 'json_object' } })).toContain(
+      'json-mode',
+    );
+    expect(
+      requiredCapabilities({
+        ...chat,
+        messages: [
+          { role: 'user', content: [{ type: 'image_url', image_url: { url: 'https://x' } }] },
+        ],
+      }),
     ).toContain('vision');
   });
 });
@@ -73,7 +91,10 @@ describe('planRoute - eligibility', () => {
   it('never routes a request to a model missing a required capability', () => {
     const plan = planRoute({
       request: chat,
-      candidates: [target('a/no-tools'), target('b/has-tools', {}, { capabilities: ['chat', 'streaming', 'tools'] })],
+      candidates: [
+        target('a/no-tools'),
+        target('b/has-tools', {}, { capabilities: ['chat', 'streaming', 'tools'] }),
+      ],
       strategy: 'explicit',
       requiredCapabilities: ['chat', 'tools'],
       signals: signalsFor(),
@@ -100,7 +121,9 @@ describe('planRoute - eligibility', () => {
       candidates: [target('a/one'), target('b/two')],
       strategy: 'explicit',
       requiredCapabilities: ['chat'],
-      signals: signalsFor({ 'a/one': { healthState: 'unavailable', health: stats({ successRate: 0.2 }) } }),
+      signals: signalsFor({
+        'a/one': { healthState: 'unavailable', health: stats({ successRate: 0.2 }) },
+      }),
     });
     expect(plan.rejected[0]?.reason).toContain('unavailable');
     expect(plan.rejected[0]?.reason).toContain('20%');
@@ -125,7 +148,10 @@ describe('planRoute - eligibility', () => {
       strategy: 'explicit',
       requiredCapabilities: ['chat'],
       remainingBudget: 0.01,
-      signals: signalsFor({ 'a/expensive': { projectedCost: 5 }, 'b/cheap': { projectedCost: 0.001 } }),
+      signals: signalsFor({
+        'a/expensive': { projectedCost: 5 },
+        'b/cheap': { projectedCost: 0.001 },
+      }),
     });
     expect(plan.chain[0]?.target.modelId).toBe('b/cheap');
     expect(plan.rejected[0]?.reason).toContain('exceeds remaining budget');
@@ -145,7 +171,7 @@ describe('planRoute - eligibility', () => {
       expect(GatewayError.is(err)).toBe(true);
       const gw = err as GatewayError;
       expect(gw.type).toBe('no_route_available');
-      expect((gw.details?.['rejected'] as unknown[])).toHaveLength(1);
+      expect(gw.details?.['rejected'] as unknown[]).toHaveLength(1);
     }
   });
 
@@ -220,7 +246,10 @@ describe('planRoute - strategies', () => {
       candidates: [target('a/unpriced'), target('b/priced')],
       strategy: 'lowest_cost',
       requiredCapabilities: ['chat'],
-      signals: signalsFor({ 'a/unpriced': { projectedCost: undefined }, 'b/priced': { projectedCost: 0.5 } }),
+      signals: signalsFor({
+        'a/unpriced': { projectedCost: undefined },
+        'b/priced': { projectedCost: 0.5 },
+      }),
     });
     expect(plan.chain[0]?.target.modelId).toBe('b/priced');
   });
@@ -274,7 +303,11 @@ describe('planRoute - strategies', () => {
   it('priority honours the operator ordering', () => {
     const plan = planRoute({
       request: chat,
-      candidates: [target('a/one', { priority: 30 }), target('b/two', { priority: 10 }), target('c/three', { priority: 20 })],
+      candidates: [
+        target('a/one', { priority: 30 }),
+        target('b/two', { priority: 10 }),
+        target('c/three', { priority: 20 }),
+      ],
       strategy: 'priority',
       requiredCapabilities: ['chat'],
       signals: signalsFor(),
@@ -285,8 +318,14 @@ describe('planRoute - strategies', () => {
   it('round_robin advances with the cursor', () => {
     const candidates = [target('a/one'), target('b/two'), target('c/three')];
     const pick = (cursor: number) =>
-      planRoute({ request: chat, candidates, strategy: 'round_robin', requiredCapabilities: ['chat'], signals: signalsFor(), roundRobinCursor: cursor })
-        .chain[0]?.target.modelId;
+      planRoute({
+        request: chat,
+        candidates,
+        strategy: 'round_robin',
+        requiredCapabilities: ['chat'],
+        signals: signalsFor(),
+        roundRobinCursor: cursor,
+      }).chain[0]?.target.modelId;
     expect([pick(0), pick(1), pick(2), pick(3)]).toEqual(['a/one', 'b/two', 'c/three', 'a/one']);
   });
 
@@ -294,8 +333,14 @@ describe('planRoute - strategies', () => {
     const candidates = [target('a/heavy', { weight: 9 }), target('b/light', { weight: 1 })];
     let heavy = 0;
     for (let cursor = 0; cursor < 1000; cursor++) {
-      const winner = planRoute({ request: chat, candidates, strategy: 'weighted', requiredCapabilities: ['chat'], signals: signalsFor(), roundRobinCursor: cursor })
-        .chain[0]?.target.modelId;
+      const winner = planRoute({
+        request: chat,
+        candidates,
+        strategy: 'weighted',
+        requiredCapabilities: ['chat'],
+        signals: signalsFor(),
+        roundRobinCursor: cursor,
+      }).chain[0]?.target.modelId;
       if (winner === 'a/heavy') heavy++;
     }
     expect(heavy).toBeGreaterThan(850);
@@ -314,8 +359,16 @@ describe('planRoute - strategies', () => {
   });
 
   it('is deterministic for identical input', () => {
-    const args = { request: chat, candidates: [target('a/one'), target('b/two')], strategy: 'lowest_cost' as const, requiredCapabilities: ['chat' as const], signals: signalsFor({ 'a/one': { projectedCost: 1 }, 'b/two': { projectedCost: 1 } }) };
-    expect(planRoute(args).chain.map((c) => c.target.modelId)).toEqual(planRoute(args).chain.map((c) => c.target.modelId));
+    const args = {
+      request: chat,
+      candidates: [target('a/one'), target('b/two')],
+      strategy: 'lowest_cost' as const,
+      requiredCapabilities: ['chat' as const],
+      signals: signalsFor({ 'a/one': { projectedCost: 1 }, 'b/two': { projectedCost: 1 } }),
+    };
+    expect(planRoute(args).chain.map((c) => c.target.modelId)).toEqual(
+      planRoute(args).chain.map((c) => c.target.modelId),
+    );
   });
 });
 
@@ -367,14 +420,24 @@ describe('resolveCandidates', () => {
       allowed,
       policyModels: ['openai/a', 'anthropic/b', 'google/c'],
     });
-    expect(result.candidates.map((c) => c.modelId)).toEqual(['anthropic/b', 'openai/a', 'google/c']);
+    expect(result.candidates.map((c) => c.modelId)).toEqual([
+      'anthropic/b',
+      'openai/a',
+      'google/c',
+    ]);
     expect(result.impliedStrategy).toBe('explicit');
   });
 
   it('maps gateway/* aliases onto strategies', () => {
-    expect(resolveCandidates({ requestedModel: 'gateway/cheapest', allowed }).impliedStrategy).toBe('lowest_cost');
-    expect(resolveCandidates({ requestedModel: 'gateway/fastest', allowed }).impliedStrategy).toBe('lowest_latency');
-    expect(resolveCandidates({ requestedModel: 'gateway/auto', allowed }).impliedStrategy).toBe('highest_reliability');
+    expect(resolveCandidates({ requestedModel: 'gateway/cheapest', allowed }).impliedStrategy).toBe(
+      'lowest_cost',
+    );
+    expect(resolveCandidates({ requestedModel: 'gateway/fastest', allowed }).impliedStrategy).toBe(
+      'lowest_latency',
+    );
+    expect(resolveCandidates({ requestedModel: 'gateway/auto', allowed }).impliedStrategy).toBe(
+      'highest_reliability',
+    );
   });
 
   it('honours a per-request candidate list', () => {
@@ -387,9 +450,13 @@ describe('resolveCandidates', () => {
   });
 
   it('rejects a request listing only models the project cannot use', () => {
-    expect(() => resolveCandidates({ requestedModel: 'gateway/auto', allowed, explicitModels: ['secret/model'] })).toThrow(
-      /None of the models listed in gateway\.models/,
-    );
+    expect(() =>
+      resolveCandidates({
+        requestedModel: 'gateway/auto',
+        allowed,
+        explicitModels: ['secret/model'],
+      }),
+    ).toThrow(/None of the models listed in gateway\.models/);
   });
 
   it('returns model_not_found for an unknown reference', () => {
@@ -402,6 +469,8 @@ describe('resolveCandidates', () => {
   });
 
   it('errors when a virtual model resolves to nothing permitted', () => {
-    expect(() => resolveCandidates({ requestedModel: 'gateway/auto', allowed: [] })).toThrow(/no permitted models/);
+    expect(() => resolveCandidates({ requestedModel: 'gateway/auto', allowed: [] })).toThrow(
+      /no permitted models/,
+    );
   });
 });

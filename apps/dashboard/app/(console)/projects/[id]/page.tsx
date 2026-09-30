@@ -2,9 +2,27 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatCompact, formatCurrency, formatPercent, formatTimestamp } from '@ai-gateway/ui';
 import {
-  gatewayFetch, type ApiKeyRow, type ModelRow, type PolicyRow, type ProjectRow, type UsageReport,
+  gatewayFetch,
+  type ApiKeyRow,
+  type ModelRow,
+  type PolicyRow,
+  type ProjectRow,
+  type UsageReport,
 } from '@/lib/gateway';
-import { Badge, EmptyState, KeyValue, Mono, Notice, PageHeader, Panel, Pill, Stat, Table, Td, Th } from '@/components/ui/primitives';
+import {
+  Badge,
+  EmptyState,
+  KeyValue,
+  Mono,
+  Notice,
+  PageHeader,
+  Panel,
+  Pill,
+  Stat,
+  Table,
+  Td,
+  Th,
+} from '@/components/ui/primitives';
 import { ActionForm } from '@/components/action-form';
 import { Field, Input } from '@/components/ui/controls';
 import { updateProjectModels } from '@/app/actions';
@@ -24,15 +42,23 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   try {
     const [projectResult, keyResult, policyResult, modelResult] = await Promise.all([
       gatewayFetch<{ data: ProjectRow[] }>('/api/v1/projects'),
-      gatewayFetch<{ data: ApiKeyRow[] }>(`/api/v1/api-keys?projectId=${encodeURIComponent(id)}`).catch(() => ({ data: [] as ApiKeyRow[] })),
-      gatewayFetch<{ data: PolicyRow[] }>('/api/v1/routing-policies').catch(() => ({ data: [] as PolicyRow[] })),
-      gatewayFetch<{ data: ModelRow[] }>('/api/v1/models').catch(() => ({ data: [] as ModelRow[] })),
+      gatewayFetch<{ data: ApiKeyRow[] }>(
+        `/api/v1/api-keys?projectId=${encodeURIComponent(id)}`,
+      ).catch(() => ({ data: [] as ApiKeyRow[] })),
+      gatewayFetch<{ data: PolicyRow[] }>('/api/v1/routing-policies').catch(() => ({
+        data: [] as PolicyRow[],
+      })),
+      gatewayFetch<{ data: ModelRow[] }>('/api/v1/models').catch(() => ({
+        data: [] as ModelRow[],
+      })),
     ]);
     project = projectResult.data.find((candidate) => candidate.id === id);
     keys = keyResult.data;
     policies = policyResult.data;
     models = modelResult.data;
-    usage = await gatewayFetch<UsageReport>(`/api/v1/usage?range=7d&projectId=${encodeURIComponent(id)}`).catch(() => null);
+    usage = await gatewayFetch<UsageReport>(
+      `/api/v1/usage?range=7d&projectId=${encodeURIComponent(id)}`,
+    ).catch(() => null);
   } catch (error) {
     return (
       <>
@@ -68,7 +94,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
       {s && (
         <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label="Requests (7d)" value={formatCompact(s.totalRequests)} sub={`${formatCompact(s.failedRequests)} failed`} />
+          <Stat
+            label="Requests (7d)"
+            value={formatCompact(s.totalRequests)}
+            sub={`${formatCompact(s.failedRequests)} failed`}
+          />
           <Stat label="Success rate" value={formatPercent(s.successRate, 2)} />
           <Stat label="Tokens (7d)" value={formatCompact(s.totalTokens)} />
           <Stat
@@ -108,15 +138,20 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </KeyValue>
           <KeyValue label="Created">{formatTimestamp(project.createdAt)}</KeyValue>
           <KeyValue label="Status">
-            {project.archived ? <Badge tone="error">archived</Badge> : <Badge tone="success">active</Badge>}
+            {project.archived ? (
+              <Badge tone="error">archived</Badge>
+            ) : (
+              <Badge tone="success">active</Badge>
+            )}
           </KeyValue>
         </Panel>
 
         <Panel title="Model allowlist">
           <div className="p-4">
             <Notice tone="info" title="Deny always beats allow">
-              An allowlist here narrows the organization&apos;s; it cannot widen it. A request for a model outside the
-              list is refused with <Mono>403 MODEL_NOT_ALLOWED</Mono> rather than being routed elsewhere.
+              An allowlist here narrows the organization&apos;s; it cannot widen it. A request for a
+              model outside the list is refused with <Mono>403 MODEL_NOT_ALLOWED</Mono> rather than
+              being routed elsewhere.
             </Notice>
             <ActionForm action={updateProjectModels} submitLabel="Save allowlist" className="mt-4">
               <input type="hidden" name="projectId" value={project.id} />
@@ -149,7 +184,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           {keys.length === 0 ? (
             <EmptyState
               title="No keys for this project"
-              body={<Link href="/api-keys" className="text-accent hover:underline">Create one</Link>}
+              body={
+                <Link href="/api-keys" className="text-accent hover:underline">
+                  Create one
+                </Link>
+              }
             />
           ) : (
             <Table>
@@ -176,7 +215,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                       </span>
                     </Td>
                     <Td>
-                      <Badge tone={key.status === 'active' ? 'success' : 'error'}>{key.status}</Badge>
+                      <Badge tone={key.status === 'active' ? 'success' : 'error'}>
+                        {key.status}
+                      </Badge>
                     </Td>
                     <Td>
                       <span className="text-2xs text-zinc-500">

@@ -4,9 +4,13 @@
   "license": "MIT",
   "description": "aigw - command line interface for AI Gateway",
   "type": "module",
-  "bin": { "aigw": "./dist/bin.js" },
+  "bin": {
+    "aigw": "./dist/bin.js"
+  },
   "main": "./dist/index.js",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json && chmod +x dist/bin.js",
     "dev": "node --import tsx src/bin.ts",

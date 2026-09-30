@@ -26,7 +26,10 @@ describe('budget evaluation', () => {
   });
 
   it('blocks when the projected cost would cross the limit', () => {
-    const outcome = evaluateBudgets({ states: [buildState(budget({ limit: 100 }), 99.5)], projectedCost: 1 });
+    const outcome = evaluateBudgets({
+      states: [buildState(budget({ limit: 100 }), 99.5)],
+      projectedCost: 1,
+    });
     expect(outcome.decision).toBe('block');
   });
 
@@ -37,7 +40,10 @@ describe('budget evaluation', () => {
   });
 
   it('lets a WARN budget through but reports it', () => {
-    const outcome = evaluateBudgets({ states: [buildState(budget({ action: 'WARN' }), 200)], projectedCost: 1 });
+    const outcome = evaluateBudgets({
+      states: [buildState(budget({ action: 'WARN' }), 200)],
+      projectedCost: 1,
+    });
     expect(outcome.decision).toBe('allow');
     expect(outcome.warnings).toHaveLength(1);
   });
@@ -54,7 +60,10 @@ describe('budget evaluation', () => {
   it('lets BLOCK win over a downgrade at another scope', () => {
     const outcome = evaluateBudgets({
       states: [
-        buildState(budget({ id: 'b1', scope: 'project', action: 'FALLBACK_TO_CHEAPER_MODEL', limit: 1 }), 1),
+        buildState(
+          budget({ id: 'b1', scope: 'project', action: 'FALLBACK_TO_CHEAPER_MODEL', limit: 1 }),
+          1,
+        ),
         buildState(budget({ id: 'b2', scope: 'organization', action: 'BLOCK', limit: 1 }), 1),
       ],
       projectedCost: 1,
@@ -74,7 +83,10 @@ describe('budget evaluation', () => {
   });
 
   it('ignores disabled budgets', () => {
-    const outcome = evaluateBudgets({ states: [buildState(budget({ enabled: false, limit: 1 }), 100)], projectedCost: 50 });
+    const outcome = evaluateBudgets({
+      states: [buildState(budget({ enabled: false, limit: 1 }), 100)],
+      projectedCost: 50,
+    });
     expect(outcome.decision).toBe('allow');
     expect(outcome.states).toHaveLength(0);
   });
@@ -121,8 +133,24 @@ describe('SpendCounters', () => {
     const counters = new SpendCounters(new MemoryKV());
     await counters.record(ctx, 10, new Date('2026-03-15T00:00:00Z'));
     await counters.record(ctx, 10, new Date('2026-03-16T00:00:00Z'));
-    expect(await counters.read('org_1', 'organization', 'org_1', 'daily', new Date('2026-03-16T00:00:00Z'))).toBeCloseTo(10);
-    expect(await counters.read('org_1', 'organization', 'org_1', 'monthly', new Date('2026-03-16T00:00:00Z'))).toBeCloseTo(20);
+    expect(
+      await counters.read(
+        'org_1',
+        'organization',
+        'org_1',
+        'daily',
+        new Date('2026-03-16T00:00:00Z'),
+      ),
+    ).toBeCloseTo(10);
+    expect(
+      await counters.read(
+        'org_1',
+        'organization',
+        'org_1',
+        'monthly',
+        new Date('2026-03-16T00:00:00Z'),
+      ),
+    ).toBeCloseTo(20);
   });
 
   it('never records a non-positive amount', async () => {
@@ -142,7 +170,9 @@ describe('SpendCounters', () => {
   it('reads the counter a budget points at', async () => {
     const counters = new SpendCounters(new MemoryKV());
     await counters.record(ctx, 7);
-    expect(await counters.readForBudget(budget({ scope: 'project', scopeId: 'proj_1' }))).toBeCloseTo(7);
+    expect(
+      await counters.readForBudget(budget({ scope: 'project', scopeId: 'proj_1' })),
+    ).toBeCloseTo(7);
   });
 });
 
@@ -177,7 +207,15 @@ describe('usage summary', () => {
   it('aggregates requests, tokens, cost and rates', () => {
     const summary = summarize([
       record(),
-      record({ id: 'r2', status: 'error', errorType: 'provider_timeout', httpStatus: 504, latencyMs: 500, usage: undefined, estimatedCost: 0 }),
+      record({
+        id: 'r2',
+        status: 'error',
+        errorType: 'provider_timeout',
+        httpStatus: 504,
+        latencyMs: 500,
+        usage: undefined,
+        estimatedCost: 0,
+      }),
       record({ id: 'r3', cacheStatus: 'exact_hit', latencyMs: 5 }),
       record({ id: 'r4', fallbackUsed: true }),
     ]);
@@ -225,7 +263,10 @@ describe('time series', () => {
     const now = new Date('2026-03-15T12:00:00Z');
     const bounds = resolveRange('1h', undefined, undefined, now);
     const points = timeSeries(
-      [record({ createdAt: '2026-03-15T11:30:00.000Z' }), record({ id: 'r2', createdAt: '2026-03-15T11:30:30.000Z' })],
+      [
+        record({ createdAt: '2026-03-15T11:30:00.000Z' }),
+        record({ id: 'r2', createdAt: '2026-03-15T11:30:30.000Z' }),
+      ],
       bounds,
     );
     expect(points.length).toBeGreaterThan(50);
@@ -253,7 +294,13 @@ describe('time series', () => {
 describe('grouping and provider comparison', () => {
   const rows = [
     record({ resolvedProviderId: 'openai', latencyMs: 100 }),
-    record({ id: 'r2', resolvedProviderId: 'openai', latencyMs: 300, status: 'error', errorType: 'provider_timeout' }),
+    record({
+      id: 'r2',
+      resolvedProviderId: 'openai',
+      latencyMs: 300,
+      status: 'error',
+      errorType: 'provider_timeout',
+    }),
     record({ id: 'r3', resolvedProviderId: 'anthropic', latencyMs: 200 }),
   ];
 

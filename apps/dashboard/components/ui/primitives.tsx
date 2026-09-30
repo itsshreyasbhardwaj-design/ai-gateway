@@ -65,7 +65,15 @@ export function Badge({
   );
 }
 
-export function Mono({ children, className, title }: { children: ReactNode; className?: string; title?: string }) {
+export function Mono({
+  children,
+  className,
+  title,
+}: {
+  children: ReactNode;
+  className?: string;
+  title?: string;
+}) {
   return (
     <span title={title} className={cn('font-mono text-xs text-zinc-300', className)}>
       {children}
@@ -94,7 +102,13 @@ export function Stat({
   sub?: ReactNode;
 }) {
   const valueTone =
-    tone === 'warn' ? 'text-amber-300' : tone === 'danger' ? 'text-red-300' : tone === 'good' ? 'text-emerald-300' : 'text-zinc-100';
+    tone === 'warn'
+      ? 'text-amber-300'
+      : tone === 'danger'
+        ? 'text-red-300'
+        : tone === 'good'
+          ? 'text-emerald-300'
+          : 'text-zinc-100';
   return (
     <div className="panel px-4 py-3">
       <div className="flex items-baseline justify-between gap-2">
@@ -111,7 +125,15 @@ export function Stat({
   );
 }
 
-export function EmptyState({ title, body, action }: { title: string; body?: ReactNode; action?: ReactNode }) {
+export function EmptyState({
+  title,
+  body,
+  action,
+}: {
+  title: string;
+  body?: ReactNode;
+  action?: ReactNode;
+}) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 px-6 py-14 text-center">
       <p className="text-sm font-medium text-zinc-300">{title}</p>
@@ -161,7 +183,17 @@ export function Th({
   align?: 'left' | 'right' | 'center';
   className?: string;
 }) {
-  return <th className={cn(align === 'right' && 'text-right', align === 'center' && 'text-center', className)}>{children}</th>;
+  return (
+    <th
+      className={cn(
+        align === 'right' && 'text-right',
+        align === 'center' && 'text-center',
+        className,
+      )}
+    >
+      {children}
+    </th>
+  );
 }
 
 export function Td({
@@ -178,7 +210,11 @@ export function Td({
   return (
     <td
       title={title}
-      className={cn(align === 'right' && 'text-right', align === 'center' && 'text-center', className)}
+      className={cn(
+        align === 'right' && 'text-right',
+        align === 'center' && 'text-center',
+        className,
+      )}
     >
       {children}
     </td>
@@ -191,12 +227,21 @@ export function Td({
  * Used for budget utilization and share-of-traffic, where the number matters
  * more than the bar - so the bar is subordinate and the value is always shown.
  */
-export function Meter({ value, tone = 'default' }: { value: number; tone?: 'default' | 'warn' | 'danger' }) {
+export function Meter({
+  value,
+  tone = 'default',
+}: {
+  value: number;
+  tone?: 'default' | 'warn' | 'danger';
+}) {
   const pct = Math.max(0, Math.min(100, value * 100));
   const fill = tone === 'danger' ? 'bg-red-500' : tone === 'warn' ? 'bg-amber-400' : 'bg-accent';
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800" role="presentation">
-      <div className={cn('h-full rounded-full transition-all', fill)} style={{ width: `${pct}%` }} />
+      <div
+        className={cn('h-full rounded-full transition-all', fill)}
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }
@@ -214,7 +259,9 @@ export function PageHeader({
     <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 className="text-lg font-semibold tracking-tight text-zinc-100">{title}</h1>
-        {description && <p className="mt-1 max-w-3xl text-xs leading-relaxed text-zinc-500">{description}</p>}
+        {description && (
+          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-zinc-500">{description}</p>
+        )}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>
@@ -232,7 +279,12 @@ export function KeyValue({ label, children }: { label: string; children: ReactNo
 
 export function Pill({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <span className={cn('rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-2xs text-zinc-400', className)}>
+    <span
+      className={cn(
+        'rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-2xs text-zinc-400',
+        className,
+      )}
+    >
       {children}
     </span>
   );

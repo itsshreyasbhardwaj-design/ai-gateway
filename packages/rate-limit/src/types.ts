@@ -10,7 +10,8 @@ export const WINDOW_SECONDS: Record<RateLimitWindow, number> = {
 };
 
 /** What the limit is counted against. */
-export type RateLimitSubject = 'api_key' | 'user' | 'project' | 'organization' | 'model' | 'provider';
+export type RateLimitSubject =
+  'api_key' | 'user' | 'project' | 'organization' | 'model' | 'provider';
 
 export interface RateLimitRule {
   id: string;

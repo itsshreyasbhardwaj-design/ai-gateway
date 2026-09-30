@@ -1,4 +1,9 @@
-import { systemClock, type Clock, type GatewayErrorType, type ProviderHealthState } from '@ai-gateway/core';
+import {
+  systemClock,
+  type Clock,
+  type GatewayErrorType,
+  type ProviderHealthState,
+} from '@ai-gateway/core';
 
 export interface HealthSample {
   at: number;
@@ -64,7 +69,12 @@ export class HealthTracker {
 
   record(key: string, sample: Omit<HealthSample, 'at'> & { at?: number }): void {
     const list = this.samples.get(key) ?? [];
-    list.push({ at: sample.at ?? this.clock.now(), ok: sample.ok, latencyMs: sample.latencyMs, errorType: sample.errorType });
+    list.push({
+      at: sample.at ?? this.clock.now(),
+      ok: sample.ok,
+      latencyMs: sample.latencyMs,
+      errorType: sample.errorType,
+    });
     if (list.length > this.config.maxSamples) list.splice(0, list.length - this.config.maxSamples);
     this.samples.set(key, list);
   }
