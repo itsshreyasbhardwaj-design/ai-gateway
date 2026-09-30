@@ -6,6 +6,14 @@
   "dependencies": {
     "@ai-gateway/core": "workspace:*",
     "@ai-gateway/gateway": "workspace:*",
-    "@ai-gateway/providers": "workspace:*"
+    "@ai-gateway/providers": "workspace:*",
+    "@ai-gateway/cache": "workspace:*",
+    "@ai-gateway/config": "workspace:*",
+    "@ai-gateway/database": "workspace:*",
+    "@ai-gateway/observability": "workspace:*",
+    "@ai-gateway/policies": "workspace:*",
+    "@ai-gateway/pricing": "workspace:*",
+    "@ai-gateway/provider-sdk": "workspace:*",
+    "@ai-gateway/security": "workspace:*"
   }
 }
