@@ -20,7 +20,7 @@ jobs:
       ENCRYPTION_KEY: ci-encryption-key-0123456789abcdef
       API_KEY_PEPPER: ci-pepper-0123456789abcdef
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
