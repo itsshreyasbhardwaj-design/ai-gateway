@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@ai-gateway/core": "workspace:*",
-    "pg": "^8.13.1",
+    "pg": "^8.23.1",
     "@ai-gateway/usage": "workspace:*",
     "@ai-gateway/pricing": "workspace:*"
   },
