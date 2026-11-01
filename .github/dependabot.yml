@@ -11,45 +11,45 @@ version: 2
 #     this file and arrive as soon as an advisory is published.
 
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: 'weekly'
+      day: 'monday'
     open-pull-requests-limit: 5
     groups:
       security:
         applies-to: security-updates
-        patterns: ["*"]
+        patterns: ['*']
       minor-and-patch:
         applies-to: version-updates
-        update-types: ["minor","patch"]
-        patterns: ["*"]
-  - package-ecosystem: "github-actions"
-    directory: "/"
+        update-types: ['minor', 'patch']
+        patterns: ['*']
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: 'weekly'
+      day: 'monday'
     open-pull-requests-limit: 3
     groups:
       security:
         applies-to: security-updates
-        patterns: ["*"]
+        patterns: ['*']
       minor-and-patch:
         applies-to: version-updates
-        update-types: ["minor","patch"]
-        patterns: ["*"]
-  - package-ecosystem: "docker"
-    directory: "/"
+        update-types: ['minor', 'patch']
+        patterns: ['*']
+  - package-ecosystem: 'docker'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: 'weekly'
+      day: 'monday'
     open-pull-requests-limit: 3
     groups:
       security:
         applies-to: security-updates
-        patterns: ["*"]
+        patterns: ['*']
       minor-and-patch:
         applies-to: version-updates
-        update-types: ["minor","patch"]
-        patterns: ["*"]
+        update-types: ['minor', 'patch']
+        patterns: ['*']
