@@ -12,6 +12,12 @@
 # If a finding here ever turns out to be real, delete its line rather than
 # editing it, so the scanner reports it again.
 
+# docs/observability.md  [generic-api-key]
+docs/observability.md:generic-api-key:22
+
+# docs/observability.md  [generic-api-key]
+cdacbfb2dda70c45dba529d82fc9377d0ad0a119:docs/observability.md:generic-api-key:22
+
 # packages/observability/src/observability.test.ts  [generic-api-key]
 packages/observability/src/observability.test.ts:generic-api-key:234
 
