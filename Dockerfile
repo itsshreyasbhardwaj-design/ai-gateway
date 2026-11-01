@@ -8,7 +8,7 @@
 #   docker build --target dashboard -t ai-gateway/dashboard .
 
 # ── deps ─────────────────────────────────────────────────────────────────────
-FROM node:22-alpine AS deps
+FROM node:26-alpine AS deps
 RUN corepack enable
 WORKDIR /app
 
@@ -48,7 +48,7 @@ COPY . .
 RUN pnpm build
 
 # ── gateway ──────────────────────────────────────────────────────────────────
-FROM node:22-alpine AS gateway
+FROM node:26-alpine AS gateway
 RUN corepack enable && apk add --no-cache curl tini
 WORKDIR /app
 ENV NODE_ENV=production
@@ -73,7 +73,7 @@ ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "apps/gateway/dist/server.js"]
 
 # ── worker ───────────────────────────────────────────────────────────────────
-FROM node:22-alpine AS worker
+FROM node:26-alpine AS worker
 RUN corepack enable && apk add --no-cache tini
 WORKDIR /app
 ENV NODE_ENV=production
@@ -90,13 +90,13 @@ ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "apps/worker/dist/main.js"]
 
 # ── dashboard ────────────────────────────────────────────────────────────────
-FROM node:22-alpine AS dashboard-build
+FROM node:26-alpine AS dashboard-build
 RUN corepack enable
 WORKDIR /app
 COPY --from=build /app ./
 RUN pnpm --filter @ai-gateway/dashboard build
 
-FROM node:22-alpine AS dashboard
+FROM node:26-alpine AS dashboard
 RUN apk add --no-cache curl tini
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0
